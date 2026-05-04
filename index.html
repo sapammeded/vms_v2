@@ -1,230 +1,912 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VMS v2 FINAL</title>
-
-<style>
-body{font-family:Segoe UI;background:#f4f7f6;padding:20px}
-.vms{display:grid;grid-template-columns:350px 1fr;gap:20px}
-.box{background:#fff;padding:20px;border-radius:8px}
-button{padding:8px;border:none;background:#0984e3;color:#fff;cursor:pointer}
-.status{padding:4px 8px;border-radius:4px;color:#fff;font-size:12px}
-.PENDING{background:#fdcb6e;color:#000}
-.APPROVED{background:#0984e3}
-.INSIDE{background:#00b894}
-.OVERDUE{background:#d63031}
-.OUT{background:#636e72}
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>VMS.v2 | Enterprise Hardened System</title>
+    <!-- Font Awesome 6 (Free) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+        body {
+            background: #f0f2f5;
+            margin: 0;
+            padding: 0;
+        }
+        .vms-app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .mobile-header {
+            background: #0b2b40;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .menu-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.6rem;
+            cursor: pointer;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100%;
+            background: #11212e;
+            color: #e0e0e0;
+            transition: left 0.3s ease;
+            z-index: 30;
+            padding: 1.5rem 1rem;
+            overflow-y: auto;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.3);
+        }
+        .sidebar.open {
+            left: 0;
+        }
+        .sidebar .close-sidebar {
+            text-align: right;
+            font-size: 1.8rem;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+        .sidebar a, .site-selector {
+            display: block;
+            padding: 0.75rem 0.5rem;
+            color: #ddd;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .sidebar a i, .site-selector i {
+            width: 28px;
+        }
+        .sidebar a.active, .sidebar a:hover {
+            background: #1e3a4d;
+            color: white;
+        }
+        .main-content {
+            flex: 1;
+            padding: 1rem;
+            transition: margin 0.2s;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border-radius: 1rem;
+            padding: 0.8rem;
+            text-align: center;
+            border-left: 4px solid #2c7da0;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 0.65rem;
+            border-radius: 12px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background: #2c7da0;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button.danger {
+            background: #a11d33;
+        }
+        button.secondary {
+            background: #4a627a;
+        }
+        .log-table {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.6rem;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+        }
+        .toast-notif {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1f2937;
+            color: white;
+            padding: 0.8rem 1.2rem;
+            border-radius: 40px;
+            z-index: 999;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .progress-limit {
+            background: #e9ecef;
+            border-radius: 30px;
+            height: 12px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .progress-fill {
+            background: #2c7da0;
+            width: 0%;
+            height: 100%;
+        }
+        .scanner-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        #scanner {
+            width: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .badge-preview {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        @media (min-width: 768px) {
+            .mobile-header .menu-toggle { display: none; }
+            .sidebar {
+                position: relative;
+                left: 0;
+                width: 260px;
+                transform: none;
+                height: auto;
+                border-radius: 0;
+            }
+            .vms-app { flex-direction: row; }
+            .main-content { flex: 1; }
+            .close-sidebar { display: none; }
+        }
+    </style>
 </head>
 <body>
-
-<h2>VMS v2</h2>
-
-<div class="vms">
-
-<div class="box">
-<h3>Input Visitor</h3>
-<input id="nama" placeholder="Nama">
-<input id="pic" placeholder="PIC">
-<button onclick="VMS_UI_Create()">CREATE</button>
-
-<h3>Log</h3>
-<div id="log"></div>
+<div class="vms-app">
+    <div class="sidebar" id="sidebarPanel">
+        <div class="close-sidebar" id="closeSidebarBtn"><i class="fas fa-times"></i></div>
+        <div style="margin-bottom: 20px;"><h3>VMS.v2</h3><small>Hardened System</small></div>
+        <div class="site-selector" id="siteSelectorArea">
+            <i class="fas fa-building"></i> Site: <span id="currentSiteLabel">Site A</span>
+            <select id="siteSwitchSelect" style="margin-top: 8px; background:#1f3a47; color:white;">
+                <option value="Site A">Site A</option>
+                <option value="Site B">Site B</option>
+                <option value="Site C">Site C</option>
+            </select>
+            <button id="renameSiteBtn" class="secondary" style="margin-top:8px; background:#2c5a6e;"><i class="fas fa-edit"></i> Rename Site</button>
+        </div>
+        <a href="#" data-nav="dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a href="#" data-nav="register"><i class="fas fa-user-plus"></i> Registrasi</a>
+        <a href="#" data-nav="scan"><i class="fas fa-camera"></i> Security Scan</a>
+        <a href="#" data-nav="logs"><i class="fas fa-history"></i> Audit Logs</a>
+        <a href="#" data-nav="settings"><i class="fas fa-database"></i> Manajemen Data</a>
+        <hr style="margin: 1rem 0;">
+        <div><i class="fas fa-key"></i> Lisensi: <span id="licenseTypeSpan">DEMO</span></div>
+        <div>Limit: <span id="visitorCountSpan">0</span> / <span id="visitorLimitSpan">10</span></div>
+        <div class="progress-limit"><div class="progress-fill" id="limitProgressFill"></div></div>
+        <div><i class="fas fa-microchip"></i> Device: <span id="deviceTypeSpan">LOBBY</span></div>
+        <div><i class="fas fa-building"></i> Company: <span id="companyNameSpan">PT Enterprise</span></div>
+    </div>
+    <div class="main-content">
+        <div class="mobile-header">
+            <button class="menu-toggle" id="menuToggleBtn"><i class="fas fa-bars"></i></button>
+            <span><i class="fas fa-shield-alt"></i> VMS Enterprise</span>
+            <span></span>
+        </div>
+        <div id="dynamicViewContainer">Loading...</div>
+    </div>
 </div>
-
-<div class="box">
-<h3>Monitoring</h3>
-<table width="100%">
-<thead>
-<tr><th>Nama</th><th>Status</th><th>Aksi</th></tr>
-</thead>
-<tbody id="table"></tbody>
-</table>
-</div>
-
-</div>
+<div id="toastRoot"></div>
 
 <!-- ========================= -->
-<!-- [VMS-V2][BLOCK-001][CONFIG][START] -->
+<!-- [VMS-V2][BLOCK-001][CORE_CONFIG][START] -->
+<!-- ========================= -->
 <script>
 const VMS_CONFIG = {
-apiUrl:"https://script.google.com/macros/s/AKfycbwwGpmVob5xxtoml6jqKVpaQhFdgoU6B8A_RLAzzJUL6rZC2s9Wcmk0_pn-opmdZguRAQ/exec",
-overstay:60,
-mode:"FREE"
+    API_URL: "https://script.google.com/macros/s/AKfycbwwGpmVob5xxtoml6jqKVpaQhFdgoU6B8A_RLAzzJUL6rZC2s9Wcmk0_pn-opmdZguRAQ/exec",
+    LICENSE_KEY: "COMPANY-001-SECURE",
+    COMPANY: "PT Enterprise",
+    SITE: "Site A",
+    DEVICE: "LOBBY",
+    REGISTERED_DEVICES: ["LOBBY"],
+    CONFIG_LOCKED: false
 };
+function VMS_CONFIG_UpdateLicense(key){ 
+    if(VMS_CONFIG.CONFIG_LOCKED && VMS_ENGINE_GetLicenseType() !== "PRO"){
+        throw new Error("ONLY PRO CAN CHANGE CONFIG");
+    }
+    VMS_CONFIG.LICENSE_KEY = key; 
+    localStorage.setItem("VMS_LICENSE_KEY", key); 
+}
+function VMS_CONFIG_UpdateCompany(comp){ 
+    if(VMS_CONFIG.CONFIG_LOCKED && VMS_ENGINE_GetLicenseType() !== "PRO"){
+        throw new Error("ONLY PRO CAN CHANGE CONFIG");
+    }
+    VMS_CONFIG.COMPANY = comp; 
+    localStorage.setItem("VMS_COMPANY", comp); 
+}
+function VMS_CONFIG_UpdateDevice(dev){ 
+    if(VMS_CONFIG.CONFIG_LOCKED && VMS_ENGINE_GetLicenseType() !== "PRO"){
+        throw new Error("ONLY PRO CAN CHANGE CONFIG");
+    }
+    VMS_CONFIG.DEVICE = dev; 
+    localStorage.setItem("VMS_DEVICE", dev); 
+}
+function VMS_CONFIG_LockConfig(lock){ VMS_CONFIG.CONFIG_LOCKED = lock; }
+function VMS_CONFIG_LoadPersist(){
+    const savedLic = localStorage.getItem("VMS_LICENSE_KEY");
+    if(savedLic) VMS_CONFIG.LICENSE_KEY = savedLic;
+    const savedComp = localStorage.getItem("VMS_COMPANY");
+    if(savedComp) VMS_CONFIG.COMPANY = savedComp;
+    const savedDev = localStorage.getItem("VMS_DEVICE");
+    if(savedDev) VMS_CONFIG.DEVICE = savedDev;
+    const savedSites = localStorage.getItem("VMS_SITES");
+    if(savedSites) VMS_CONFIG.SITE = savedSites;
+    const locked = localStorage.getItem("VMS_CONFIG_LOCKED");
+    if(locked === "true") VMS_CONFIG.CONFIG_LOCKED = true;
+}
+VMS_CONFIG_LoadPersist();
 </script>
-<!-- [VMS-V2][BLOCK-001][CONFIG][END] -->
-
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-001][CORE_CONFIG][END] -->
+<!-- ========================= -->
 
 <!-- ========================= -->
-<!-- [VMS-V2][BLOCK-002][STATE][START] -->
-<script>
-const VMS_STATE = {
-visitors:[],
-logs:[]
-};
-</script>
-<!-- [VMS-V2][BLOCK-002][STATE][END] -->
-
-
+<!-- [VMS-V2][BLOCK-002][STATE_DATA_MODEL][START] -->
 <!-- ========================= -->
-<!-- [VMS-V2][BLOCK-003][ENGINE][START] -->
 <script>
-
-function VMS_ENGINE_Log(msg){
-let t=new Date().toLocaleTimeString();
-VMS_STATE.logs.unshift(`[${t}] ${msg}`);
-VMS_UI_RenderLog();
-}
-
-function VMS_ENGINE_SetStatus(v,newStatus){
-const flow={
-"PENDING":["APPROVED"],
-"APPROVED":["INSIDE"],
-"INSIDE":["OUT"],
-"OVERDUE":["OUT"]
-};
-
-if(!flow[v.Status]?.includes(newStatus)){
-VMS_ENGINE_Log("INVALID FLOW "+v.Nama);
-return;
-}
-
-v.Status=newStatus;
-
-if(newStatus==="INSIDE") v.Checkin=new Date();
-if(newStatus==="OUT") v.Checkout=new Date();
-
-VMS_API_Update(v);
-}
-
-function VMS_ENGINE_CheckOver(){
-let now=new Date(),changed=false;
-
-VMS_STATE.visitors.forEach(v=>{
-if(v.Status==="INSIDE" && v.Checkin){
-let m=(now-new Date(v.Checkin))/60000;
-if(m>VMS_CONFIG.overstay && v.Status!=="OVERDUE"){
-v.Status="OVERDUE";
-changed=true;
-}
-}
-});
-
-if(changed)VMS_UI_Render();
-}
-
-</script>
-<!-- [VMS-V2][BLOCK-003][ENGINE][END] -->
-
-
-<!-- ========================= -->
-<!-- [VMS-V2][BLOCK-004][API][START] -->
-<script>
-
-async function VMS_API_Load(){
-let r=await fetch(VMS_CONFIG.apiUrl);
-let j=await r.json();
-VMS_STATE.visitors=j.data || [];
-VMS_UI_Render();
-}
-
-async function VMS_API_Create(data){
-await fetch(VMS_CONFIG.apiUrl,{
-method:"POST",
-body:JSON.stringify(data)
-});
-}
-
-async function VMS_API_Update(v){
-await fetch(VMS_CONFIG.apiUrl,{
-method:"POST",
-body:JSON.stringify({
-type:"UPDATE",
-LogID:v.LogID,
-Status:v.Status,
-Checkin:v.Status==="INSIDE",
-Checkout:v.Status==="OUT"
-})
-});
-}
-
-</script>
-<!-- [VMS-V2][BLOCK-004][API][END] -->
-
-
-<!-- ========================= -->
-<!-- [VMS-V2][BLOCK-005][UI][START] -->
-<script>
-
-function VMS_UI_Create(){
-let nama=document.getElementById("nama").value;
-let pic=document.getElementById("pic").value;
-
-if(!nama||!pic)return alert("isi data");
-
-let obj={
-Nama:nama,
-PIC:pic,
-Status:"PENDING"
+let VMS_STATE = {
+    visitors: [],
+    filtered: [],
+    site: VMS_CONFIG.SITE,
+    view: "dashboard",
+    registeredDevices: [...VMS_CONFIG.REGISTERED_DEVICES]
 };
 
-VMS_API_Create(obj);
-VMS_ENGINE_Log("CREATE "+nama);
-setTimeout(VMS_API_Load,500);
+function VMS_STATE_Set(data){
+    VMS_STATE.visitors = data || [];
+    VMS_STATE.filtered = data || [];
 }
-
-function VMS_UI_Render(){
-let el=document.getElementById("table");
-el.innerHTML="";
-
-VMS_STATE.visitors.forEach(v=>{
-let tr=document.createElement("tr");
-
-tr.innerHTML=`
-<td>${v.Nama}</td>
-<td><span class="status ${v.Status}">${v.Status}</span></td>
-<td>
-<button onclick="VMS_ENGINE_SetStatus(${JSON.stringify(v)},'APPROVED')">OK</button>
-<button onclick="VMS_ENGINE_SetStatus(${JSON.stringify(v)},'INSIDE')">IN</button>
-<button onclick="VMS_ENGINE_SetStatus(${JSON.stringify(v)},'OUT')">OUT</button>
-</td>
-`;
-
-el.appendChild(tr);
-});
+function VMS_STATE_Filter(keyword){
+    VMS_STATE.filtered = VMS_STATE.visitors.filter(v =>
+        (v.Nama||"").toLowerCase().includes(keyword) ||
+        (v.LogID||"").toLowerCase().includes(keyword)
+    );
 }
-
-function VMS_UI_RenderLog(){
-document.getElementById("log").innerHTML=
-VMS_STATE.logs.join("<br>");
+function VMS_STATE_SetSite(name){
+    VMS_STATE.site = name;
+    VMS_CONFIG.SITE = name;
+    localStorage.setItem("VMS_SITES", name);
 }
-
+function VMS_STATE_GetSite(){ return VMS_STATE.site; }
+function VMS_STATE_SetView(view){ VMS_STATE.view = view; }
+function VMS_STATE_GetView(){ return VMS_STATE.view; }
+function VMS_STATE_AddDevice(device){
+    if(!VMS_STATE.registeredDevices.includes(device)){
+        VMS_STATE.registeredDevices.push(device);
+    }
+}
+function VMS_STATE_IsDeviceRegistered(device){ return VMS_STATE.registeredDevices.includes(device); }
 </script>
-<!-- [VMS-V2][BLOCK-005][UI][END] -->
-
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-002][STATE_DATA_MODEL][END] -->
+<!-- ========================= -->
 
 <!-- ========================= -->
-<!-- [VMS-V2][BLOCK-006][LOOP][START] -->
+<!-- [VMS-V2][BLOCK-003][CORE_ENGINE][START] -->
+<!-- ========================= -->
 <script>
-setInterval(VMS_ENGINE_CheckOver,10000);
+function VMS_ENGINE_GetLicenseType(){
+    const key = VMS_CONFIG.LICENSE_KEY || "";
+    if(key.includes("PRO")) return "PRO";
+    if(key.includes("BASIC")) return "BASIC";
+    return "DEMO";
+}
+function VMS_ENGINE_GetMaxVisitors(){
+    const type = VMS_ENGINE_GetLicenseType();
+    if(type === "DEMO") return 10;
+    if(type === "BASIC") return 200;
+    return Infinity;
+}
+function VMS_ENGINE_GetMaxDevices(){
+    const type = VMS_ENGINE_GetLicenseType();
+    if(type === "DEMO") return 1;
+    if(type === "BASIC") return 3;
+    return Infinity;
+}
+function VMS_ENGINE_CheckDeviceLimit(){
+    const maxDevices = VMS_ENGINE_GetMaxDevices();
+    const currentDevice = VMS_CONFIG.DEVICE;
+    if(!VMS_STATE.registeredDevices.includes(currentDevice)){
+        if(VMS_STATE.registeredDevices.length >= maxDevices){
+            return { ok: false, error: "DEVICE_LIMIT" };
+        }
+        VMS_STATE_AddDevice(currentDevice);
+    }
+    return { ok: true };
+}
+function VMS_ENGINE_ValidateLicenseCompatibility(remoteLicense, remoteCompany){
+    if(remoteLicense !== VMS_CONFIG.LICENSE_KEY) return false;
+    if(remoteCompany !== VMS_CONFIG.COMPANY) return false;
+    return true;
+}
+function VMS_ENGINE_SetSite(name){
+    if(!name || name.trim()==="") return {ok:false};
+    VMS_STATE_SetSite(name.trim());
+    return { ok:true, site:name.trim() };
+}
+function VMS_ENGINE_GetSite(){ return VMS_STATE_GetSite(); }
+function VMS_ENGINE_Attach(payload){
+    const deviceCheck = VMS_ENGINE_CheckDeviceLimit();
+    if(!deviceCheck.ok){
+        return { error: deviceCheck.error };
+    }
+    return {
+        ...payload,
+        license: VMS_CONFIG.LICENSE_KEY,
+        company: VMS_CONFIG.COMPANY,
+        device: VMS_CONFIG.DEVICE,
+        site: VMS_ENGINE_GetSite()
+    };
+}
+function VMS_ENGINE_CheckLimit(){
+    const max = VMS_ENGINE_GetMaxVisitors();
+    const currentSiteVisitors = VMS_STATE.visitors.filter(v => v.Site === VMS_ENGINE_GetSite() && v.Status !== "OUT").length;
+    return currentSiteVisitors < max;
+}
+function VMS_ENGINE_BuildRegister(form, photo){
+    if(!form.nama || !form.perusahaan){
+        return { error: "VALIDATION_NAME_COMPANY_REQUIRED" };
+    }
+    if(!VMS_ENGINE_CheckLimit()) return { error:"LIMIT" };
+    const deviceCheck = VMS_ENGINE_CheckDeviceLimit();
+    if(!deviceCheck.ok) return { error: deviceCheck.error };
+    return VMS_ENGINE_Attach({
+        type: "REGISTER",
+        Nama: form.nama,
+        Perusahaan: form.perusahaan,
+        Kategori: form.kategori,
+        Tujuan: form.tujuan,
+        PIC: form.pic,
+        Dept: form.dept,
+        Start: form.start,
+        Exp: form.exp,
+        Keterangan: photo || "",
+        Site: VMS_ENGINE_GetSite()
+    });
+}
+function VMS_ENGINE_BuildUpdate(id, status){
+    return VMS_ENGINE_Attach({
+        type: "UPDATE",
+        LogID: id,
+        Status: status,
+        Site: VMS_ENGINE_GetSite()
+    });
+}
+function VMS_ENGINE_Stats(){
+    const siteVisitors = VMS_STATE.visitors.filter(v => v.Site === VMS_ENGINE_GetSite());
+    return {
+        total: siteVisitors.length,
+        inside: siteVisitors.filter(v => v.Status === "INSIDE").length
+    };
+}
+function VMS_ENGINE_GetVisitorsBySite(){
+    return VMS_STATE.visitors.filter(v => v.Site === VMS_ENGINE_GetSite());
+}
+function VMS_ENGINE_GenerateSequenceNumber(){
+    const today = new Date().toISOString().slice(0,10).replace(/-/g,"");
+    const count = VMS_STATE.visitors.length + 1;
+    return `VMS/${today}/${String(count).padStart(4,"0")}`;
+}
 </script>
-<!-- [VMS-V2][BLOCK-006][LOOP][END] -->
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-003][CORE_ENGINE][END] -->
+<!-- ========================= -->
 
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-004][API_BRIDGE][START] -->
+<!-- ========================= -->
+<script>
+async function VMS_API_GET(){
+    const payload = VMS_ENGINE_Attach({ type: "GET_ALL" });
+    if(payload.error) return { success: false, error: payload.error };
+    const r = await fetch(VMS_CONFIG.API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    return await r.json();
+}
+async function VMS_API_POST(payload){
+    const enriched = VMS_ENGINE_Attach(payload);
+    if(enriched.error) return { success: false, error: enriched.error };
+    const r = await fetch(VMS_CONFIG.API_URL,{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(enriched)
+    });
+    return await r.json();
+}
+async function VMS_API_LOAD(){
+    const res = await VMS_API_GET();
+    if(res.success && res.data){
+        const compatible = VMS_ENGINE_ValidateLicenseCompatibility(res.license, res.company);
+        if(!compatible){
+            console.warn("License/Company mismatch");
+            VMS_UI_Toast("License/Company mismatch! Data tidak sinkron.", "error");
+            VMS_STATE_Set([]);
+        } else {
+            VMS_STATE_Set(res.data);
+        }
+    } else if(res.error === "DEVICE_LIMIT"){
+        VMS_UI_Toast("DEVICE LIMIT EXCEEDED! Hubungi admin.", "error");
+    }
+}
+async function VMS_API_RegisterDevice(deviceName){
+    const payload = VMS_ENGINE_Attach({ type: "REGISTER_DEVICE", device: deviceName });
+    const res = await VMS_API_POST(payload);
+    return res;
+}
+</script>
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-004][API_BRIDGE][END] -->
+<!-- ========================= -->
+
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-005][UI_MODULE][START] -->
+<!-- ========================= -->
+<script>
+let VMS_CHART = null;
+function VMS_UI_Toast(msg, type="info"){
+    const toast = document.createElement("div");
+    toast.className = "toast-notif";
+    toast.innerText = msg;
+    document.getElementById("toastRoot").appendChild(toast);
+    setTimeout(()=>toast.remove(), 2500);
+}
+function VMS_UI_UpdateSidebarInfo(){
+    const license = VMS_ENGINE_GetLicenseType();
+    const stats = VMS_ENGINE_Stats();
+    const max = VMS_ENGINE_GetMaxVisitors();
+    document.getElementById("licenseTypeSpan").innerText = license;
+    document.getElementById("visitorCountSpan").innerText = stats.total;
+    document.getElementById("visitorLimitSpan").innerText = max === Infinity ? "∞" : max;
+    const percent = max === Infinity ? 0 : (stats.total / max) * 100;
+    document.getElementById("limitProgressFill").style.width = Math.min(100, percent) + "%";
+    document.getElementById("deviceTypeSpan").innerText = VMS_CONFIG.DEVICE;
+    document.getElementById("companyNameSpan").innerText = VMS_CONFIG.COMPANY;
+    document.getElementById("currentSiteLabel").innerText = VMS_ENGINE_GetSite();
+}
+function VMS_UI_RenderDashboard(){
+    const stats = VMS_ENGINE_Stats();
+    const license = VMS_ENGINE_GetLicenseType();
+    const siteVisitors = VMS_ENGINE_GetVisitorsBySite();
+    const categoryCount = { UMUM:0, VIP:0, VVIP:0 };
+    siteVisitors.forEach(v => { if(categoryCount[v.Kategori]) categoryCount[v.Kategori]++; else categoryCount[v.Kategori]=1; });
+    const html = `
+    <div class="card">
+        <h3><i class="fas fa-chart-line"></i> Dashboard (${license}) - ${VMS_ENGINE_GetSite()}</h3>
+        <div class="stats-grid">
+            <div class="stat-card"><h4>Total Registrasi</h4><span>${stats.total}</span></div>
+            <div class="stat-card"><h4>Inside</h4><span>${stats.inside}</span></div>
+        </div>
+        <canvas id="categoryChart"></canvas>
+    </div>`;
+    document.getElementById("dynamicViewContainer").innerHTML = html;
+    const ctx = document.getElementById("categoryChart");
+    if(ctx){
+        if(VMS_CHART) VMS_CHART.destroy();
+        VMS_CHART = new Chart(ctx, { type: "doughnut", data: { labels: ["UMUM","VIP","VVIP"], datasets: [{ data: [categoryCount.UMUM||0, categoryCount.VIP||0, categoryCount.VVIP||0], backgroundColor: ["#2c7da0","#61a5c2","#89c2d9"] }] } });
+    }
+}
+function VMS_UI_RenderRegister(){
+    const html = `
+    <div class="card">
+        <h3><i class="fas fa-user-plus"></i> Registrasi Pengunjung</h3>
+        <div class="form-group"><label>Nama *</label><input id="regNama" placeholder="Nama Lengkap"></div>
+        <div class="form-group"><label>Perusahaan *</label><input id="regPerusahaan" placeholder="Perusahaan"></div>
+        <div class="form-group"><label>Kategori</label><select id="regKategori"><option>UMUM</option><option>VIP</option><option>VVIP</option></select></div>
+        <div class="form-group"><label>Tujuan</label><input id="regTujuan" placeholder="Meeting / Interview / Service"></div>
+        <div class="form-group"><label>PIC</label><input id="regPIC" placeholder="PIC Name"></div>
+        <div class="form-group"><label>Departemen</label><input id="regDept" placeholder="Departemen"></div>
+        <div class="form-group"><label>Tanggal Mulai</label><input type="date" id="regStart"></div>
+        <div class="form-group"><label>Tanggal Kadaluarsa</label><input type="date" id="regExp"></div>
+        <div class="form-group"><label>Foto Profil</label><input type="file" id="regPhoto" accept="image/*"></div>
+        <button id="submitRegisterBtn"><i class="fas fa-save"></i> REGISTER</button>
+    </div>`;
+    document.getElementById("dynamicViewContainer").innerHTML = html;
+    document.getElementById("submitRegisterBtn").onclick = async () => {
+        const nama = document.getElementById("regNama").value.trim();
+        const perusahaan = document.getElementById("regPerusahaan").value.trim();
+        if(!nama || !perusahaan){
+            return VMS_UI_Toast("Nama & Perusahaan wajib diisi!", "error");
+        }
+        const form = {
+            nama: nama,
+            perusahaan: perusahaan,
+            kategori: document.getElementById("regKategori").value,
+            tujuan: document.getElementById("regTujuan").value,
+            pic: document.getElementById("regPIC").value,
+            dept: document.getElementById("regDept").value,
+            start: document.getElementById("regStart").value,
+            exp: document.getElementById("regExp").value
+        };
+        const file = document.getElementById("regPhoto").files[0];
+        if(file){
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const payload = VMS_ENGINE_BuildRegister(form, e.target.result);
+                if(payload.error){ 
+                    if(payload.error === "VALIDATION_NAME_COMPANY_REQUIRED") VMS_UI_Toast("Nama & Perusahaan wajib!", "error");
+                    else VMS_UI_Toast("Error: "+payload.error, "error"); 
+                    return; 
+                }
+                const res = await VMS_API_POST(payload);
+                if(res.success){
+                    await VMS_API_LOAD();
+                    VMS_UI_Toast("Registrasi berhasil!", "success");
+                    VMS_STATE_SetView("dashboard");
+                    VMS_UI_RenderByView();
+                } else {
+                    VMS_UI_Toast("Gagal: "+ (res.error || "Unknown"), "error");
+                }
+            };
+            reader.readAsDataURL(file);
+        } else {
+            const payload = VMS_ENGINE_BuildRegister(form, "");
+            if(payload.error){ 
+                if(payload.error === "VALIDATION_NAME_COMPANY_REQUIRED") VMS_UI_Toast("Nama & Perusahaan wajib!", "error");
+                else VMS_UI_Toast("Error: "+payload.error, "error"); 
+                return; 
+            }
+            const res = await VMS_API_POST(payload);
+            if(res.success){
+                await VMS_API_LOAD();
+                VMS_UI_Toast("Registrasi berhasil!", "success");
+                VMS_STATE_SetView("dashboard");
+                VMS_UI_RenderByView();
+            } else {
+                VMS_UI_Toast("Gagal: "+ (res.error || "Unknown"), "error");
+            }
+        }
+    };
+}
+function VMS_UI_RenderScan(){
+    const html = `
+    <div class="card">
+        <h3><i class="fas fa-camera"></i> Security Scan</h3>
+        <div class="scanner-container">
+            <div id="scanner"></div>
+        </div>
+        <div class="form-group"><label>Manual Input Reg ID</label><input id="manualRegId" placeholder="REG1234"></div>
+        <div style="display:flex; gap:10px;"><button id="manualCheckinBtn">Check-in</button><button id="manualCheckoutBtn">Check-out</button></div>
+        <button id="startScannerBtn" class="secondary">Start Camera Scanner</button>
+    </div>`;
+    document.getElementById("dynamicViewContainer").innerHTML = html;
+    let scannerInstance = null;
+    document.getElementById("startScannerBtn").onclick = () => {
+        const scannerDiv = document.getElementById("scanner");
+        if(scannerInstance){
+            scannerInstance.stop().then(()=>{ scannerInstance.clear(); });
+        }
+        import('https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js').then((module) => {
+            const Html5Qrcode = module.default;
+            scannerInstance = new Html5Qrcode("scanner");
+            scannerInstance.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (decodedText) => {
+                const payload = VMS_ENGINE_BuildUpdate(decodedText, "INSIDE");
+                const res = await VMS_API_POST(payload);
+                if(res.success){
+                    await VMS_API_LOAD();
+                    VMS_UI_Toast("Check-in success", "success");
+                } else {
+                    VMS_UI_Toast("Check-in failed: "+res.error, "error");
+                }
+                scannerInstance.stop();
+                VMS_UI_RenderByView();
+            });
+        }).catch(()=>{ VMS_UI_Toast("Scanner lib error", "error"); });
+    };
+    document.getElementById("manualCheckinBtn").onclick = async () => {
+        const id = document.getElementById("manualRegId").value.trim();
+        if(!id) return VMS_UI_Toast("Masukkan ID", "error");
+        const payload = VMS_ENGINE_BuildUpdate(id, "INSIDE");
+        const res = await VMS_API_POST(payload);
+        if(res.success){
+            await VMS_API_LOAD();
+            VMS_UI_Toast("Check-in success", "success");
+        } else {
+            VMS_UI_Toast("Failed: "+res.error, "error");
+        }
+        VMS_UI_RenderByView();
+    };
+    document.getElementById("manualCheckoutBtn").onclick = async () => {
+        const id = document.getElementById("manualRegId").value.trim();
+        if(!id) return VMS_UI_Toast("Masukkan ID", "error");
+        const payload = VMS_ENGINE_BuildUpdate(id, "OUT");
+        const res = await VMS_API_POST(payload);
+        if(res.success){
+            await VMS_API_LOAD();
+            VMS_UI_Toast("Check-out success", "success");
+        } else {
+            VMS_UI_Toast("Failed: "+res.error, "error");
+        }
+        VMS_UI_RenderByView();
+    };
+}
+function VMS_UI_RenderLogs(){
+    const visitors = VMS_ENGINE_GetVisitorsBySite();
+    const html = `
+    <div class="card">
+        <h3><i class="fas fa-history"></i> Audit Logs</h3>
+        <input id="searchLog" placeholder="Cari Nama / Reg ID" style="margin-bottom:1rem;">
+        <div class="log-table"><table><thead><tr><th>REG ID</th><th>Nama</th><th>Perusahaan</th><th>Kategori</th><th>Status</th><th>Site</th><th>Badge</th><th>PDF</th></tr></thead><tbody id="logTableBody"></tbody></table></div>
+    </div>`;
+    document.getElementById("dynamicViewContainer").innerHTML = html;
+    function renderTable(data){
+        const license = VMS_ENGINE_GetLicenseType();
+        document.getElementById("logTableBody").innerHTML = data.map(v => `
+            <tr>
+                <td>${v.LogID || v.id || ""}</td>
+                <td>${v.Nama}</td>
+                <td>${v.Perusahaan}</td>
+                <td>${v.Kategori}</td>
+                <td>${v.Status || "REGISTERED"}</td>
+                <td>${v.Site}</td>
+                <td><button onclick="VMS_UI_GenerateBadge('${v.LogID}','${v.Nama}','${v.Perusahaan}','${v.Kategori}','${v.Keterangan || ""}')">ID Card</button></td>
+                <td>${license === "DEMO" ? "LOCK" : `<button onclick="VMS_UI_GeneratePDF('${v.LogID}')">PDF</button>`}</td>
+            </tr>
+        `).join("");
+    }
+    renderTable(visitors);
+    document.getElementById("searchLog").oninput = (e) => {
+        const kw = e.target.value.toLowerCase();
+        const filtered = visitors.filter(v => v.Nama.toLowerCase().includes(kw) || (v.LogID||"").toLowerCase().includes(kw));
+        renderTable(filtered);
+    };
+}
+function VMS_UI_RenderSettings(){
+    const license = VMS_ENGINE_GetLicenseType();
+    const isPro = license === "PRO";
+    const html = `
+    <div class="card">
+        <h3>Manajemen Sistem</h3>
+        <div class="form-group"><label>License Key</label><input id="licenseKeyInput" value="${VMS_CONFIG.LICENSE_KEY}" ${!isPro ? "disabled" : ""}></div>
+        <div class="form-group"><label>Company Name</label><input id="companyInput" value="${VMS_CONFIG.COMPANY}" ${!isPro ? "disabled" : ""}></div>
+        <div class="form-group"><label>Device Type (LOBBY/SECURITY/COMMAND)</label><input id="deviceInput" value="${VMS_CONFIG.DEVICE}" ${!isPro ? "disabled" : ""}></div>
+        ${isPro ? `<button id="saveLicenseBtn">Simpan Config & Register Device</button>` : `<div style="color:red; padding:10px; background:#fee;">⚠️ Hanya PRO yang bisa ubah konfigurasi. License saat ini: ${license}</div>`}
+        <hr>
+        ${license !== "DEMO" ? `<button id="exportExcelBtn">Export Excel</button>` : `<button disabled style="background:gray">Export Excel (UPGRADE)</button>`}
+        <button id="resetDataBtn" class="danger" style="margin-top:10px;">Reset Database (Admin)</button>
+        <button id="lockConfigBtn" class="secondary" style="margin-top:10px;">${VMS_CONFIG.CONFIG_LOCKED ? "🔒 Config Locked" : "🔓 Lock Config (PRO only)"}</button>
+    </div>`;
+    document.getElementById("dynamicViewContainer").innerHTML = html;
+    if(isPro){
+        document.getElementById("saveLicenseBtn").onclick = async () => {
+            const newLic = document.getElementById("licenseKeyInput").value.trim();
+            const newComp = document.getElementById("companyInput").value.trim();
+            const newDev = document.getElementById("deviceInput").value.trim();
+            try {
+                if(newLic) VMS_CONFIG_UpdateLicense(newLic);
+                if(newComp) VMS_CONFIG_UpdateCompany(newComp);
+                if(newDev) VMS_CONFIG_UpdateDevice(newDev);
+                const res = await VMS_API_RegisterDevice(newDev);
+                if(!res.success){
+                    VMS_UI_Toast("Device ditolak: " + res.error, "error");
+                    return;
+                }
+                VMS_UI_Toast("Config saved & device registered", "success");
+                VMS_UI_UpdateSidebarInfo();
+                VMS_STATE_SetView("dashboard");
+                VMS_UI_RenderByView();
+            } catch(e){
+                VMS_UI_Toast(e.message, "error");
+            }
+        };
+    }
+    document.getElementById("exportExcelBtn")?.addEventListener("click", () => VMS_UI_ExportExcel());
+    document.getElementById("resetDataBtn")?.addEventListener("click", async () => {
+        if(confirm("RESET ALL DATA?")){
+            const res = await VMS_API_POST(VMS_ENGINE_Attach({ type: "RESET_ALL" }));
+            if(res.success){
+                await VMS_API_LOAD();
+                VMS_UI_Toast("Database reset", "success");
+            } else {
+                VMS_UI_Toast("Reset failed", "error");
+            }
+            VMS_UI_RenderByView();
+        }
+    });
+    document.getElementById("lockConfigBtn")?.addEventListener("click", () => {
+        if(VMS_ENGINE_GetLicenseType() !== "PRO"){
+            return VMS_UI_Toast("Hanya PRO yang bisa lock config!", "error");
+        }
+        VMS_CONFIG_LockConfig(!VMS_CONFIG.CONFIG_LOCKED);
+        localStorage.setItem("VMS_CONFIG_LOCKED", VMS_CONFIG.CONFIG_LOCKED);
+        VMS_UI_Toast(`Config ${VMS_CONFIG.CONFIG_LOCKED ? "locked" : "unlocked"}`, "success");
+        VMS_UI_RenderSettings();
+    });
+}
+function VMS_UI_ExportExcel(){
+    if(VMS_ENGINE_GetLicenseType() === "DEMO") return VMS_UI_Toast("Upgrade license", "error");
+    const visitors = VMS_ENGINE_GetVisitorsBySite();
+    let csv = "LogID,Nama,Perusahaan,Kategori,Status,Site\n";
+    visitors.forEach(v => { csv += `${v.LogID},${v.Nama},${v.Perusahaan},${v.Kategori},${v.Status},${v.Site}\n`; });
+    const blob = new Blob([csv], {type: "text/csv"});
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "vms_report.csv";
+    link.click();
+}
+function VMS_UI_GenerateBadge(logId, nama, company, kategori, photoBase64){
+    const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(logId)}&size=150`;
+    const win = window.open("");
+    win.document.write(`
+        <div style="text-align:center; padding:20px; font-family:sans-serif;">
+            <h2>${nama}</h2>
+            <p>${company} | ${kategori}</p>
+            <img src="${qrUrl}" style="width:150px;">
+            ${photoBase64 ? `<br><img src="${photoBase64}" style="width:100px; border-radius:50%; margin-top:10px;">` : ""}
+            <p><strong>ID: ${logId}</strong></p>
+        </div>
+    `);
+}
+async function VMS_UI_GeneratePDF(logId){
+    if(VMS_ENGINE_GetLicenseType() === "DEMO") return VMS_UI_Toast("Upgrade license", "error");
+    const visitor = VMS_ENGINE_GetVisitorsBySite().find(v => v.LogID === logId);
+    if(!visitor) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(logId)}&size=150`;
+    const sequenceNo = VMS_ENGINE_GenerateSequenceNumber();
+    const printDate = new Date().toLocaleString("id-ID");
+    doc.setFontSize(16);
+    doc.text("VISITOR PASS", 70, 20);
+    doc.setFontSize(8);
+    doc.text(`No: ${sequenceNo}`, 20, 30);
+    doc.text(`Tanggal Cetak: ${printDate}`, 20, 37);
+    if(visitor.Keterangan && visitor.Keterangan.startsWith("data:image")){
+        try{
+            doc.addImage(visitor.Keterangan, "JPEG", 15, 45, 45, 45);
+        } catch(e){}
+    }
+    doc.setFontSize(10);
+    doc.text(`ID: ${visitor.LogID}`, 70, 50);
+    doc.text(`Nama: ${visitor.Nama}`, 70, 57);
+    doc.text(`Perusahaan: ${visitor.Perusahaan}`, 70, 64);
+    doc.text(`Kategori: ${visitor.Kategori}`, 70, 71);
+    doc.text(`Site: ${visitor.Site}`, 70, 78);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = qrUrl;
+    img.onload = function(){
+        doc.addImage(img, "PNG", 70, 90, 60, 60);
+        doc.save(`VISITOR_${visitor.LogID}.pdf`);
+    };
+    img.onerror = function(){
+        doc.save(`VISITOR_${visitor.LogID}.pdf`);
+    };
+}
+function VMS_UI_RenderByView(){
+    const view = VMS_STATE_GetView();
+    if(view === "dashboard") VMS_UI_RenderDashboard();
+    else if(view === "register") VMS_UI_RenderRegister();
+    else if(view === "scan") VMS_UI_RenderScan();
+    else if(view === "logs") VMS_UI_RenderLogs();
+    else if(view === "settings") VMS_UI_RenderSettings();
+    VMS_UI_UpdateSidebarInfo();
+}
+window.VMS_UI_GenerateBadge = VMS_UI_GenerateBadge;
+window.VMS_UI_GeneratePDF = VMS_UI_GeneratePDF;
+</script>
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-005][UI_MODULE][END] -->
+<!-- ========================= -->
+
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-006][SYSTEM-LOOP][START] -->
+<!-- ========================= -->
+<script>
+let VMS_LOOP_ACTIVE = true;
+let VMS_LOOP_INTERVAL = 5000;
+async function VMS_LOOP_Run(){
+    if(!VMS_LOOP_ACTIVE) return;
+    try{
+        await VMS_API_LOAD();
+        const currentView = VMS_STATE_GetView();
+        if(currentView === "dashboard" || currentView === "logs"){
+            VMS_UI_RenderByView();
+        }
+        VMS_UI_UpdateSidebarInfo();
+    } catch(e){ console.warn("Loop error", e); }
+    setTimeout(VMS_LOOP_Run, VMS_LOOP_INTERVAL);
+}
+</script>
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-006][SYSTEM-LOOP][END] -->
+<!-- ========================= -->
 
 <!-- ========================= -->
 <!-- [VMS-V2][BLOCK-999][EXTENSION][START] -->
+<!-- ========================= -->
 <script>
-// ADD FEATURE HERE
+window.addEventListener("DOMContentLoaded", async () => {
+    document.getElementById("renameSiteBtn").onclick = () => {
+        const current = VMS_ENGINE_GetSite();
+        const input = prompt("Rename Site:", current);
+        if(input && input.trim()){
+            VMS_ENGINE_SetSite(input.trim());
+            document.getElementById("currentSiteLabel").innerText = VMS_ENGINE_GetSite();
+            VMS_UI_RenderByView();
+        }
+    };
+    document.getElementById("menuToggleBtn").onclick = () => document.getElementById("sidebarPanel").classList.add("open");
+    document.getElementById("closeSidebarBtn").onclick = () => document.getElementById("sidebarPanel").classList.remove("open");
+    document.getElementById("siteSwitchSelect").onchange = (e) => {
+        VMS_ENGINE_SetSite(e.target.value);
+        document.getElementById("currentSiteLabel").innerText = VMS_ENGINE_GetSite();
+        VMS_UI_RenderByView();
+    };
+    document.querySelectorAll(".sidebar a[data-nav]").forEach(link => {
+        link.onclick = (e) => {
+            e.preventDefault();
+            const nav = link.getAttribute("data-nav");
+            VMS_STATE_SetView(nav);
+            VMS_UI_RenderByView();
+            document.querySelectorAll(".sidebar a").forEach(a => a.classList.remove("active"));
+            link.classList.add("active");
+            document.getElementById("sidebarPanel").classList.remove("open");
+        };
+    });
+    await VMS_API_LOAD();
+    VMS_UI_RenderByView();
+    VMS_LOOP_Run();
+});
 </script>
+<!-- ========================= -->
 <!-- [VMS-V2][BLOCK-999][EXTENSION][END] -->
-
-<script>
-VMS_API_Load();
-</script>
+<!-- ========================= -->
 
 </body>
 </html>
