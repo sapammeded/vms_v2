@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VMS v2 FINAL</title>
+
+<style>
+body{font-family:Segoe UI;background:#f4f7f6;padding:20px}
+.vms{display:grid;grid-template-columns:350px 1fr;gap:20px}
+.box{background:#fff;padding:20px;border-radius:8px}
+button{padding:8px;border:none;background:#0984e3;color:#fff;cursor:pointer}
+.status{padding:4px 8px;border-radius:4px;color:#fff;font-size:12px}
+.PENDING{background:#fdcb6e;color:#000}
+.APPROVED{background:#0984e3}
+.INSIDE{background:#00b894}
+.OVERDUE{background:#d63031}
+.OUT{background:#636e72}
+</style>
+
+</head>
+<body>
+
+<h2>VMS v2</h2>
+
+<div class="vms">
+
+<div class="box">
+<h3>Input Visitor</h3>
+<input id="nama" placeholder="Nama">
+<input id="pic" placeholder="PIC">
+<button onclick="VMS_UI_Create()">CREATE</button>
+
+<h3>Log</h3>
+<div id="log"></div>
+</div>
+
+<div class="box">
+<h3>Monitoring</h3>
+<table width="100%">
+<thead>
+<tr><th>Nama</th><th>Status</th><th>Aksi</th></tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+</div>
+
+</div>
+
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-001][CONFIG][START] -->
+<script>
+const VMS_CONFIG = {
+apiUrl:"https://script.google.com/macros/s/AKfycbwwGpmVob5xxtoml6jqKVpaQhFdgoU6B8A_RLAzzJUL6rZC2s9Wcmk0_pn-opmdZguRAQ/exec",
+overstay:60,
+mode:"FREE"
+};
+</script>
+<!-- [VMS-V2][BLOCK-001][CONFIG][END] -->
+
+
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-002][STATE][START] -->
+<script>
+const VMS_STATE = {
+visitors:[],
+logs:[]
+};
+</script>
+<!-- [VMS-V2][BLOCK-002][STATE][END] -->
+
+
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-003][ENGINE][START] -->
+<script>
+
+function VMS_ENGINE_Log(msg){
+let t=new Date().toLocaleTimeString();
+VMS_STATE.logs.unshift(`[${t}] ${msg}`);
+VMS_UI_RenderLog();
+}
+
+function VMS_ENGINE_SetStatus(v,newStatus){
+const flow={
+"PENDING":["APPROVED"],
+"APPROVED":["INSIDE"],
+"INSIDE":["OUT"],
+"OVERDUE":["OUT"]
+};
+
+if(!flow[v.Status]?.includes(newStatus)){
+VMS_ENGINE_Log("INVALID FLOW "+v.Nama);
+return;
+}
+
+v.Status=newStatus;
+
+if(newStatus==="INSIDE") v.Checkin=new Date();
+if(newStatus==="OUT") v.Checkout=new Date();
+
+VMS_API_Update(v);
+}
+
+function VMS_ENGINE_CheckOver(){
+let now=new Date(),changed=false;
+
+VMS_STATE.visitors.forEach(v=>{
+if(v.Status==="INSIDE" && v.Checkin){
+let m=(now-new Date(v.Checkin))/60000;
+if(m>VMS_CONFIG.overstay && v.Status!=="OVERDUE"){
+v.Status="OVERDUE";
+changed=true;
+}
+}
+});
+
+if(changed)VMS_UI_Render();
+}
+
+</script>
+<!-- [VMS-V2][BLOCK-003][ENGINE][END] -->
+
+
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-004][API][START] -->
+<script>
+
+async function VMS_API_Load(){
+let r=await fetch(VMS_CONFIG.apiUrl);
+let j=await r.json();
+VMS_STATE.visitors=j.data || [];
+VMS_UI_Render();
+}
+
+async function VMS_API_Create(data){
+await fetch(VMS_CONFIG.apiUrl,{
+method:"POST",
+body:JSON.stringify(data)
+});
+}
+
+async function VMS_API_Update(v){
+await fetch(VMS_CONFIG.apiUrl,{
+method:"POST",
+body:JSON.stringify({
+type:"UPDATE",
+LogID:v.LogID,
+Status:v.Status,
+Checkin:v.Status==="INSIDE",
+Checkout:v.Status==="OUT"
+})
+});
+}
+
+</script>
+<!-- [VMS-V2][BLOCK-004][API][END] -->
+
+
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-005][UI][START] -->
+<script>
+
+function VMS_UI_Create(){
+let nama=document.getElementById("nama").value;
+let pic=document.getElementById("pic").value;
+
+if(!nama||!pic)return alert("isi data");
+
+let obj={
+Nama:nama,
+PIC:pic,
+Status:"PENDING"
+};
+
+VMS_API_Create(obj);
+VMS_ENGINE_Log("CREATE "+nama);
+setTimeout(VMS_API_Load,500);
+}
+
+function VMS_UI_Render(){
+let el=document.getElementById("table");
+el.innerHTML="";
+
+VMS_STATE.visitors.forEach(v=>{
+let tr=document.createElement("tr");
+
+tr.innerHTML=`
+<td>${v.Nama}</td>
+<td><span class="status ${v.Status}">${v.Status}</span></td>
+<td>
+<button onclick="VMS_ENGINE_SetStatus(${JSON.stringify(v)},'APPROVED')">OK</button>
+<button onclick="VMS_ENGINE_SetStatus(${JSON.stringify(v)},'INSIDE')">IN</button>
+<button onclick="VMS_ENGINE_SetStatus(${JSON.stringify(v)},'OUT')">OUT</button>
+</td>
+`;
+
+el.appendChild(tr);
+});
+}
+
+function VMS_UI_RenderLog(){
+document.getElementById("log").innerHTML=
+VMS_STATE.logs.join("<br>");
+}
+
+</script>
+<!-- [VMS-V2][BLOCK-005][UI][END] -->
+
+
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-006][LOOP][START] -->
+<script>
+setInterval(VMS_ENGINE_CheckOver,10000);
+</script>
+<!-- [VMS-V2][BLOCK-006][LOOP][END] -->
+
+
+<!-- ========================= -->
+<!-- [VMS-V2][BLOCK-999][EXTENSION][START] -->
+<script>
+// ADD FEATURE HERE
+</script>
+<!-- [VMS-V2][BLOCK-999][EXTENSION][END] -->
+
+<script>
+VMS_API_Load();
+</script>
+
+</body>
+</html>
