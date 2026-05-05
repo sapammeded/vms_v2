@@ -163,24 +163,24 @@
             </div>
             <div class="card">
                 <div class="card-header"><h3>🚨 Recent Violations (Overstay)</h3><button class="btn btn-outline btn-sm" id="refreshDataBtn">🔄 Refresh</button></div>
-                <div class="table-wrapper"><table id="recentViolationsTable"><thead>汽<th>Company</th><th>Device</th><th>Violation Type</th><th>Time</th><th>Status</th> </thead><tbody></tbody> </table></div>
+                <div class="table-wrapper"><table id="recentViolationsTable"><thead><tr><th>Company</th><th>Device</th><th>Violation Type</th><th>Time</th><th>Status</th></tr></thead><tbody></tbody></table></div>
             </div>
-            <div class="card"><div class="card-header"><h3>⏰ Recent Checkouts</h3></div><div class="table-wrapper"><table id="expiringTable"><thead>汽<th>Company</th><th>Device Name</th><th>Checkout</th><th>Status</th> </thead><tbody></tbody> </table></div></div>
+            <div class="card"><div class="card-header"><h3>⏰ Recent Checkouts</h3></div><div class="table-wrapper"><table id="expiringTable"><thead><tr><th>Company</th><th>Device Name</th><th>Checkout</th><th>Status</th></tr></thead><tbody></tbody></table></div></div>
         </div>
 
-        <div id="companiesTab" class="tab-pane"><div class="card"><div class="card-header"><h3>🏢 Registered Companies</h3><div><input type="text" id="companySearch" placeholder="Search company..." style="width: 200px;"><button class="btn btn-info btn-sm" id="exportCompaniesExcelBtn">📊 Export Excel</button><button class="btn btn-primary btn-sm" id="exportCompaniesPdfBtn">📄 Export PDF</button><button class="btn btn-outline btn-sm" id="refreshCompaniesBtn">🔄 Refresh</button></div></div><div class="table-wrapper"><table id="companiesTable"><thead>汽<th>Company</th><th>PIC</th><th>Phone</th><th>Email</th><th>Package</th><th>License Key</th><th>Expiry</th><th>Status</th> </thead><tbody id="companiesTableBody"></tbody> </tr></div></div></div>
+        <div id="companiesTab" class="tab-pane"><div class="card"><div class="card-header"><h3>🏢 Registered Companies</h3><div><input type="text" id="companySearch" placeholder="Search company..." style="width: 200px;"><button class="btn btn-info btn-sm" id="exportCompaniesExcelBtn">📊 Export Excel</button><button class="btn btn-primary btn-sm" id="exportCompaniesPdfBtn">📄 Export PDF</button><button class="btn btn-outline btn-sm" id="refreshCompaniesBtn">🔄 Refresh</button></div></div><div class="table-wrapper"><table id="companiesTable"><thead><tr><th>Company</th><th>PIC</th><th>Phone</th><th>Email</th><th>Package</th><th>License Key</th><th>Expiry</th><th>Status</th></tr></thead><tbody id="companiesTableBody"></tbody></table></div></div></div>
 
-        <div id="devicesTab" class="tab-pane"><div class="card"><div class="card-header"><h3>📱 All Devices (Visitor Check-in)</h3><div><input type="text" id="deviceSearch" placeholder="Search device/company..." style="width: 220px;"><select id="deviceStatusFilter" style="width: 140px;"><option value="">All Status</option><option value="IN">IN</option><option value="OUT">OUT</option></select><button class="btn btn-info btn-sm" id="exportDevicesExcelBtn">📊 Export</button><button class="btn btn-primary btn-sm" id="exportDevicesPdfBtn">📄 PDF</button></div></div><div class="table-wrapper"><table id="devicesTable"><thead>汽<th>Device Name</th><th>Company</th><th>PIC</th><th>Check-in</th><th>Checkout</th><th>Status</th><th>Alert</th> </thead><tbody></tbody> </table></div></div></div>
+        <div id="devicesTab" class="tab-pane"><div class="card"><div class="card-header"><h3>📱 All Devices (Visitor Check-in)</h3><div><input type="text" id="deviceSearch" placeholder="Search device/company..." style="width: 220px;"><select id="deviceStatusFilter" style="width: 140px;"><option value="">All Status</option><option value="IN">IN</option><option value="OUT">OUT</option></select><button class="btn btn-info btn-sm" id="exportDevicesExcelBtn">📊 Export</button><button class="btn btn-primary btn-sm" id="exportDevicesPdfBtn">📄 PDF</button></div></div><div class="table-wrapper"><table id="devicesTable"><thead><tr><th>Device Name</th><th>Company</th><th>PIC</th><th>Check-in</th><th>Checkout</th><th>Status</th><th>Alert</th></tr></thead><tbody></tbody></td></div></div></div>
 
-        <div id="violationsTab" class="tab-pane"><div class="card"><div class="card-header"><h3>⚠️ Overstay Violations</h3><div><input type="text" id="violationSearch" placeholder="Search..."><button class="btn btn-danger btn-sm" id="clearViolationsBtn">🗑️ Clear All</button></div></div><div class="table-wrapper"><table id="violationsTable"><thead>汽<th>Company</th><th>Device</th><th>Violation Type</th><th>Details</th><th>Time</th> </thead><tbody></tbody> </table></div></div></div>
+        <div id="violationsTab" class="tab-pane"><div class="card"><div class="card-header"><h3>⚠️ Overstay Violations</h3><div><input type="text" id="violationSearch" placeholder="Search..."><button class="btn btn-danger btn-sm" id="clearViolationsBtn">🗑️ Clear All</button></div></div><div class="table-wrapper"><table id="violationsTable"><thead><tr><th>Company</th><th>Device</th><th>Violation Type</th><th>Details</th><th>Time</th></tr></thead><tbody></tbody></table></div></div></div>
 
-        <div id="requestsTab" class="tab-pane"><div class="card"><div class="card-header"><h3>📝 Pending Approvals</h3><span id="pendingCount" class="badge badge-warning">0</span></div><div class="table-wrapper"><table id="requestsTable"><thead>汽<th>Company</th><th>Device ID</th><th>Device Name</th><th>Requested At</th><th>Actions</th> </thead><tbody></tbody> </table></div></div></div>
+        <div id="requestsTab" class="tab-pane"><div class="card"><div class="card-header"><h3>📝 Pending Approvals</h3><span id="pendingCount" class="badge badge-warning">0</span></div><div class="table-wrapper"><table id="requestsTable"><thead><tr><th>Company</th><th>Device ID</th><th>Device Name</th><th>Requested At</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
 
-        <div id="licenseTab" class="tab-pane"><div class="card"><div class="card-header"><h3>🔑 Generate License</h3></div><div class="grid-2"><div class="form-group"><label>Company Name</label><input type="text" id="genCompanyName" placeholder="PT. Contoh"></div><div class="form-group"><label>PIC Name</label><input type="text" id="genPic" placeholder="Nama"></div><div class="form-group"><label>Phone</label><input type="text" id="genPhone" placeholder="0812"></div><div class="form-group"><label>Email</label><input type="email" id="genEmail" placeholder="email"></div><div class="form-group"><label>Package</label><select id="genPackage"><option value="DEMO">DEMO (1 month)</option><option value="BASIC">BASIC (12 months)</option><option value="PRO">PRO (24 months)</option></select></div></div><button class="btn btn-primary" id="generateLicenseBtn">🚀 Generate License</button></div><div class="card"><div class="card-header"><h3>📋 Registered Licenses</h3><button class="btn btn-outline btn-sm" id="refreshLicensesBtn">🔄 Refresh</button></div><div class="table-wrapper"><table><thead>汽<th>Company</th><th>Package</th><th>License Key</th><th>Expiry</th><th>Status</th><th>Actions</th> </thead><tbody id="recentLicensesBody"></tbody> </table></div></div></div>
+        <div id="licenseTab" class="tab-pane"><div class="card"><div class="card-header"><h3>🔑 Generate License</h3></div><div class="grid-2"><div class="form-group"><label>Company Name</label><input type="text" id="genCompanyName" placeholder="PT. Contoh"></div><div class="form-group"><label>PIC Name</label><input type="text" id="genPic" placeholder="Nama"></div><div class="form-group"><label>Phone</label><input type="text" id="genPhone" placeholder="0812"></div><div class="form-group"><label>Email</label><input type="email" id="genEmail" placeholder="email"></div><div class="form-group"><label>Package</label><select id="genPackage"><option value="DEMO">DEMO (1 month)</option><option value="BASIC">BASIC (12 months)</option><option value="PRO">PRO (24 months)</option></select></div></div><button class="btn btn-primary" id="generateLicenseBtn">🚀 Generate License</button></div><div class="card"><div class="card-header"><h3>📋 Registered Licenses</h3><button class="btn btn-outline btn-sm" id="refreshLicensesBtn">🔄 Refresh</button></div><div class="table-wrapper"><table><thead><tr><th>Company</th><th>Package</th><th>License Key</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead><tbody id="recentLicensesBody"></tbody></table></div></div></div>
 
-        <div id="devicerequestsTab" class="tab-pane"><div class="card"><div class="card-header"><h3>💸 Device Requests</h3><button class="btn btn-info btn-sm" id="refreshDeviceRequestsBtn">🔄 Refresh</button></div><div class="table-wrapper"><table id="deviceRequestsTable"><thead>汽<th>Company</th><th>Device Name</th><th>Fee</th><th>Status</th><th>Requested</th> </thead><tbody><tr><td colspan="5" class="text-muted">No device requests</td> </tbody> </table></div></div></div>
+        <div id="devicerequestsTab" class="tab-pane"><div class="card"><div class="card-header"><h3>💸 Device Requests</h3><button class="btn btn-info btn-sm" id="refreshDeviceRequestsBtn">🔄 Refresh</button></div><div class="table-wrapper"><table id="deviceRequestsTable"><thead><tr><th>Company</th><th>Device Name</th><th>Fee</th><th>Status</th><th>Requested</th></tr></thead><tbody><tr><td colspan="5" class="text-muted">No device requests</td></tr></tbody></table></div></div></div>
 
-        <div id="invoicesTab" class="tab-pane"><div class="card"><div class="card-header"><h3>💰 Invoices</h3><button class="btn btn-info btn-sm" id="exportInvoicesExcelBtn">📊 Export</button></div><div class="table-wrapper"><table id="invoicesTable"><thead>汽<th>Invoice #</th><th>Company</th><th>Amount</th><th>Status</th><th>Created</th> </thead><tbody><tr><td colspan="5" class="text-muted">No invoices</td> </tbody> </table></div></div></div>
+        <div id="invoicesTab" class="tab-pane"><div class="card"><div class="card-header"><h3>💰 Invoices</h3><button class="btn btn-info btn-sm" id="exportInvoicesExcelBtn">📊 Export</button></div><div class="table-wrapper"><table id="invoicesTable"><thead><tr><th>Invoice #</th><th>Company</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead><tbody><tr><td colspan="5" class="text-muted">No invoices</td></tr></tbody></table></div></div></div>
 
         <div id="settingsTab" class="tab-pane"><div class="grid-2"><div class="card"><div class="card-header"><h3>👥 Admin Users</h3></div><div class="form-group"><label>New Username</label><input type="text" id="newAdminUser"></div><div class="form-group"><label>New Password</label><input type="password" id="newAdminPass"></div><div class="form-group"><label>Role</label><select id="newAdminRole"><option value="ADMIN">ADMIN</option><option value="SUPER_ADMIN">SUPER_ADMIN</option></select></div><button class="btn btn-primary" id="addAdminBtn">➕ Add Admin User</button><div style="margin-top:24px"><h4>Existing Admins</h4><div id="adminUsersList"></div></div></div><div class="card"><div class="card-header"><h3>ℹ️ System Info</h3></div><div id="systemInfo"><p>Version: v5.0 GAS</p><p>Status: <span class="badge badge-active">Online</span></p><p id="serverTime">-</p></div></div></div></div>
     </div>
@@ -195,112 +195,80 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGpmVob5xxtoml6jqKVpaQhFdgoU6B8A_RLAzzJUL6rZC2s9Wcmk0_pn-opmdZguRAQ/exec";
-
-async function safeFetch(params, retry = 0) {
-    const MAX_RETRY = 2;
-    try {
-        const body = new URLSearchParams(params);
-        const res = await fetch(SCRIPT_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: body.toString()
-        });
-        const raw = await res.text();
-
-let data;
-try {
-    data = JSON.parse(raw);
-} catch (e) {
-    console.error("❌ RAW BACKEND:", raw);
-    return { status: "error", message: "INVALID_JSON_BACKEND" };
-}
-        return data;
-    } catch (err) {
-        if (retry < MAX_RETRY) {
-            await new Promise(r => setTimeout(r, 800));
-            return safeFetch(params, retry + 1);
-        }
-        return { status: "error", message: "NETWORK_ERROR" };
-    }
-}
-
+// ================= CONFIG =================
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfyJdAl6aLC35vLN1ES9QA19Kx8rlVXx0Yc9pBNFLKkixEmYF4gSVO50yhoZkdTvPeMw/exec";
+const SECRET = "OMNIGUARD_SECRET_2026";
 const SESSION_TIMEOUT_MS = 43200000;
-const SYNC_COOLDOWN_MS = 2000;
 
+// ================= GLOBAL STATE =================
 let currentUser = null;
 let currentToken = null;
 let currentRole = null;
 let syncLock = false;
-let lastSyncTimestamp = 0;
-let currentFetchId = 0;
 let devicesData = [];
 let licensesData = [];
 let packageChart = null;
 let refreshInterval = null;
 
-function isValid(res) {
-  return res && res.status === "success";
+// ================= HELPER: SHA256 (untuk signature) =================
+async function sha256(str) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
 }
 
-function validateRowData(row) {
-    if (!row || !Array.isArray(row) || row.length < 11) return false;
-    return true;
-}
-
-function saveToLocalStorage() {
+// ================= SAFE FETCH dengan RETRY + SIGNATURE =================
+async function safeFetch(paramsObj, retryCount = 0) {
+    const MAX_RETRY = 2;
+    
+    // Untuk admin endpoints, tidak perlu signature (sudah pakai secret)
+    // Tapi kita tetap kirim secret saja (backend akan validasi)
+    const timestamp = Date.now().toString();
+    const base = String(paramsObj.reg || "") + String(paramsObj.action) + timestamp + SECRET;
+    const sign = await sha256(base);
+    
+    const formData = new URLSearchParams({
+        ...paramsObj,
+        timestamp: timestamp,
+        sign: sign,
+        secret: SECRET
+    });
+    
     try {
-        localStorage.setItem("vms_cc_devices", JSON.stringify(devicesData.slice(0, 1000)));
-        localStorage.setItem("vms_cc_licenses", JSON.stringify(licensesData.slice(0, 500)));
-        localStorage.setItem("vms_cc_last_sync", Date.now().toString());
-    } catch(e) { console.error("Storage save error:", e); }
-}
-
-function loadFromLocalStorage() {
-    try {
-        const savedDevices = localStorage.getItem("vms_cc_devices");
-        const savedLicenses = localStorage.getItem("vms_cc_licenses");
-        if (savedDevices) {
-            devicesData = JSON.parse(savedDevices);
-            if (devicesData.length > 1000) devicesData = devicesData.slice(0, 1000);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formData.toString(),
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeout);
+        
+        if (!response.ok) throw new Error("Network error");
+        
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            throw new Error("Invalid JSON response");
         }
-        if (savedLicenses) {
-            licensesData = JSON.parse(savedLicenses);
-            if (licensesData.length > 500) licensesData = licensesData.slice(0, 500);
+        
+        return data;
+        
+    } catch (err) {
+        if (retryCount < MAX_RETRY) {
+            await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+            return safeFetch(paramsObj, retryCount + 1);
         }
-        return devicesData.length > 0;
-    } catch(e) { console.error("Storage load error:", e); return false; }
-}
-
-function generateDeviceKey(device) {
-    const timestampFallback = device.checkin && device.checkin !== "-" ? device.checkin : Date.now().toString();
-    return `${device.name}|${device.company}|${timestampFallback}`;
-}
-
-function mergeDevicesData(newDevices) {
-    if (!newDevices || !Array.isArray(newDevices)) return;
-    const existingMap = new Map();
-    for (const device of devicesData) {
-        const key = generateDeviceKey(device);
-        existingMap.set(key, device);
+        console.error("SAFE FETCH ERROR:", err);
+        return { status: "error", message: err.message };
     }
-    for (const newDevice of newDevices) {
-        if (!newDevice.name || newDevice.name === "-") continue;
-        const key = generateDeviceKey(newDevice);
-        if (existingMap.has(key)) {
-            const existing = existingMap.get(key);
-            if (newDevice.checkin && newDevice.checkin !== "-" && newDevice.checkin !== existing.checkin) existing.checkin = newDevice.checkin;
-            if (newDevice.checkout && newDevice.checkout !== "-" && newDevice.checkout !== existing.checkout) existing.checkout = newDevice.checkout;
-            if (newDevice.status) existing.status = newDevice.status;
-            if (newDevice.isExpired !== undefined) existing.isExpired = newDevice.isExpired;
-            if (newDevice.alert) existing.alert = newDevice.alert;
-        } else {
-            existingMap.set(key, { ...newDevice });
-        }
-    }
-    devicesData = Array.from(existingMap.values());
-    if (devicesData.length > 1000) devicesData = devicesData.slice(0, 1000);
-    saveToLocalStorage();
 }
 
 function isSessionValid() {
@@ -326,26 +294,28 @@ function showToast(message, type = "info") {
 }
 
 function escapeHtml(str) {
-    if (!str) return '-';
+    if (!str) return '';
     return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
 }
 
 function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) modal.classList.remove("active");
+    document.getElementById(modalId)?.classList.remove("active");
 }
 
+// ================= AUTH =================
 async function doLogin() {
-    const username = document.getElementById("loginUser")?.value.trim();
-    const password = document.getElementById("loginPass")?.value.trim();
+    const username = document.getElementById("loginUser").value.trim();
+    const password = document.getElementById("loginPass").value.trim();
     if (!username || !password) {
         showToast("Isi username & password", "error");
         return;
     }
     showToast("Logging in...", "info");
+    
     try {
         const data = await safeFetch({ action: "admin_login", u: username, p: password });
-        if (isValid(data)) {
+        
+        if (data.status === "success") {
             currentUser = username;
             currentToken = data.token;
             currentRole = data.role;
@@ -353,27 +323,20 @@ async function doLogin() {
             localStorage.setItem("vms_admin_token", currentToken);
             localStorage.setItem("vms_admin_role", currentRole);
             extendSession();
-            const loginOverlay = document.getElementById("loginOverlay");
-            if (loginOverlay) loginOverlay.style.display = "none";
-            const topUsername = document.getElementById("topUsername");
-            const sidebarUsername = document.getElementById("sidebarUsername");
-            const topRole = document.getElementById("topRole");
-            const sidebarRole = document.getElementById("sidebarRole");
-            if (topUsername) topUsername.innerText = username;
-            if (sidebarUsername) sidebarUsername.innerText = username;
-            if (topRole) topRole.innerText = currentRole;
-            if (sidebarRole) sidebarRole.innerText = currentRole;
+            document.getElementById("loginOverlay").style.display = "none";
+            document.getElementById("topUsername").innerText = username;
+            document.getElementById("sidebarUsername").innerText = username;
+            document.getElementById("topRole").innerText = currentRole;
+            document.getElementById("sidebarRole").innerText = currentRole;
             showToast("Login berhasil", "success");
-            loadFromLocalStorage();
             await loadAllData();
             await loadLicenses();
             if (refreshInterval) clearInterval(refreshInterval);
             refreshInterval = setInterval(async () => {
-                if (!syncLock && (Date.now() - lastSyncTimestamp) >= SYNC_COOLDOWN_MS) {
-                    await loadAllData();
-                    await loadLicenses();
-                }
-            }, 4000);
+                if (syncLock) return;
+                await loadAllData();
+                await loadLicenses();
+            }, 30000);
         } else {
             showToast(data.message || "Login gagal", "error");
         }
@@ -393,30 +356,22 @@ function logout() {
     location.reload();
 }
 
+// ================= DATA LOADING =================
 async function loadAllData() {
     if (syncLock || !currentToken) return;
-    if (Date.now() - lastSyncTimestamp < SYNC_COOLDOWN_MS) return;
-    
     syncLock = true;
-    lastSyncTimestamp = Date.now();
-    
     try {
         const data = await safeFetch({ action: "admin_pull", token: currentToken });
-        if (data.status === "ignored") return;
-        if (data.status === "forbidden" || data.status === "unauthorized") {
+        
+        if (data.status === "unauthorized" || data.status === "forbidden") {
             console.warn("Session expired, logging out");
             logout();
             return;
         }
-        if (!isValid(data)) throw new Error("Server returned non-success");
+        if (data.status !== "success") throw new Error("Server returned non-success");
         
         const rows = data.data || [];
-        if (!Array.isArray(rows)) throw new Error("Invalid data format");
-        
-        const newDevices = [];
-        for (let i = 1; i < rows.length && newDevices.length < 1000; i++) {
-            const row = rows[i];
-            if (!validateRowData(row)) continue;
+        devicesData = rows.slice(1).map(row => {
             const expRaw = row[8];
             let isExpired = false;
             if (expRaw) {
@@ -425,42 +380,29 @@ async function loadAllData() {
                     isExpired = !isNaN(expDate.getTime()) && expDate < new Date();
                 } catch(e) {}
             }
-            newDevices.push({
-                name: row[2] || "-",
-                company: row[3] || "-",
-                purpose: row[4] || "-",
-                pic: row[5] || "-",
-                start: row[7] || "-",
-                exp: expRaw || "-",
-                checkin: row[11] || "-",
-                checkout: row[12] || "-",
-                status: row[10] === "IN" ? "IN" : "OUT",
+            return {
+                name: row[2] || "",
+                company: row[3] || "",
+                purpose: row[4] || "",
+                pic: row[5] || "",
+                start: row[7] || "",
+                exp: expRaw || "",
+                checkin: row[11] || "",
+                checkout: row[12] || "",
+                status: row[10] || "OUT",
                 isExpired: isExpired,
                 alert: isExpired ? "⚠️ EXPIRED" : ""
-            });
-        }
-        
-        if (newDevices.length > 0) {
-            mergeDevicesData(newDevices);
-        }
+            };
+        });
         
         updateDashboard();
         renderDevicesTable();
         renderRecentViolations();
         updateCharts();
         extendSession();
-        saveToLocalStorage();
     } catch (err) {
         console.error("LOAD ALL DATA ERROR:", err);
-        const hasCache = loadFromLocalStorage();
-        if (!hasCache) {
-            showToast("Sync gagal, tidak ada cache", "error");
-        } else {
-            updateDashboard();
-            renderDevicesTable();
-            renderRecentViolations();
-            updateCharts();
-        }
+        showToast("Sync gagal", "error");
     } finally {
         syncLock = false;
     }
@@ -469,38 +411,29 @@ async function loadAllData() {
 async function loadLicenses() {
     if (!currentToken) return;
     try {
-        const data = await safeFetch({ action: "get_licenses", token: currentToken });
-        if (data.status === "ignored") return;
-        if (isValid(data) && Array.isArray(data.data)) {
-            licensesData = data.data.slice(0, 500);
+        const data = await safeFetch({ action: "get_licenses" });
+        
+        if (data.status === "success") {
+            licensesData = data.data || [];
             renderLicensesTable();
             renderCompaniesTable();
-            saveToLocalStorage();
-        } else {
-            throw new Error("Invalid license data");
+        } else if (data.status === "forbidden") {
+            console.warn("Invalid secret, check kode.gs deployment");
+            showToast("License system error", "error");
         }
     } catch (err) {
         console.error("LOAD LICENSES ERROR:", err);
-        try {
-            const saved = localStorage.getItem("vms_cc_licenses");
-            if (saved) {
-                licensesData = JSON.parse(saved);
-                if (licensesData.length > 500) licensesData = licensesData.slice(0, 500);
-                renderLicensesTable();
-                renderCompaniesTable();
-            }
-        } catch(e) {}
     }
 }
 
+// ================= LICENSE OPERATIONS =================
 async function generateLicense(company, pic, phone, email, pkg) {
     try {
         const data = await safeFetch({
             action: "generate_license",
-            token: currentToken,
             company, pic, phone, email, package: pkg
         });
-        if (isValid(data)) {
+        if (data.status === "success") {
             showToast(`License dibuat: ${data.license_key}`, "success");
             await loadLicenses();
             return true;
@@ -519,10 +452,9 @@ async function addAdminUser(username, password, role) {
     try {
         const data = await safeFetch({
             action: "add_admin",
-            token: currentToken,
             username, password, role
         });
-        if (isValid(data)) {
+        if (data.status === "success") {
             showToast("Admin ditambahkan", "success");
             return true;
         } else {
@@ -538,8 +470,8 @@ async function addAdminUser(username, password, role) {
 
 async function clearViolations() {
     try {
-        const data = await safeFetch({ action: "clear_violations", token: currentToken });
-        if (isValid(data)) {
+        const data = await safeFetch({ action: "clear_violations" });
+        if (data.status === "success") {
             showToast("Violations dibersihkan", "success");
             await loadAllData();
             return true;
@@ -558,12 +490,11 @@ async function changePassword(oldPass, newPass) {
     try {
         const data = await safeFetch({
             action: "change_password",
-            token: currentToken,
             username: currentUser,
             old_password: oldPass,
             new_password: newPass
         });
-        return isValid(data);
+        return data.status === "success";
     } catch (err) {
         console.error("CHANGE PASSWORD ERROR:", err);
         return false;
@@ -571,11 +502,14 @@ async function changePassword(oldPass, newPass) {
 }
 
 async function confirmRenew() {
-    const company = document.getElementById("renewCompanyName")?.value;
-    const months = document.getElementById("renewMonths")?.value;
+    const company = document.getElementById("renewCompanyName").value;
+    const months = document.getElementById("renewMonths").value;
     try {
-        const data = await safeFetch({ action: "renew_license", token: currentToken, company, months });
-        if (isValid(data)) {
+        const data = await safeFetch({
+            action: "renew_license",
+            company, months
+        });
+        if (data.status === "success") {
             showToast("License renewed", "success");
             closeModal("renewModal");
             await loadLicenses();
@@ -589,11 +523,14 @@ async function confirmRenew() {
 }
 
 async function confirmUpgrade() {
-    const company = document.getElementById("upgradeCompanyName")?.value;
-    const newPackage = document.getElementById("upgradePackage")?.value;
+    const company = document.getElementById("upgradeCompanyName").value;
+    const newPackage = document.getElementById("upgradePackage").value;
     try {
-        const data = await safeFetch({ action: "upgrade_license", token: currentToken, company, new_package: newPackage });
-        if (isValid(data)) {
+        const data = await safeFetch({
+            action: "upgrade_license",
+            company, new_package: newPackage
+        });
+        if (data.status === "success") {
             showToast(`Upgraded to ${newPackage}`, "success");
             closeModal("upgradeModal");
             await loadLicenses();
@@ -606,178 +543,149 @@ async function confirmUpgrade() {
     }
 }
 
+// ================= RENDER FUNCTIONS =================
 function updateDashboard() {
-    try {
-        const totalEl = document.getElementById("statTotalDevices");
-        const activeEl = document.getElementById("statActiveDevices");
-        const pendingEl = document.getElementById("statPendingDevices");
-        const violationsEl = document.getElementById("statTotalViolations");
-        if (totalEl) totalEl.innerText = devicesData.length || 0;
-        if (activeEl) activeEl.innerText = devicesData.filter(d => d?.status === "IN").length || 0;
-        if (pendingEl) pendingEl.innerText = devicesData.filter(d => d?.status === "OUT").length || 0;
-        if (violationsEl) violationsEl.innerText = devicesData.filter(d => d?.isExpired === true).length || 0;
-    } catch(e) { console.error("updateDashboard error:", e); }
+    document.getElementById("statTotalDevices").innerText = devicesData.length;
+    document.getElementById("statActiveDevices").innerText = devicesData.filter(d => d.status === "IN").length;
+    document.getElementById("statPendingDevices").innerText = devicesData.filter(d => d.status === "OUT").length;
+    document.getElementById("statTotalViolations").innerText = devicesData.filter(d => d.isExpired).length;
 }
 
 function renderDevicesTable() {
     const tbody = document.querySelector("#devicesTable tbody");
     if (!tbody) return;
-    if (!Array.isArray(devicesData)) return;
-    try {
-        const search = document.getElementById("deviceSearch")?.value.toLowerCase() || "";
-        const statusFilter = document.getElementById("deviceStatusFilter")?.value || "";
-        let filtered = devicesData.filter(d => {
-            const nameMatch = (d.name || "").toLowerCase().includes(search);
-            const companyMatch = (d.company || "").toLowerCase().includes(search);
-            return nameMatch || companyMatch;
-        });
-        if (statusFilter) filtered = filtered.filter(d => d.status === statusFilter);
-        filtered = filtered.slice(0, 500);
-        if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-muted">No devices found</td></tr>';
-            return;
-        }
-        tbody.innerHTML = filtered.map(d => `
-            <tr>
-                <td><strong>${escapeHtml(d.name)}</strong></td>
-                <td>${escapeHtml(d.company)}</td>
-                <td>${escapeHtml(d.pic)}</td>
-                <td>${escapeHtml(d.checkin)}</td>
-                <td class="${d.isExpired ? 'text-danger' : ''}">${escapeHtml(d.checkout)}</td>
-                <td><span class="badge ${d.status === 'IN' ? 'badge-active' : 'badge-pending'}">${escapeHtml(d.status)}</span></td>
-                <td class="text-danger">${escapeHtml(d.alert || '-')}</td>
-            </tr>
-        `).join('');
-    } catch(e) { console.error("renderDevicesTable error:", e); tbody.innerHTML = '<tr><td colspan="7">Error loading data</td></tr>'; }
+    const search = document.getElementById("deviceSearch")?.value.toLowerCase() || "";
+    const statusFilter = document.getElementById("deviceStatusFilter")?.value || "";
+    let filtered = devicesData.filter(d => {
+        const nameMatch = (d.name || "").toLowerCase().includes(search);
+        const companyMatch = (d.company || "").toLowerCase().includes(search);
+        return nameMatch || companyMatch;
+    });
+    if (statusFilter) filtered = filtered.filter(d => d.status === statusFilter);
+    tbody.innerHTML = filtered.map(d => `
+        <tr>
+            <td><strong>${escapeHtml(d.name)}</strong></td>
+            <td>${escapeHtml(d.company)}</td>
+            <td>${escapeHtml(d.pic)}</td>
+            <td>${escapeHtml(d.checkin)}</td>
+            <td class="${d.isExpired ? 'text-danger' : ''}">${escapeHtml(d.checkout)}</td>
+            <td><span class="badge ${d.status === 'IN' ? 'badge-active' : 'badge-pending'}">${escapeHtml(d.status)}</span></td>
+            <td class="text-danger">${escapeHtml(d.alert || '-')}</td>
+        </tr>
+    `).join('');
 }
 
 function renderCompaniesTable() {
     const tbody = document.getElementById("companiesTableBody");
     if (!tbody) return;
-    try {
-        const search = document.getElementById("companySearch")?.value.toLowerCase() || "";
-        let filtered = licensesData.filter(l => (l.company || "").toLowerCase().includes(search));
-        if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-muted">No registered companies. Generate license first.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = filtered.map(l => {
-            let isExpired = false;
-            try { isExpired = new Date(l.expiry) < new Date(); } catch(e) {}
-            return `
-                <tr>
-                    <td><strong>${escapeHtml(l.company)}</strong></td>
-                    <td>${escapeHtml(l.pic)}</td>
-                    <td>${escapeHtml(l.phone || '-')}</td>
-                    <td>${escapeHtml(l.email || '-')}</td>
-                    <td><span class="badge ${l.package === 'PRO' ? 'badge-pro' : (l.package === 'BASIC' ? 'badge-basic' : 'badge-demo')}">${escapeHtml(l.package)}</span></td>
-                    <td><code>${escapeHtml(l.license_key)}</code></td>
-                    <td class="${isExpired ? 'text-danger' : ''}">${escapeHtml(l.expiry)}</td>
-                    <td><span class="badge ${l.status === 'ACTIVE' ? 'badge-active' : 'badge-expired'}">${escapeHtml(l.status)}</span></td>
-                </tr>
-            `;
-        }).join('');
-    } catch(e) { console.error("renderCompaniesTable error:", e); }
+    const search = document.getElementById("companySearch")?.value.toLowerCase() || "";
+    let filtered = licensesData.filter(l => (l.company || "").toLowerCase().includes(search));
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-muted">No registered companies. Generate license first.</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = filtered.map(l => {
+        let isExpired = false;
+        try {
+            isExpired = new Date(l.expiry) < new Date();
+        } catch(e) {}
+        return `
+            <tr>
+                <td><strong>${escapeHtml(l.company)}</strong></td>
+                <td>${escapeHtml(l.pic)}</td>
+                <td>${escapeHtml(l.phone || '-')}</td>
+                <td>${escapeHtml(l.email || '-')}</td>
+                <td><span class="badge ${l.package === 'PRO' ? 'badge-pro' : (l.package === 'BASIC' ? 'badge-basic' : 'badge-demo')}">${escapeHtml(l.package)}</span></td>
+                <td><code>${escapeHtml(l.license_key)}</code></td>
+                <td class="${isExpired ? 'text-danger' : ''}">${escapeHtml(l.expiry)}</td>
+                <td><span class="badge ${l.status === 'ACTIVE' ? 'badge-active' : 'badge-expired'}">${escapeHtml(l.status)}</span></td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function renderRecentViolations() {
     const tbody = document.querySelector("#recentViolationsTable tbody");
     if (!tbody) return;
-    try {
-        const violations = devicesData.filter(d => d.isExpired).slice(0, 10);
-        if (violations.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-muted">No violations</td></tr>';
-            return;
-        }
-        tbody.innerHTML = violations.map(d => `
-            <tr>
-                <td>${escapeHtml(d.company)}</td>
-                <td>${escapeHtml(d.name)}</td>
-                <td><span class="badge badge-danger">EXPIRED</span></td>
-                <td>${escapeHtml(d.exp)}</td>
-                <td><span class="badge badge-warning">Overstay</span></td>
-            </tr>
-        `).join('');
-    } catch(e) { console.error("renderRecentViolations error:", e); }
+    const violations = devicesData.filter(d => d.isExpired).slice(0, 10);
+    tbody.innerHTML = violations.map(d => `
+        <tr>
+            <td>${escapeHtml(d.company)}</td>
+            <td>${escapeHtml(d.name)}</td>
+            <td><span class="badge badge-danger">EXPIRED</span></td>
+            <td>${escapeHtml(d.exp)}</td>
+            <td><span class="badge badge-warning">Overstay</span></td>
+        </tr>
+    `).join('');
 }
 
 function renderLicensesTable() {
     const tbody = document.getElementById("recentLicensesBody");
     if (!tbody) return;
-    try {
-        if (licensesData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-muted">No licenses generated</td></tr>';
-            return;
-        }
-        tbody.innerHTML = licensesData.map(l => {
-            let isExpired = false;
-            try { isExpired = new Date(l.expiry) < new Date(); } catch(e) {}
-            return `
-                <tr>
-                    <td>${escapeHtml(l.company)}</td>
-                    <td><span class="badge ${l.package === 'PRO' ? 'badge-pro' : (l.package === 'BASIC' ? 'badge-basic' : 'badge-demo')}">${escapeHtml(l.package)}</span></td>
-                    <td><code>${escapeHtml(l.license_key)}</code></td>
-                    <td class="${isExpired ? 'text-danger' : ''}">${escapeHtml(l.expiry)}</td>
-                    <td><span class="badge ${l.status === 'ACTIVE' ? 'badge-active' : 'badge-expired'}">${escapeHtml(l.status)}</span></td>
-                    <td>
-                        <button class="btn btn-outline btn-sm" onclick="openRenewModal('${escapeHtml(l.company)}')">Renew</button>
-                        <button class="btn btn-outline btn-sm" onclick="openUpgradeModal('${escapeHtml(l.company)}', '${escapeHtml(l.package)}')">Upgrade</button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    } catch(e) { console.error("renderLicensesTable error:", e); }
+    tbody.innerHTML = licensesData.map(l => {
+        let isExpired = false;
+        try {
+            isExpired = new Date(l.expiry) < new Date();
+        } catch(e) {}
+        return `
+            <tr>
+                <td>${escapeHtml(l.company)}</td>
+                <td><span class="badge ${l.package === 'PRO' ? 'badge-pro' : (l.package === 'BASIC' ? 'badge-basic' : 'badge-demo')}">${escapeHtml(l.package)}</span></td>
+                <td><code>${escapeHtml(l.license_key)}</code></td>
+                <td class="${isExpired ? 'text-danger' : ''}">${escapeHtml(l.expiry)}</td>
+                <td><span class="badge ${l.status === 'ACTIVE' ? 'badge-active' : 'badge-expired'}">${escapeHtml(l.status)}</span></td>
+                <td>
+                    <button class="btn btn-outline btn-sm" onclick="openRenewModal('${escapeHtml(l.company)}')">Renew</button>
+                    <button class="btn btn-outline btn-sm" onclick="openUpgradeModal('${escapeHtml(l.company)}', '${escapeHtml(l.package)}')">Upgrade</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function updateCharts() {
-    try {
-        const inCount = devicesData.filter(d => d.status === "IN").length;
-        const outCount = devicesData.filter(d => d.status === "OUT").length;
-        const ctx = document.getElementById("packageChart");
-        if (!ctx) return;
-        if (packageChart) packageChart.destroy();
-        packageChart = new Chart(ctx.getContext("2d"), {
-            type: 'doughnut',
-            data: { labels: ['IN', 'OUT'], datasets: [{ data: [inCount, outCount], backgroundColor: ['#10b981', '#f59e0b'], borderWidth: 0 }] },
-            options: { responsive: true, plugins: { legend: { labels: { color: '#f9fafb' } } } }
-        });
-    } catch(e) { console.error("updateCharts error:", e); }
+    const inCount = devicesData.filter(d => d.status === "IN").length;
+    const outCount = devicesData.filter(d => d.status === "OUT").length;
+    const ctx = document.getElementById("packageChart");
+    if (!ctx) return;
+    if (packageChart) packageChart.destroy();
+    packageChart = new Chart(ctx.getContext("2d"), {
+        type: 'doughnut',
+        data: { labels: ['IN', 'OUT'], datasets: [{ data: [inCount, outCount], backgroundColor: ['#10b981', '#f59e0b'], borderWidth: 0 }] },
+        options: { responsive: true, plugins: { legend: { labels: { color: '#f9fafb' } } } }
+    });
 }
 
 function switchTab(tabId) {
     document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-    const targetTab = document.getElementById(`${tabId}Tab`);
-    if (targetTab) targetTab.classList.add("active");
+    document.getElementById(`${tabId}Tab`)?.classList.add("active");
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     const nav = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
     if (nav) nav.classList.add("active");
-    const pageTitle = document.getElementById("pageTitle");
-    if (pageTitle) pageTitle.innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
+    document.getElementById("pageTitle").innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
 }
 
 function refreshData() { loadAllData(); loadLicenses(); }
 function refreshCompanies() { loadLicenses(); }
 
+// ================= MODAL FUNCTIONS =================
 function openChangePasswordModal() {
-    const modal = document.getElementById("changePasswordModal");
-    if (modal) modal.style.display = "flex";
+    document.getElementById("changePasswordModal").style.display = "flex";
 }
 
 function closeChangePasswordModal() {
-    const modal = document.getElementById("changePasswordModal");
-    if (modal) modal.style.display = "none";
-    const oldPass = document.getElementById("oldPassword");
-    const newPass = document.getElementById("newPassword");
-    const confirmPass = document.getElementById("confirmPassword");
-    if (oldPass) oldPass.value = "";
-    if (newPass) newPass.value = "";
-    if (confirmPass) confirmPass.value = "";
+    document.getElementById("changePasswordModal").style.display = "none";
+    document.getElementById("oldPassword").value = "";
+    document.getElementById("newPassword").value = "";
+    document.getElementById("confirmPassword").value = "";
 }
 
 async function submitChangePassword() {
-    const oldPass = document.getElementById("oldPassword")?.value;
-    const newPass = document.getElementById("newPassword")?.value;
-    const confirmPass = document.getElementById("confirmPassword")?.value;
+    const oldPass = document.getElementById("oldPassword").value;
+    const newPass = document.getElementById("newPassword").value;
+    const confirmPass = document.getElementById("confirmPassword").value;
     if (!oldPass || !newPass) {
         showToast("Password tidak boleh kosong", "error");
         return;
@@ -800,46 +708,37 @@ async function submitChangePassword() {
 }
 
 function openRenewModal(company) {
-    const companyInput = document.getElementById("renewCompanyName");
-    if (companyInput) companyInput.value = company;
-    const modal = document.getElementById("renewModal");
-    if (modal) modal.classList.add("active");
+    document.getElementById("renewCompanyName").value = company;
+    document.getElementById("renewModal").classList.add("active");
 }
 
 function openUpgradeModal(company, currentPackage) {
-    const companyInput = document.getElementById("upgradeCompanyName");
-    const currentInput = document.getElementById("upgradeCurrentPackage");
-    if (companyInput) companyInput.value = company;
-    if (currentInput) currentInput.value = currentPackage;
-    const modal = document.getElementById("upgradeModal");
-    if (modal) modal.classList.add("active");
+    document.getElementById("upgradeCompanyName").value = company;
+    document.getElementById("upgradeCurrentPackage").value = currentPackage;
+    document.getElementById("upgradeModal").classList.add("active");
 }
 
 async function handleGenerateLicense() {
-    const company = document.getElementById("genCompanyName")?.value;
-    const pic = document.getElementById("genPic")?.value;
-    const phone = document.getElementById("genPhone")?.value;
-    const email = document.getElementById("genEmail")?.value;
-    const pkg = document.getElementById("genPackage")?.value;
+    const company = document.getElementById("genCompanyName").value;
+    const pic = document.getElementById("genPic").value;
+    const phone = document.getElementById("genPhone").value;
+    const email = document.getElementById("genEmail").value;
+    const pkg = document.getElementById("genPackage").value;
     if (!company || !pic) {
         showToast("Company dan PIC wajib diisi", "error");
         return;
     }
     await generateLicense(company, pic, phone, email, pkg);
-    const genCompany = document.getElementById("genCompanyName");
-    const genPic = document.getElementById("genPic");
-    const genPhone = document.getElementById("genPhone");
-    const genEmail = document.getElementById("genEmail");
-    if (genCompany) genCompany.value = "";
-    if (genPic) genPic.value = "";
-    if (genPhone) genPhone.value = "";
-    if (genEmail) genEmail.value = "";
+    document.getElementById("genCompanyName").value = "";
+    document.getElementById("genPic").value = "";
+    document.getElementById("genPhone").value = "";
+    document.getElementById("genEmail").value = "";
 }
 
 async function handleAddAdmin() {
-    const username = document.getElementById("newAdminUser")?.value;
-    const password = document.getElementById("newAdminPass")?.value;
-    const role = document.getElementById("newAdminRole")?.value;
+    const username = document.getElementById("newAdminUser").value;
+    const password = document.getElementById("newAdminPass").value;
+    const role = document.getElementById("newAdminRole").value;
     if (!username || !password) {
         showToast("Username dan password wajib diisi", "error");
         return;
@@ -849,10 +748,8 @@ async function handleAddAdmin() {
         return;
     }
     await addAdminUser(username, password, role);
-    const newUser = document.getElementById("newAdminUser");
-    const newPass = document.getElementById("newAdminPass");
-    if (newUser) newUser.value = "";
-    if (newPass) newPass.value = "";
+    document.getElementById("newAdminUser").value = "";
+    document.getElementById("newAdminPass").value = "";
 }
 
 async function handleClearViolations() {
@@ -861,6 +758,7 @@ async function handleClearViolations() {
     }
 }
 
+// ================= EXPORT FUNCTIONS =================
 function exportToExcel(data, filename, columns) {
     if (!window.XLSX) { showToast("Excel engine belum siap", "error"); return; }
     const ws = XLSX.utils.json_to_sheet(data);
@@ -885,98 +783,63 @@ function exportDevicesToExcel() {
     const exportData = devicesData.map(d => ({ Name: d.name, Company: d.company, PIC: d.pic, Checkin: d.checkin, Checkout: d.checkout, Status: d.status, Alert: d.alert }));
     exportToExcel(exportData, "Devices", ["Name", "Company", "PIC", "Checkin", "Checkout", "Status", "Alert"]);
 }
-
 function exportDevicesToPDF() {
     const exportData = devicesData.map(d => ({ Name: d.name, Company: d.company, PIC: d.pic, Checkin: d.checkin, Checkout: d.checkout, Status: d.status, Alert: d.alert }));
     exportToPDF(exportData, "Devices_Report", ["Name", "Company", "PIC", "Checkin", "Checkout", "Status", "Alert"]);
 }
-
 function exportCompaniesToExcel() {
     const exportData = licensesData.map(l => ({ Company: l.company, PIC: l.pic, Phone: l.phone, Email: l.email, Package: l.package, LicenseKey: l.license_key, Expiry: l.expiry, Status: l.status }));
     exportToExcel(exportData, "Companies", ["Company", "PIC", "Phone", "Email", "Package", "LicenseKey", "Expiry", "Status"]);
 }
-
 function exportCompaniesToPDF() {
     const exportData = licensesData.map(l => ({ Company: l.company, PIC: l.pic, Phone: l.phone, Email: l.email, Package: l.package, LicenseKey: l.license_key, Expiry: l.expiry, Status: l.status }));
     exportToPDF(exportData, "Companies_Report", ["Company", "PIC", "Phone", "Email", "Package", "LicenseKey", "Expiry", "Status"]);
 }
-
 function exportInvoicesToExcel() {
     exportToExcel([], "Invoices", ["Invoice #", "Company", "Amount", "Status", "Created"]);
 }
 
+// ================= INIT =================
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".nav-item").forEach(nav => {
         nav.addEventListener("click", () => {
             const tab = nav.dataset.tab;
             if (tab) switchTab(tab);
-            if (window.innerWidth <= 768) {
-                const sidebar = document.getElementById("sidebar");
-                if (sidebar) sidebar.classList.remove("open");
-            }
+            if (window.innerWidth <= 768) document.getElementById("sidebar").classList.remove("open");
         });
     });
-    const mobileMenu = document.getElementById("mobileMenuBtn");
-    if (mobileMenu) {
-        mobileMenu.addEventListener("click", () => {
-            const sidebar = document.getElementById("sidebar");
-            if (sidebar) sidebar.classList.toggle("open");
-        });
-    }
-    const topLogout = document.getElementById("topLogoutBtn");
-    const sidebarLogout = document.getElementById("sidebarLogoutBtn");
-    if (topLogout) topLogout.addEventListener("click", logout);
-    if (sidebarLogout) sidebarLogout.addEventListener("click", logout);
-    const deviceSearch = document.getElementById("deviceSearch");
-    const deviceFilter = document.getElementById("deviceStatusFilter");
-    const companySearch = document.getElementById("companySearch");
-    if (deviceSearch) deviceSearch.addEventListener("input", renderDevicesTable);
-    if (deviceFilter) deviceFilter.addEventListener("change", renderDevicesTable);
-    if (companySearch) companySearch.addEventListener("input", () => renderCompaniesTable());
-    const doLoginBtn = document.getElementById("doLoginBtn");
-    if (doLoginBtn) doLoginBtn.addEventListener("click", doLogin);
-    const topChangePass = document.getElementById("topChangePasswordBtn");
-    const sidebarChangePass = document.getElementById("sidebarChangePasswordBtn");
-    if (topChangePass) topChangePass.addEventListener("click", openChangePasswordModal);
-    if (sidebarChangePass) sidebarChangePass.addEventListener("click", openChangePasswordModal);
-    const closePassModal = document.getElementById("closePasswordModalBtn");
-    const submitPass = document.getElementById("submitPasswordBtn");
-    if (closePassModal) closePassModal.addEventListener("click", closeChangePasswordModal);
-    if (submitPass) submitPass.addEventListener("click", submitChangePassword);
-    const generateLicenseBtn = document.getElementById("generateLicenseBtn");
-    const addAdminBtn = document.getElementById("addAdminBtn");
-    const clearViolationsBtn = document.getElementById("clearViolationsBtn");
-    const refreshDataBtn = document.getElementById("refreshDataBtn");
-    const refreshLicensesBtn = document.getElementById("refreshLicensesBtn");
-    const refreshCompaniesBtn = document.getElementById("refreshCompaniesBtn");
-    const confirmRenewBtn = document.getElementById("confirmRenewBtn");
-    const confirmUpgradeBtn = document.getElementById("confirmUpgradeBtn");
-    const refreshDeviceRequestsBtn = document.getElementById("refreshDeviceRequestsBtn");
-    const exportDevicesExcel = document.getElementById("exportDevicesExcelBtn");
-    const exportDevicesPdf = document.getElementById("exportDevicesPdfBtn");
-    const exportCompaniesExcel = document.getElementById("exportCompaniesExcelBtn");
-    const exportCompaniesPdf = document.getElementById("exportCompaniesPdfBtn");
-    const exportInvoicesExcel = document.getElementById("exportInvoicesExcelBtn");
-    if (generateLicenseBtn) generateLicenseBtn.addEventListener("click", handleGenerateLicense);
-    if (addAdminBtn) addAdminBtn.addEventListener("click", handleAddAdmin);
-    if (clearViolationsBtn) clearViolationsBtn.addEventListener("click", handleClearViolations);
-    if (refreshDataBtn) refreshDataBtn.addEventListener("click", refreshData);
-    if (refreshLicensesBtn) refreshLicensesBtn.addEventListener("click", loadLicenses);
-    if (refreshCompaniesBtn) refreshCompaniesBtn.addEventListener("click", refreshCompanies);
-    if (confirmRenewBtn) confirmRenewBtn.addEventListener("click", confirmRenew);
-    if (confirmUpgradeBtn) confirmUpgradeBtn.addEventListener("click", confirmUpgrade);
-    if (refreshDeviceRequestsBtn) refreshDeviceRequestsBtn.addEventListener("click", () => showToast("No requests", "info"));
-    if (exportDevicesExcel) exportDevicesExcel.addEventListener("click", exportDevicesToExcel);
-    if (exportDevicesPdf) exportDevicesPdf.addEventListener("click", exportDevicesToPDF);
-    if (exportCompaniesExcel) exportCompaniesExcel.addEventListener("click", exportCompaniesToExcel);
-    if (exportCompaniesPdf) exportCompaniesPdf.addEventListener("click", exportCompaniesToPDF);
-    if (exportInvoicesExcel) exportInvoicesExcel.addEventListener("click", exportInvoicesToExcel);
+    document.getElementById("mobileMenuBtn")?.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.toggle("open");
+    });
+    document.getElementById("topLogoutBtn")?.addEventListener("click", logout);
+    document.getElementById("sidebarLogoutBtn")?.addEventListener("click", logout);
+    document.getElementById("deviceSearch")?.addEventListener("input", renderDevicesTable);
+    document.getElementById("deviceStatusFilter")?.addEventListener("change", renderDevicesTable);
+    document.getElementById("companySearch")?.addEventListener("input", () => renderCompaniesTable());
+    document.getElementById("doLoginBtn")?.addEventListener("click", doLogin);
+    document.getElementById("topChangePasswordBtn")?.addEventListener("click", openChangePasswordModal);
+    document.getElementById("sidebarChangePasswordBtn")?.addEventListener("click", openChangePasswordModal);
+    document.getElementById("closePasswordModalBtn")?.addEventListener("click", closeChangePasswordModal);
+    document.getElementById("submitPasswordBtn")?.addEventListener("click", submitChangePassword);
+    document.getElementById("generateLicenseBtn")?.addEventListener("click", handleGenerateLicense);
+    document.getElementById("addAdminBtn")?.addEventListener("click", handleAddAdmin);
+    document.getElementById("clearViolationsBtn")?.addEventListener("click", handleClearViolations);
+    document.getElementById("refreshDataBtn")?.addEventListener("click", refreshData);
+    document.getElementById("refreshLicensesBtn")?.addEventListener("click", loadLicenses);
+    document.getElementById("refreshCompaniesBtn")?.addEventListener("click", refreshCompanies);
+    document.getElementById("confirmRenewBtn")?.addEventListener("click", confirmRenew);
+    document.getElementById("confirmUpgradeBtn")?.addEventListener("click", confirmUpgrade);
+    document.getElementById("refreshDeviceRequestsBtn")?.addEventListener("click", () => showToast("No requests", "info"));
+    document.getElementById("exportDevicesExcelBtn")?.addEventListener("click", exportDevicesToExcel);
+    document.getElementById("exportDevicesPdfBtn")?.addEventListener("click", exportDevicesToPDF);
+    document.getElementById("exportCompaniesExcelBtn")?.addEventListener("click", exportCompaniesToExcel);
+    document.getElementById("exportCompaniesPdfBtn")?.addEventListener("click", exportCompaniesToPDF);
+    document.getElementById("exportInvoicesExcelBtn")?.addEventListener("click", exportInvoicesToExcel);
     setInterval(() => {
-        const serverTime = document.getElementById("serverTime");
-        if (serverTime) serverTime.innerHTML = `Server Time: ${new Date().toLocaleString('id-ID')}`;
+        const el = document.getElementById("serverTime");
+        if (el) el.innerHTML = `Server Time: ${new Date().toLocaleString('id-ID')}`;
     }, 1000);
-    const loginPass = document.getElementById("loginPass");
-    if (loginPass) loginPass.addEventListener("keypress", (e) => { if (e.key === "Enter") doLogin(); });
+    document.getElementById("loginPass")?.addEventListener("keypress", (e) => { if (e.key === "Enter") doLogin(); });
     
     const savedUser = localStorage.getItem("vms_admin_user");
     const savedToken = localStorage.getItem("vms_admin_token");
@@ -985,29 +848,21 @@ document.addEventListener("DOMContentLoaded", () => {
         currentUser = savedUser;
         currentToken = savedToken;
         currentRole = savedRole;
-        const loginOverlay = document.getElementById("loginOverlay");
-        if (loginOverlay) loginOverlay.style.display = "none";
-        const topUsername = document.getElementById("topUsername");
-        const sidebarUsername = document.getElementById("sidebarUsername");
-        const topRole = document.getElementById("topRole");
-        const sidebarRole = document.getElementById("sidebarRole");
-        if (topUsername) topUsername.innerText = savedUser;
-        if (sidebarUsername) sidebarUsername.innerText = savedUser;
-        if (topRole) topRole.innerText = savedRole;
-        if (sidebarRole) sidebarRole.innerText = savedRole;
-        loadFromLocalStorage();
+        document.getElementById("loginOverlay").style.display = "none";
+        document.getElementById("topUsername").innerText = savedUser;
+        document.getElementById("sidebarUsername").innerText = savedUser;
+        document.getElementById("topRole").innerText = savedRole;
+        document.getElementById("sidebarRole").innerText = savedRole;
         loadAllData();
         loadLicenses();
         if (refreshInterval) clearInterval(refreshInterval);
         refreshInterval = setInterval(async () => {
-            if (!syncLock && (Date.now() - lastSyncTimestamp) >= SYNC_COOLDOWN_MS) {
-                await loadAllData();
-                await loadLicenses();
-            }
-        }, 4000);
+            if (syncLock) return;
+            await loadAllData();
+            await loadLicenses();
+        }, 30000);
     } else {
-        const loginOverlay = document.getElementById("loginOverlay");
-        if (loginOverlay) loginOverlay.style.display = "flex";
+        document.getElementById("loginOverlay").style.display = "flex";
     }
 });
 

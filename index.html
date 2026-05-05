@@ -48,6 +48,7 @@
         .toast-msg.success { background: #1f4e4a; }
         .toast-msg.error { background: #b91c1c; }
         .toast-msg.warning { background: #d97706; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 3000; visibility: hidden; opacity: 0; transition: 0.2s; }
         .modal-overlay.active { visibility: visible; opacity: 1; }
         .modal-card { background: white; width: 480px; max-width: 90%; border-radius: 32px; padding: 28px; }
@@ -78,39 +79,11 @@
 <div class="mobile-header"><button class="menu-toggle" id="mobileMenuBtn">☰</button><strong id="brandMobile" data-site="SITE_A">VMS ELITE</strong><div style="width: 28px;"></div></div>
 <div class="overlay" id="overlay"></div>
 <div class="mobile-sidebar" id="mobileSidebar"><div class="logo-area"><h1 id="brandSidebar" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item mobile-nav" data-tab="dashboard">📊 Dashboard</div><div class="nav-item mobile-nav" data-tab="register">📝 Register</div><div class="nav-item mobile-nav" data-tab="scanner">📷 Scanner</div><div class="nav-item mobile-nav" data-tab="logs">📜 Logs</div></div>
-<div class="app-layout"><div class="sidebar"><div class="logo-area"><h1 id="brandSidebarMain" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item active" data-tab="dashboard">📊 Dashboard</div><div class="nav-item" data-tab="register">📝 Register Visitor</div><div class="nav-item" data-tab="scanner">📷 Security Scan</div><div class="nav-item" data-tab="logs">📜 Audit Logs</div><div style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);"><div style="background:transparent; border:none; color:white; padding:0;"><label style="color:white;">🌍 Site</label><select id="siteSelector" style="background:#2b5a55; color:white;"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button id="vmsSiteEditBtn" onclick="vmsSite_open()" style="background:#2b5a55; margin-left:8px; padding:6px 12px;">⚙️ Rename</button></div></div></div><div class="main-content"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;"><div style="background:white; border-radius:28px; padding:8px 20px; display:flex; align-items:center; gap:16px;"><label>🌐 Active Site</label><select id="siteSelectorTop"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button onclick="vmsSite_open()" style="background:#0f2c2c; padding:6px 12px;">⚙️ Rename</button></div></div><div style="background:white; border-radius:20px; padding:16px; margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;"><input type="text" id="licenseInput" placeholder="License key..." style="flex:1;"><button id="submitLicenseBtn">Aktivasi</button><div id="licenseStatusBadge" class="license-badge">ELITE</div></div><div id="dashboardPane" class="tab-pane active-pane"><div class="stats-row" id="statsWidget"></div><div class="form-card"><canvas id="trendChart" height="90"></canvas></div><div class="form-card"><canvas id="categoryChart" height="90"></canvas></div></div><div id="registerPane" class="tab-pane"><div class="form-card"><div class="grid-2"><div class="input-field"><label>Full name</label><input type="text" id="regName" placeholder="John Carter"></div><div class="input-field"><label>Company</label><input type="text" id="regCompany" placeholder="PT Nusantara"></div><div class="input-field"><label>Category</label><select id="regCategory"><option value="UMUM">UMUM</option><option value="VIP">VIP</option><option value="VVIP">VVIP</option></select></div><div class="input-field"><label>Purpose</label><select id="regPurpose"><option>Meeting</option><option>Interview</option><option>Service</option><option>Lainnya</option></select><input type="text" id="regCustomPurpose" placeholder="Other purpose" style="margin-top:8px;"></div><div class="input-field"><label>PIC</label><input type="text" id="regPic" placeholder="Budi Santoso"></div><div class="input-field"><label>Department</label><input type="text" id="regDept" placeholder="IT / HR"></div><div class="input-field"><label>Start date</label><input type="date" id="regStartDate"></div><div class="input-field"><label>Expired date</label><input type="date" id="regExpDate"></div><div class="input-field"><label>Photo</label><input type="file" id="regPhotoFile" accept="image/*"><img id="previewPhotoThumb" width="50" style="margin-top:8px; border-radius:12px;"></div></div><div style="display:flex; gap:16px; margin-top:24px;"><button id="walkinBtn">⚡ Walk-in</button><button id="generateQRBtn">🔐 Generate QR</button></div></div></div><div id="scannerPane" class="tab-pane"><div class="form-card"><div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;"><select id="scanMode"><option value="CHECK_IN">CHECK-IN</option><option value="CHECK_OUT">CHECK-OUT</option></select><button id="startCamBtn">📷 Start Camera</button><button id="stopCamBtn" class="btn-outline">Stop</button><button id="uploadQrBtn">🖼️ Upload QR</button><input type="file" id="uploadQrFile" accept="image/*" style="display:none"></div><div id="cameraPreview"></div><div style="margin-top:24px;"><label>Manual REG Number</label><input type="text" id="manualReg" placeholder="REG2026xxxx"><button id="manualProcess" style="margin-top:8px;">Proses</button></div></div></div><div id="logsPane" class="tab-pane"><div class="form-card"><div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;"><input type="text" id="searchLog" placeholder="Cari Nama / REG" style="width:200px;"><button id="refreshLogsBtn">Refresh</button><button id="selectAllBtn">Select all</button><button id="deselectAllBtn">Deselect</button><button id="deleteSelectedBtn" style="background:#b91c1c;">Hapus terpilih</button><button id="deleteAllBtn" style="background:#b91c1c;">Hapus semua</button><button id="exportExcelAction">Export Excel</button><button id="backupAction">Backup</button><button id="resetDatabaseAction" style="background:#92400e;">Reset DB</button></div><div class="table-wrap"><table id="logTable"><thead>汽<th><input type="checkbox" id="checkAllMaster"></th><th>REG</th><th>Nama</th><th>Perusahaan</th><th>Kategori</th><th>Aksi</th><th>Waktu</th><th>Site</th><th>PDF</th> </thead><tbody id="logTableBody"></tbody> </table></div></div></div></div></div>
+<div class="app-layout"><div class="sidebar"><div class="logo-area"><h1 id="brandSidebarMain" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item active" data-tab="dashboard">📊 Dashboard</div><div class="nav-item" data-tab="register">📝 Register Visitor</div><div class="nav-item" data-tab="scanner">📷 Security Scan</div><div class="nav-item" data-tab="logs">📜 Audit Logs</div><div style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);"><div style="background:transparent; border:none; color:white; padding:0;"><label style="color:white;">🌍 Site</label><select id="siteSelector" style="background:#2b5a55; color:white;"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button id="vmsSiteEditBtn" onclick="vmsSite_open()" style="background:#2b5a55; margin-left:8px; padding:6px 12px;">⚙️ Rename</button></div></div></div><div class="main-content"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;"><div style="background:white; border-radius:28px; padding:8px 20px; display:flex; align-items:center; gap:16px;"><label>🌐 Active Site</label><select id="siteSelectorTop"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button onclick="vmsSite_open()" style="background:#0f2c2c; padding:6px 12px;">⚙️ Rename</button></div></div><div style="background:white; border-radius:20px; padding:16px; margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;"><input type="text" id="licenseInput" placeholder="License key..." style="flex:1;"><button id="submitLicenseBtn">Aktivasi</button><div id="licenseStatusBadge" class="license-badge">ELITE</div></div><div id="dashboardPane" class="tab-pane active-pane"><div class="stats-row" id="statsWidget"></div><div class="form-card"><canvas id="trendChart" height="90"></canvas></div><div class="form-card"><canvas id="categoryChart" height="90"></canvas></div></div><div id="registerPane" class="tab-pane"><div class="form-card"><div class="grid-2"><div class="input-field"><label>Full name</label><input type="text" id="regName" placeholder="John Carter"></div><div class="input-field"><label>Company</label><input type="text" id="regCompany" placeholder="PT Nusantara"></div><div class="input-field"><label>Category</label><select id="regCategory"><option value="UMUM">UMUM</option><option value="VIP">VIP</option><option value="VVIP">VVIP</option></select></div><div class="input-field"><label>Purpose</label><select id="regPurpose"><option>Meeting</option><option>Interview</option><option>Service</option><option>Lainnya</option></select><input type="text" id="regCustomPurpose" placeholder="Other purpose" style="margin-top:8px;"></div><div class="input-field"><label>PIC</label><input type="text" id="regPic" placeholder="Budi Santoso"></div><div class="input-field"><label>Department</label><input type="text" id="regDept" placeholder="IT / HR"></div><div class="input-field"><label>Start date</label><input type="date" id="regStartDate"></div><div class="input-field"><label>Expired date</label><input type="date" id="regExpDate"></div><div class="input-field"><label>Photo</label><input type="file" id="regPhotoFile" accept="image/*"><img id="previewPhotoThumb" width="50" style="margin-top:8px; border-radius:12px;"></div></div><div style="display:flex; gap:16px; margin-top:24px;"><button id="walkinBtn">⚡ Walk-in</button><button id="generateQRBtn">🔐 Generate QR</button></div></div></div><div id="scannerPane" class="tab-pane"><div class="form-card"><div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;"><select id="scanMode"><option value="CHECK_IN">CHECK-IN</option><option value="CHECK_OUT">CHECK-OUT</option></select><button id="startCamBtn">📷 Start Camera</button><button id="stopCamBtn" class="btn-outline">Stop</button><button id="uploadQrBtn">🖼️ Upload QR</button><input type="file" id="uploadQrFile" accept="image/*" style="display:none"></div><div id="cameraPreview"></div><div style="margin-top:24px;"><label>Manual REG Number</label><input type="text" id="manualReg" placeholder="REG2026xxxx"><button id="manualProcess" style="margin-top:8px;">Proses</button></div></div></div><div id="logsPane" class="tab-pane"><div class="form-card"><div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;"><input type="text" id="searchLog" placeholder="Cari Nama / REG" style="width:200px;"><button id="refreshLogsBtn">Refresh</button><button id="selectAllBtn">Select all</button><button id="deselectAllBtn">Deselect</button><button id="deleteSelectedBtn" style="background:#b91c1c;">Hapus terpilih</button><button id="deleteAllBtn" style="background:#b91c1c;">Hapus semua</button><button id="exportExcelAction">Export Excel</button><button id="backupAction">Backup</button><button id="resetDatabaseAction" style="background:#92400e;">Reset DB</button></div><div class="table-wrap"><table id="logTable"><thead><tr><th><input type="checkbox" id="checkAllMaster"></th><th>REG</th><th>Nama</th><th>Perusahaan</th><th>Kategori</th><th>Aksi</th><th>Waktu</th><th>Site</th><th>PDF</th></tr></thead><tbody id="logTableBody"></tbody></table></div></div></div></div></div>
 <div id="vmsSiteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:10001;"><div style="background:white; border-radius:28px; padding:28px; width:420px; max-width:90%;"><h3>⚙️ Edit Site Names</h3><div style="margin-bottom:16px;"><label>🏭 SITE A</label><input type="text" id="vmsA" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏢 SITE B</label><input type="text" id="vmsB" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏬 SITE C</label><input type="text" id="vmsC" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="display:flex; gap:12px;"><button id="vmsSaveBtn" onclick="vmsSite_submit()" style="background:#1f4e4a;">💾 Save</button><button onclick="vmsSite_close()" class="btn-outline">Cancel</button></div></div></div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGpmVob5xxtoml6jqKVpaQhFdgoU6B8A_RLAzzJUL6rZC2s9Wcmk0_pn-opmdZguRAQ/exec";
-
-async function safeFetch(params, retry = 0) {
-    const MAX_RETRY = 2;
-    try {
-        const body = new URLSearchParams(params);
-        const res = await fetch(SCRIPT_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: body.toString()
-        });
-        const raw = await res.text();
-        let data;
-        try {
-            data = JSON.parse(raw);
-        } catch (e) {
-            console.error("RAW_RESPONSE:", raw);
-            return { status: "error", message: "INVALID_JSON_BACKEND" };
-        }
-        return data;
-    } catch (err) {
-        if (retry < MAX_RETRY) {
-            await new Promise(r => setTimeout(r, 800));
-            return safeFetch(params, retry + 1);
-        }
-        return { status: "error", message: "NETWORK_ERROR" };
-    }
-}
-
+// ================= FAILSAFE CORE =================
 window.VMS_SAFE = true;
 
 window.addEventListener("error", function(e){
@@ -123,13 +96,13 @@ window.addEventListener("unhandledrejection", function(e){
     if(window.toast) toast("⚠️ Network/async error", "warning");
 });
 
-const SCAN_COOLDOWN_MS = 500;
+// ================= SECURITY & HARDENING =================
+const SECRET = "OMNIGUARD_SECRET_2026";
+const SCAN_COOLDOWN_MS = 3000;
 const SCAN_MAX_PER_MIN = 20;
-const SYNC_INTERVAL_MS = 4000;
 let scanCounter = 0;
 let syncLock = false;
 let globalScanLock = false;
-let currentFetchId = 0;
 
 setInterval(() => scanCounter = 0, 60000);
 
@@ -142,35 +115,16 @@ function vibrate(){
     if (navigator.vibrate) navigator.vibrate(100);
 }
 
-function validateRegFormat(reg){
-    const regex = /^REG\d{10,20}$/i;
-    return regex.test(reg);
+async function sha256(str){
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2,'0'))
+    .join('');
 }
 
-function cleanOldData(data, maxItems = 1000){
-    if(Array.isArray(data) && data.length > maxItems){
-        return data.slice(0, maxItems);
-    }
-    if(typeof data === 'object' && data !== null && Object.keys(data).length > maxItems){
-        const entries = Object.entries(data).slice(0, maxItems);
-        return Object.fromEntries(entries);
-    }
-    return data;
-}
-
-function isValid(res) {
-  return res && res.status === "success";
-}
-
-async function sha256(str) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(str);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(hashBuffer))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-}
-
+// ================= INIT =================
 (function initSiteNameDefault() {  
     let saved = localStorage.getItem("vms_site_names");  
     if (!saved) {  
@@ -182,11 +136,15 @@ var vmsSiteData = {
   names: { SITE_A: "SITE A", SITE_B: "SITE B", SITE_C: "SITE C" }
 };
 
+// ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA ⚠️
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfyJdAl6aLC35vLN1ES9QA19Kx8rlVXx0Yc9pBNFLKkixEmYF4gSVO50yhoZkdTvPeMw/exec";  
+const SYNC_INTERVAL_MS = 10000;  
+
 let visitors = {};  
 let logs = [];  
 let SITE_ID = localStorage.getItem("vms_site") || "SITE_A";  
-let syncQueue = [];
 let isProcessingQueue = false;  
+let syncQueue = [];  
 let lastScanTime = {};  
 let processingRegs = new Set();  
 let scannerInstance = null;  
@@ -232,50 +190,45 @@ function generateReg() {
     return reg;  
 }  
 
+// ================= HARDENED STORAGE =================
 function secureSave() {
     try {
-        let cleanedVisitors = {};
+        if (Object.keys(visitors).length > 1500) {
+            visitors = Object.fromEntries(Object.entries(visitors).slice(-1200));
+        }
+        if (logs.length > 1500) {
+            logs = logs.slice(0, 1200);
+        }
+        
+        let cleanVisitors = {};
         for (let k in visitors) {
             let v = { ...visitors[k] };
             delete v.foto;
-            cleanedVisitors[k] = v;
+            cleanVisitors[k] = v;
         }
         
-        let finalVisitors = cleanOldData(cleanedVisitors, 1200);
-        let finalLogs = cleanOldData(logs, 1200);
-        
-        localStorage.setItem("vms_visitors", JSON.stringify(finalVisitors));
-        localStorage.setItem("vms_logs", JSON.stringify(finalLogs));
+        localStorage.setItem("vms_visitors", JSON.stringify(cleanVisitors));
+        localStorage.setItem("vms_logs", JSON.stringify(logs));
         incrementVersion();
     } catch (e) {
         console.error("STORAGE ERROR:", e);
-        toast("⚠️ Storage error", "warning");
+        toast("⚠️ Storage penuh, data dibersihkan", "warning");
+        localStorage.clear();
     }
 }
 
 function secureLoad() {  
     try {
-        let storedVisitors = localStorage.getItem("vms_visitors");
-        let storedLogs = localStorage.getItem("vms_logs");
-        
-        if(storedVisitors) visitors = JSON.parse(storedVisitors);
-        if(storedLogs) logs = JSON.parse(storedLogs);
-        
-        if (!visitors) visitors = {};
-        if (!logs) logs = [];
-        
-        if (logs.length > 1500) logs = logs.slice(0, 1500);
-        if (Object.keys(visitors).length > 1500){
-            visitors = Object.fromEntries(Object.entries(visitors).slice(0, 1200));
-        }
-        
+        visitors = JSON.parse(localStorage.getItem("vms_visitors")) || {};
+        logs = JSON.parse(localStorage.getItem("vms_logs")) || [];
+        if (logs.length > 2000) logs = logs.slice(0, 1500);
         window.visitors = visitors;
         window.logs = logs;
     } catch(e) {
-        console.error("secureLoad error:", e);
         visitors = {};
         logs = [];
         toast("⚠️ Data corrupt, reset", "warning");
+        console.error("secureLoad error:", e);
     }
 }  
 
@@ -299,64 +252,85 @@ function addLocalLog(reg, action) {
     secureSave();  
 }  
 
+// ================= API CALL (HARDENED) =================
 async function apiCall(params) {
-    if (!navigator.onLine) return { status: "error", message: "offline" };
+    if (!navigator.onLine) return { status: "offline" };
+    if (document.hidden) return { status: "background" };
+    
     try {
         const timestamp = Date.now().toString();
-        const base = String(params.action || "") + timestamp;
+        const base = String(params.reg || "") + String(params.action) + String(timestamp) + String(SECRET);
         const sign = await sha256(base);
-        const formData = { ...params, timestamp: timestamp, sign: sign };
-        const res = await safeFetch(formData);
-        return res;
+        const formData = new URLSearchParams({
+            ...params,
+            timestamp,
+            sign,
+            ua: navigator.userAgent
+        });
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+
+        const res = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            body: formData,
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (!res.ok) return { status: "error_network" };
+
+        let data;
+        try {
+            data = await res.json();
+        } catch {
+            return { status: "error_parse" };
+        }
+
+        return data;
     } catch (e) {
-        console.error("API Error:", e);
-        return { status: "error", message: e.message };
+        return { status: "error" };
     }
 }
 
 async function registerVisitor(reg, data) {  
-    if(!validateRegFormat(reg)) return { status: "error", message: "invalid_reg" };
-    let result = await apiCall({ action: "register", reg, name: data.nama, company: data.perusahaan, purpose: data.tujuan, pic: data.pic, dept: data.dept, start: data.startDate, exp: data.expDate, category: data.kategori, site_id: SITE_ID, site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), photo: data.foto || "" });  
-    return result;
+    return await apiCall({ action: "register", reg, name: data.nama, company: data.perusahaan, purpose: data.tujuan, pic: data.pic, dept: data.dept, start: data.startDate, exp: data.expDate, category: data.kategori, site_id: SITE_ID, site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), photo: data.foto || "" });  
 }  
 
 async function walkinVisitor(reg, data) {  
-    if(!validateRegFormat(reg)) return { status: "error", message: "invalid_reg" };
-    let result = await apiCall({ action: "walkin", reg, name: data.nama, company: data.perusahaan, purpose: data.tujuan, pic: data.pic, dept: data.dept, start: data.startDate, exp: data.expDate, category: data.kategori, site_id: SITE_ID, site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), photo: data.foto || "" });  
-    return result;
+    return await apiCall({ action: "walkin", reg, name: data.nama, company: data.perusahaan, purpose: data.tujuan, pic: data.pic, dept: data.dept, start: data.startDate, exp: data.expDate, category: data.kategori, site_id: SITE_ID, site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), photo: data.foto || "" });  
 }  
 
-async function checkinVisitor(reg) { 
-    if(!validateRegFormat(reg)) return { status: "error", message: "invalid_reg" };
-    let result = await apiCall({ action: "checkin", reg, site_id: SITE_ID }); 
-    return result;
-}  
-
-async function checkoutVisitor(reg) { 
-    if(!validateRegFormat(reg)) return { status: "error", message: "invalid_reg" };
-    let result = await apiCall({ action: "checkout", reg, site_id: SITE_ID }); 
-    return result;
-}  
-
-async function generateQRCode(reg) {
-    if(!validateRegFormat(reg)) return { status: "error", message: "invalid_reg" };
-    return await apiCall({ action: "generateqr", reg }); 
-}  
-
-async function validateQRCode(qrData) { 
-    return await apiCall({ action: "validateqr", qrData }); 
-}  
+async function checkinVisitor(reg) { return await apiCall({ action: "checkin", reg, site_id: SITE_ID }); }  
+async function checkoutVisitor(reg) { return await apiCall({ action: "checkout", reg, site_id: SITE_ID }); }  
+async function generateQRCode(reg) { return await apiCall({ action: "generateqr", reg }); }  
+async function validateQRCode(qrData) { return await apiCall({ action: "validateqr", qrData }); }  
 
 async function pullFromSheet() {
   if (syncLock) return;
+  if (document.hidden) return;
+
   syncLock = true;
+
   try {
-    const result = await safeFetch({ action: "pull", site_id: SITE_ID });
-    if (isValid(result) && result.data) {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "pull",
+        site_id: SITE_ID,
+        t: Date.now()
+      })
+    });
+
+    if (!response.ok) throw new Error("Network error");
+
+    const result = await response.json();
+
+    if (result.status === "success" && result.data) {
       syncVisitorStatus(result.data);
-    } else {
-      console.error("Pull failed:", result.message);
     }
+
   } catch (err) {
     console.error("Pull error:", err);
   } finally {
@@ -364,77 +338,91 @@ async function pullFromSheet() {
   }
 }
 
-function syncVisitorStatus(sheetData) {
-    if (!Array.isArray(sheetData)) return;
-    let newVisitors = {};
-    let newLogs = [];
-    for (let i = 1; i < sheetData.length; i++) {
-        const row = sheetData[i];
+function syncVisitorStatus(sheetData) {  
+    if (!Array.isArray(sheetData)) return;  
+    for (let i = 1; i < sheetData.length; i++) {  
+        const row = sheetData[i];  
         const reg = row[1];
         const siteId = row[13];
-        if (!reg || siteId !== SITE_ID) continue;
-        const key = SITE_ID + "_" + reg;
-        newVisitors[key] = {
-            nama: row[2] || "Unknown",
-            perusahaan: row[3] || "",
-            kategori: row[9] || "UMUM",
-            tujuan: row[4] || "-",
-            pic: row[5] || "-",
-            dept: row[6] || "-",
-            startDate: row[7] || "",
-            expDate: row[8] || "",
-            currentStatus: row[10] || "OUT",
-            checkinTime: row[11] || "",
-            checkoutTime: row[12] || "",
-            updatedAt: Date.now(),
-            sessions: []
-        };
-        if(newVisitors[key].currentStatus === "IN" && newVisitors[key].checkinTime){
-            newVisitors[key].sessions = [{ checkIn: new Date(newVisitors[key].checkinTime).getTime(), checkOut: null }];
-        } else if(newVisitors[key].checkoutTime){
-            newVisitors[key].sessions = [{ checkIn: newVisitors[key].checkinTime ? new Date(newVisitors[key].checkinTime).getTime() : null, checkOut: new Date(newVisitors[key].checkoutTime).getTime() }];
-        }
-        let action = "REGISTER";
-        let actionTime = new Date(row[0]).getTime();
-        if(row[12]){
-            action = "CHECK_OUT";
-            actionTime = new Date(row[12]).getTime();
-        } else if(row[11]){
-            action = "CHECK_IN";
-            actionTime = new Date(row[11]).getTime();
-        }
-        newLogs.push({
-            reg: reg,
-            name: row[2] || "",
-            company: row[3] || "",
-            category: row[9] || "UMUM",
-            action: action,
-            time: actionTime,
-            site: siteId,
-            site_name: row[14] || ""
-        });
-    }
-    newLogs.sort((a,b) => b.time - a.time);
-    for(let key in newVisitors){
-        if(visitors[key]){
-            visitors[key] = Object.assign(visitors[key], newVisitors[key]);
-        } else {
-            visitors[key] = newVisitors[key];
-        }
-    }
-    const existingRegs = new Set(logs.map(l => l.reg));
-    for(let newLog of newLogs){
-        if(!existingRegs.has(newLog.reg)){
-            logs.push(newLog);
-        }
-    }
-    logs.sort((a,b) => b.time - a.time);
-    if(logs.length > 1500) logs = logs.slice(0, 1500);
-    secureSave();
-    renderDashboard();
-    renderLogTable();
+        const status = row[10];
+        const checkin = row[11];
+        const checkout = row[12];
+        if (!reg || siteId !== SITE_ID) continue;  
+        const key = SITE_ID + "_" + reg;  
+        let rawTime = checkout || checkin || row[0];  
+        let sheetTime = rawTime ? new Date(rawTime).getTime() : 0;  
+        if (isNaN(sheetTime)) sheetTime = 0;  
+        if (!visitors[key]) {  
+            visitors[key] = {  
+                nama: row[2] || "Unknown",  
+                perusahaan: row[3] || "",  
+                kategori: row[9] || "UMUM",  
+                tujuan: row[4] || "-",  
+                pic: row[5] || "-",  
+                dept: row[6] || "-",  
+                startDate: row[7] || "",  
+                expDate: row[8] || "",  
+                foto: "",  
+                sessions: [],  
+                currentStatus: status === "IN" ? "IN" : "OUT",  
+                updatedAt: sheetTime  
+            };  
+        } else {  
+            const localTime = visitors[key].updatedAt || 0;  
+            if (sheetTime >= localTime || !localTime) {  
+                visitors[key].currentStatus = status === "IN" ? "IN" : "OUT";  
+                visitors[key].updatedAt = sheetTime;  
+            }  
+        }  
+    }  
+    secureSave();  
+    renderDashboard();  
+    renderLogTable();  
 }
 
+function updateQueueStatus() {  
+    let div = document.getElementById("queueStatusIndicator");  
+    if (!div) { div = document.createElement("div"); div.id = "queueStatusIndicator"; div.className = "queue-status"; document.body.appendChild(div); }  
+    div.innerHTML = syncQueue.length ? `📦 Queue: ${syncQueue.length}` : `✅ Elite Sync`;  
+}  
+
+function persistQueue() {  
+    try { localStorage.setItem("vms_sync_queue", JSON.stringify(syncQueue)); updateQueueStatus(); } catch (e) { console.error("persistQueue error:", e); }  
+}  
+
+function addToQueue(action, reg, data = null) {  
+    syncQueue = syncQueue.filter(q => !(q.reg === reg && q.action === action));
+    syncQueue.push({ id: Date.now() + "_" + reg, action, reg, data, retryCount: 0, timestamp: Date.now(), fingerprint: action + "_" + reg });  
+    persistQueue();  
+    if (navigator.onLine) processQueue();  
+}  
+
+async function processQueue() {  
+    if (isProcessingQueue || syncQueue.length === 0) return;  
+    isProcessingQueue = true;  
+    const newQueue = [];  
+    for (const item of syncQueue) {  
+        let result;  
+        try {  
+            if (item.action === "checkin") result = await checkinVisitor(item.reg);  
+            else if (item.action === "checkout") result = await checkoutVisitor(item.reg);  
+            else if (item.action === "register") result = await registerVisitor(item.reg, item.data);  
+            else if (item.action === "walkin") result = await walkinVisitor(item.reg, item.data);  
+        } catch (e) { result = { status: "error" }; }  
+        if (result?.status === "duplicate") { toast("REG sudah terdaftar!", "warning"); continue; }  
+        if (result?.status !== "success") {  
+            item.retryCount = (item.retryCount || 0) + 1;  
+            let delay = Math.min(Math.pow(2, item.retryCount) * 1000, 10000);  
+            if (item.retryCount <= 5) { await new Promise(r => setTimeout(r, delay)); newQueue.push(item); }  
+            else console.warn("DROP QUEUE:", item);  
+        }  
+    }  
+    syncQueue = newQueue;  
+    persistQueue();  
+    isProcessingQueue = false;  
+}  
+
+// ================= PERFORMANCE OPTIMIZED CHARTS =================
 function renderDashboard() {  
     try {  
         let v = Object.values(visitors);  
@@ -485,7 +473,7 @@ function renderLogTable() {
         tbody.innerHTML = "";  
         filtered.slice(0, 200).forEach(l => {  
             let row = tbody.insertRow();  
-            let checkCell = row.insertCell(0); checkCell.innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${l.reg}">`;
+            row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${l.reg}">`;  
             row.insertCell(1).innerText = l.reg;  
             row.insertCell(2).innerText = l.name;  
             row.insertCell(3).innerText = l.company;  
@@ -505,41 +493,50 @@ function renderLogTable() {
     } catch (e) { console.error("renderLogTable error:", e); }  
 }  
 
+// ================= QR SCAN PROCESS (FIXED) =================
 async function processScan(qrText) {  
     if (actionMutex) return false;
     if (globalScanLock) return false;
     if (!qrText || typeof qrText !== "string") return false;
+    
     if (scanCounter > SCAN_MAX_PER_MIN) {
         toast("⚠️ Scanner overload, tunggu sebentar", "warning");
         return false;
     }
     scanCounter++;
+    
     globalScanLock = true;
     qrText = qrText.trim();  
     const mode = document.getElementById("scanMode").value;  
+    
+    // QR bisa berupa REG langsung atau format dengan prefix
     let reg = null;
+    
+    // Cek apakah QR berisi format REGxxxxx
     if (qrText.match(/^REG\d+/i)) {
-        if(validateRegFormat(qrText)){
-            reg = qrText;
-        }
+        reg = qrText;
     } 
+    // Cek apakah QR berisi format REGxxxxx|VMS2026
     else if (qrText.includes("|")) {
         const parts = qrText.split("|");
-        if (parts[0].match(/^REG\d+/i) && validateRegFormat(parts[0])) {
+        if (parts[0].match(/^REG\d+/i)) {
             reg = parts[0];
         }
     }
+    // Coba validasi via backend
     else {
         let validation = await validateQRCode(qrText);
-        if (isValid(validation) && validation.data && validation.data.reg && validateRegFormat(validation.data.reg)) {
+        if (validation.status === "success" && validation.data && validation.data.reg) {
             reg = validation.data.reg;
         }
     }
+    
     if (!reg) {
-        toast("QR tidak valid! Format harus REG + 10-20 digit", "error");
+        toast("QR tidak valid! Format harus REGxxxxx", "error");
         globalScanLock = false;
         return false;
     }
+    
     const nowTime = Date.now();  
     if (lastScanTime[reg] && nowTime - lastScanTime[reg] < SCAN_COOLDOWN_MS) { 
         toast("Scan terlalu cepat", "warning"); 
@@ -547,6 +544,7 @@ async function processScan(qrText) {
         return false;
     }  
     lastScanTime[reg] = nowTime;  
+    
     if (processingRegs.has(reg)) { 
         toast("Sedang diproses", "warning"); 
         globalScanLock = false; 
@@ -554,7 +552,7 @@ async function processScan(qrText) {
     }  
     processingRegs.add(reg);  
     actionMutex = true;  
-    lockUI(true);
+    
     try {  
         let siteKey = SITE_ID + "_" + reg;  
         let visitor = visitors[siteKey];  
@@ -575,6 +573,7 @@ async function processScan(qrText) {
             };  
             visitors[siteKey] = visitor;  
         }  
+        
         let today = new Date();  
         let expDate = visitor.expDate ? new Date(visitor.expDate) : null;
         if (expDate && !isNaN(expDate.getTime())) {
@@ -584,6 +583,7 @@ async function processScan(qrText) {
                 return false;
             }
         }
+        
         if (mode === "CHECK_IN") {
             let hasOpen = visitor.sessions?.some(s => !s.checkOut);
             if (hasOpen) {
@@ -591,10 +591,6 @@ async function processScan(qrText) {
                 return false;
             }
             let result = await checkinVisitor(reg);
-            if(!isValid(result)){
-                toast(result.message || "Server response invalid", "error");
-                return false;
-            }
             if (result.status === "success") {
                 if (!visitor.sessions) visitor.sessions = [];
                 visitor.sessions.push({ checkIn: Date.now(), checkOut: null });
@@ -602,21 +598,16 @@ async function processScan(qrText) {
                 visitor.updatedAt = Date.now();
                 visitors[siteKey] = visitor;
                 addLocalLog(reg, "CHECK_IN");
-                await new Promise(r => setTimeout(r, 300));
-                await pullFromSheet();
                 vibrate();
                 toast(`✅ CHECK-IN ${visitor.nama} berhasil`, "success");
             } else if (result.status === "already_in") {
                 toast("Sudah CHECK-IN!", "warning");
             } else {
-                toast("Gagal CHECK-IN, sync ulang", "error");
+                addToQueue("checkin", reg);
+                toast("⏳ Masuk queue (offline/gagal)", "warning");
             }
         } else {
             let result = await checkoutVisitor(reg);
-            if(!isValid(result)){
-                toast(result.message || "Server response invalid", "error");
-                return false;
-            }
             if (result.status === "success") {
                 let openSession = visitor.sessions?.find(s => !s.checkOut);
                 if (openSession) openSession.checkOut = Date.now();
@@ -624,19 +615,19 @@ async function processScan(qrText) {
                 visitor.updatedAt = Date.now();
                 visitors[siteKey] = visitor;
                 addLocalLog(reg, "CHECK_OUT");
-                await new Promise(r => setTimeout(r, 300));
-                await pullFromSheet();
                 vibrate();
                 toast(`✅ CHECK-OUT ${visitor.nama} berhasil`, "success");
             } else if (result.status === "not_checked_in") {
                 toast("Belum CHECK-IN!", "warning");
             } else {
-                toast("Gagal CHECK-OUT, sync ulang", "error");
+                addToQueue("checkout", reg);
+                toast("⏳ Masuk queue", "warning");
             }
         }
         renderDashboard();  
         renderLogTable();  
         secureSave();  
+        await pullFromSheet();  
         return true;  
     } catch (e) {  
         console.error("processScan error:", e);  
@@ -645,7 +636,6 @@ async function processScan(qrText) {
     } finally {  
         actionMutex = false;  
         globalScanLock = false;
-        lockUI(false);
         setTimeout(() => processingRegs.delete(reg), 1000);  
     }  
 }  
@@ -653,6 +643,7 @@ async function processScan(qrText) {
 async function generateQRandShow(reg, data) {  
     try {
         let result = await generateQRCode(reg);  
+        // QR Data = REG number saja (clean)
         let qrData = reg;
         let qrImage;  
         try {  
@@ -822,11 +813,11 @@ function setSite(site) {
     document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { if (sel && sel.value !== site) sel.value = site; });  
     vmsSite_applyToUI();  
     toast(`Site aktif: ${getSiteName(SITE_ID)}`, "success");  
-    pullFromSheet();
     renderDashboard();  
     renderLogTable();  
 }  
 
+// ================= EVENT HANDLERS =================
 document.getElementById("generateQRBtn").onclick = async () => {  
     if (actionMutex) return;  
     actionMutex = true;  
@@ -868,14 +859,9 @@ document.getElementById("generateQRBtn").onclick = async () => {
         visitors[siteKey] = data;  
         addLocalLog(reg, "REGISTER");  
         let result = await registerVisitor(reg, data);  
-        if(!isValid(result)){
-            toast(result.message || "Server response invalid", "error");
-            delete visitors[siteKey];
-            secureSave();
-            return;
-        }
+        if (!result || typeof result !== "object") { addToQueue("register", reg, data); toast(`⚠️ ${nama} ditambahkan ke antrian`, "warning"); renderDashboard(); renderLogTable(); secureSave(); return; }  
         if (result.status === "duplicate") { toast("REG sudah terdaftar di server!", "warning"); delete visitors[siteKey]; secureSave(); return; }  
-        if (result.status !== "success") { toast(`Gagal register: ${result.message || "Unknown"}`, "error"); delete visitors[siteKey]; secureSave(); return; }  
+        if (result.status !== "success") addToQueue("register", reg, data);  
         toast(`✅ ${nama} terdaftar (${reg})`, "success");  
         vibrate();
         generateQRandShow(reg, data);  
@@ -885,11 +871,10 @@ document.getElementById("generateQRBtn").onclick = async () => {
         document.getElementById("regDept").value = "";  
         document.getElementById("regPhotoFile").value = "";  
         document.getElementById("previewPhotoThumb").src = "";  
-        await new Promise(r => setTimeout(r, 300));
-        await pullFromSheet();
         renderDashboard();  
         renderLogTable();  
         secureSave();  
+        await pullFromSheet();  
     } catch (e) {  
         console.error("generateQRBtn error:", e);  
         toast("Terjadi kesalahan", "error");  
@@ -913,22 +898,15 @@ document.getElementById("walkinBtn").onclick = async () => {
         visitors[siteKey] = walkData;  
         addLocalLog(reg, "WALK-IN");  
         let result = await walkinVisitor(reg, walkData);  
-        if(!isValid(result)){
-            toast(result.message || "Server response invalid", "error");
-            delete visitors[siteKey];
-            secureSave();
-            return;
-        }
         if (result.status === "duplicate") { toast("REG sudah terdaftar!", "warning"); delete visitors[siteKey]; secureSave(); return; }  
-        if (result.status !== "success") { toast(`Gagal walk-in: ${result.message || "Unknown"}`, "error"); delete visitors[siteKey]; secureSave(); return; }  
+        if (result.status !== "success") addToQueue("walkin", reg, walkData);  
         toast(`Walk-in registered ${reg}`, "success");  
         vibrate();
         generateQRandShow(reg, walkData);  
-        await new Promise(r => setTimeout(r, 300));
-        await pullFromSheet();
         renderDashboard();  
         renderLogTable();  
         secureSave();  
+        await pullFromSheet();  
     } catch (e) {  
         console.error("walkinBtn error:", e);  
         toast("Terjadi kesalahan", "error");  
@@ -996,16 +974,19 @@ document.getElementById("manualProcess").onclick = async () => {
     try {  
         let reg = document.getElementById("manualReg").value.trim();  
         const mode = document.getElementById("scanMode").value;  
-        if (!reg || !validateRegFormat(reg)) {
-            toast("Format REG salah (contoh: REG20260504001, 10-20 digit)", "error");
+        
+        if (!reg || !reg.match(/^REG\d+/i)) {
+            toast("Format REG salah (contoh: REG20260504001)", "error");
             return;
         }
+        
         let siteKey = SITE_ID + "_" + reg;  
         let visitor = visitors[siteKey];  
         if (!visitor) { 
             toast("REG tidak ditemukan", "error"); 
             return; 
         }  
+        
         let expDate = visitor.expDate ? new Date(visitor.expDate) : null;
         if (expDate && !isNaN(expDate.getTime())) {
             expDate.setHours(23, 59, 59, 999);
@@ -1014,6 +995,7 @@ document.getElementById("manualProcess").onclick = async () => {
                 return;
             }
         }
+        
         if (mode === "CHECK_IN") {
             let hasOpen = visitor.sessions?.some(s => !s.checkOut);
             if (hasOpen) {
@@ -1021,10 +1003,6 @@ document.getElementById("manualProcess").onclick = async () => {
                 return;
             }
             let result = await checkinVisitor(reg);
-            if(!isValid(result)){
-                toast(result.message || "Server response invalid", "error");
-                return;
-            }
             if (result.status === "success") {
                 if (!visitor.sessions) visitor.sessions = [];
                 visitor.sessions.push({ checkIn: Date.now(), checkOut: null });
@@ -1032,14 +1010,13 @@ document.getElementById("manualProcess").onclick = async () => {
                 visitor.updatedAt = Date.now();
                 visitors[siteKey] = visitor;
                 addLocalLog(reg, "CHECK_IN");
-                await new Promise(r => setTimeout(r, 300));
-                await pullFromSheet();
                 vibrate();
                 toast(`Check-in ${visitor.nama} success`, "success");
             } else if (result.status === "already_in") {
                 toast("Sudah check-in!", "warning");
             } else {
-                toast("Gagal check-in, sync ulang", "error");
+                addToQueue("checkin", reg);
+                toast("Masuk queue", "warning");
             }
         } else {
             let openSession = visitor.sessions?.find(s => !s.checkOut);
@@ -1048,29 +1025,25 @@ document.getElementById("manualProcess").onclick = async () => {
                 return;
             }
             let result = await checkoutVisitor(reg);
-            if(!isValid(result)){
-                toast(result.message || "Server response invalid", "error");
-                return;
-            }
             if (result.status === "success") {
                 openSession.checkOut = Date.now();
                 visitor.currentStatus = "OUT";
                 visitor.updatedAt = Date.now();
                 visitors[siteKey] = visitor;
                 addLocalLog(reg, "CHECK_OUT");
-                await new Promise(r => setTimeout(r, 300));
-                await pullFromSheet();
                 vibrate();
                 toast(`Check-out ${visitor.nama} success`, "success");
             } else if (result.status === "not_checked_in") {
                 toast("Belum check-in!", "warning");
             } else {
-                toast("Gagal check-out, sync ulang", "error");
+                addToQueue("checkout", reg);
+                toast("Masuk queue", "warning");
             }
         }
         renderDashboard();  
         renderLogTable();  
         secureSave();  
+        await pullFromSheet();  
     } catch (e) {  
         console.error("manualProcess error:", e);  
         toast("Terjadi kesalahan", "error");  
@@ -1145,11 +1118,12 @@ vmsSite_load();
 setSite(SITE_ID);
 renderDashboard();  
 renderLogTable();  
+function initQueue() { try { const saved = localStorage.getItem("vms_sync_queue"); if (saved) syncQueue = JSON.parse(saved); updateQueueStatus(); } catch (e) { console.error("initQueue error:", e); } }  
+initQueue();  
 pullFromSheet();  
-
-let syncInterval = setInterval(() => { if (navigator.onLine && !syncLock) pullFromSheet(); }, SYNC_INTERVAL_MS);  
-window._vmsIntervals.push(syncInterval);  
-
+let syncInterval = setInterval(() => { if (navigator.onLine) pullFromSheet(); }, SYNC_INTERVAL_MS);  
+let queueInterval = setInterval(() => { if (navigator.onLine && syncQueue.length > 0) processQueue(); }, 5000);  
+window._vmsIntervals.push(syncInterval, queueInterval);  
 window.addEventListener("beforeunload", () => { if (scannerInstance) { try { scannerInstance.stop(); scannerInstance.clear(); } catch (e) { console.error("beforeunload scanner error:", e); } } if (cameraResetInterval) clearInterval(cameraResetInterval); window._vmsIntervals.forEach(clearInterval); secureSave(); });  
 
 function vmsSite_load() { try { let stored = localStorage.getItem("vms_site_names"); if (stored) Object.assign(vmsSiteData.names, JSON.parse(stored)); } catch(e) { console.error("vmsSite_load error:", e); } vmsSite_applyToUI(); }  
