@@ -339,6 +339,19 @@ async function validateQRCode(qrData) { return await apiCall({ action: "validate
 async function pullFromSheet() {
 function syncVisitorStatus(sheetData) {  
     console.log("📊 SYNC DATA:", sheetData);
+
+    if (!Array.isArray(sheetData) || sheetData.length < 2) return;
+
+    for (let i = 1; i < sheetData.length; i++) {
+        const row = sheetData[i];
+
+        const reg = row[8];       // REG
+        const nama = row[0];      // Nama
+        const company = row[1];   // Perusahaan
+        const status = row[11];   // Status
+
+        console.log("👤", reg, nama, company, status);
+    }
 }
 if (syncLock) return;
   if (document.hidden) return;
