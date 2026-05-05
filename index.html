@@ -252,54 +252,69 @@ function addLocalLog(reg, action) {
     secureSave();  
 }  
 
-// ================= API CALL (HARDENED) =================
+// ================= API CALL (FIX FINAL - NO QUEUE BUG) =================
 async function apiCall(params) {
-    if (!navigator.onLine) return { status: "offline" };
-    if (document.hidden) return { status: "background" };
-    
     try {
-        const timestamp = Date.now().toString();
-        const base = String(params.reg || "") + String(params.action) + String(timestamp) + String(SECRET);
-        const sign = await sha256(base);
-        const formData = new URLSearchParams({
-            ...params,
-            timestamp,
-            sign,
-            ua: navigator.userAgent
-        });
-
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-
         const res = await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            body: formData,
-            signal: controller.signal
+            body: new URLSearchParams(params)
         });
 
-        clearTimeout(timeout);
-
-        if (!res.ok) return { status: "error_network" };
+        const text = await res.text();
+        console.log("🔥 RAW API:", text);
 
         let data;
         try {
-            data = await res.json();
-        } catch {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("❌ JSON ERROR:", text);
             return { status: "error_parse" };
         }
 
+        console.log("🔥 PARSED API:", data);
+
         return data;
     } catch (e) {
-        return { status: "error" };
+        console.error("❌ FETCH ERROR:", e);
+        return { status: "error_network" };
     }
 }
 
+// ================= VISITOR ACTION =================
 async function registerVisitor(reg, data) {  
-    return await apiCall({ action: "register", reg, name: data.nama, company: data.perusahaan, purpose: data.tujuan, pic: data.pic, dept: data.dept, start: data.startDate, exp: data.expDate, category: data.kategori, site_id: SITE_ID, site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), photo: data.foto || "" });  
+    return await apiCall({ 
+        action: "register", 
+        reg, 
+        name: data.nama, 
+        company: data.perusahaan, 
+        purpose: data.tujuan, 
+        pic: data.pic, 
+        dept: data.dept, 
+        start: data.startDate, 
+        exp: data.expDate, 
+        category: data.kategori, 
+        site_id: SITE_ID, 
+        site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), 
+        photo: data.foto || "" 
+    });  
 }  
 
 async function walkinVisitor(reg, data) {  
-    return await apiCall({ action: "walkin", reg, name: data.nama, company: data.perusahaan, purpose: data.tujuan, pic: data.pic, dept: data.dept, start: data.startDate, exp: data.expDate, category: data.kategori, site_id: SITE_ID, site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), photo: data.foto || "" });  
+    return await apiCall({ 
+        action: "walkin", 
+        reg, 
+        name: data.nama, 
+        company: data.perusahaan, 
+        purpose: data.tujuan, 
+        pic: data.pic, 
+        dept: data.dept, 
+        start: data.startDate, 
+        exp: data.expDate, 
+        category: data.kategori, 
+        site_id: SITE_ID, 
+        site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), 
+        photo: data.foto || "" 
+    });  
 }  
 
 async function checkinVisitor(reg) { return await apiCall({ action: "checkin", reg, site_id: SITE_ID }); }  
@@ -307,6 +322,7 @@ async function checkoutVisitor(reg) { return await apiCall({ action: "checkout",
 async function generateQRCode(reg) { return await apiCall({ action: "generateqr", reg }); }  
 async function validateQRCode(qrData) { return await apiCall({ action: "validateqr", qrData }); }  
 
+// ================= PULL =================
 async function pullFromSheet() {
   if (syncLock) return;
   if (document.hidden) return;
@@ -323,9 +339,16 @@ async function pullFromSheet() {
       })
     });
 
-    if (!response.ok) throw new Error("Network error");
+    const text = await response.text();
+    console.log("🔥 PULL RAW:", text);
 
-    const result = await response.json();
+    let result;
+    try {
+        result = JSON.parse(text);
+    } catch (e) {
+        console.error("❌ PULL JSON ERROR:", text);
+        return;
+    }
 
     if (result.status === "success" && result.data) {
       syncVisitorStatus(result.data);
@@ -338,89 +361,52 @@ async function pullFromSheet() {
   }
 }
 
-function syncVisitorStatus(sheetData) {  
-    if (!Array.isArray(sheetData)) return;  
-    for (let i = 1; i < sheetData.length; i++) {  
-        const row = sheetData[i];  
-        const reg = row[1];
-        const siteId = row[13];
-        const status = row[10];
-        const checkin = row[11];
-        const checkout = row[12];
-        if (!reg || siteId !== SITE_ID) continue;  
-        const key = SITE_ID + "_" + reg;  
-        let rawTime = checkout || checkin || row[0];  
-        let sheetTime = rawTime ? new Date(rawTime).getTime() : 0;  
-        if (isNaN(sheetTime)) sheetTime = 0;  
-        if (!visitors[key]) {  
-            visitors[key] = {  
-                nama: row[2] || "Unknown",  
-                perusahaan: row[3] || "",  
-                kategori: row[9] || "UMUM",  
-                tujuan: row[4] || "-",  
-                pic: row[5] || "-",  
-                dept: row[6] || "-",  
-                startDate: row[7] || "",  
-                expDate: row[8] || "",  
-                foto: "",  
-                sessions: [],  
-                currentStatus: status === "IN" ? "IN" : "OUT",  
-                updatedAt: sheetTime  
-            };  
-        } else {  
-            const localTime = visitors[key].updatedAt || 0;  
-            if (sheetTime >= localTime || !localTime) {  
-                visitors[key].currentStatus = status === "IN" ? "IN" : "OUT";  
-                visitors[key].updatedAt = sheetTime;  
-            }  
-        }  
-    }  
-    secureSave();  
-    renderDashboard();  
-    renderLogTable();  
-}
-
-function updateQueueStatus() {  
-    let div = document.getElementById("queueStatusIndicator");  
-    if (!div) { div = document.createElement("div"); div.id = "queueStatusIndicator"; div.className = "queue-status"; document.body.appendChild(div); }  
-    div.innerHTML = syncQueue.length ? `📦 Queue: ${syncQueue.length}` : `✅ Elite Sync`;  
-}  
-
-function persistQueue() {  
-    try { localStorage.setItem("vms_sync_queue", JSON.stringify(syncQueue)); updateQueueStatus(); } catch (e) { console.error("persistQueue error:", e); }  
-}  
-
-function addToQueue(action, reg, data = null) {  
-    syncQueue = syncQueue.filter(q => !(q.reg === reg && q.action === action));
-    syncQueue.push({ id: Date.now() + "_" + reg, action, reg, data, retryCount: 0, timestamp: Date.now(), fingerprint: action + "_" + reg });  
-    persistQueue();  
-    if (navigator.onLine) processQueue();  
-}  
-
+// ================= QUEUE (FIX LOOP) =================
 async function processQueue() {  
     if (isProcessingQueue || syncQueue.length === 0) return;  
+
     isProcessingQueue = true;  
     const newQueue = [];  
+
     for (const item of syncQueue) {  
         let result;  
+
         try {  
             if (item.action === "checkin") result = await checkinVisitor(item.reg);  
             else if (item.action === "checkout") result = await checkoutVisitor(item.reg);  
             else if (item.action === "register") result = await registerVisitor(item.reg, item.data);  
             else if (item.action === "walkin") result = await walkinVisitor(item.reg, item.data);  
-        } catch (e) { result = { status: "error" }; }  
-        if (result?.status === "duplicate") { toast("REG sudah terdaftar!", "warning"); continue; }  
-        if (result?.status !== "success") {  
-            item.retryCount = (item.retryCount || 0) + 1;  
-            let delay = Math.min(Math.pow(2, item.retryCount) * 1000, 10000);  
-            if (item.retryCount <= 5) { await new Promise(r => setTimeout(r, delay)); newQueue.push(item); }  
-            else console.warn("DROP QUEUE:", item);  
+        } catch (e) {  
+            result = { status: "error" };  
         }  
+
+        console.log("📦 QUEUE RESULT:", result);
+
+        // ✅ SUCCESS → langsung selesai (tidak retry)
+        if (result && result.status === "success") {
+            continue;
+        }
+
+        // ⚠️ duplicate → anggap selesai juga
+        if (result && result.status === "duplicate") {
+            continue;
+        }
+
+        // ❌ selain itu → retry
+        item.retryCount = (item.retryCount || 0) + 1;
+
+        if (item.retryCount <= 5) {
+            await new Promise(r => setTimeout(r, 1000));
+            newQueue.push(item);
+        } else {
+            console.warn("DROP QUEUE:", item);
+        }
     }  
+
     syncQueue = newQueue;  
     persistQueue();  
     isProcessingQueue = false;  
-}  
+}
 
 // ================= PERFORMANCE OPTIMIZED CHARTS =================
 function renderDashboard() {  
