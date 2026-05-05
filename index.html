@@ -2,561 +2,1182 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>VMS Command Center | Enterprise Admin Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>VMS SAPAM MEDED | Elite Production System</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --primary: #0a0f1a;
-            --primary-light: #111827;
-            --accent: #10b981;
-            --accent-dark: #059669;
-            --danger: #ef4444;
-            --danger-dark: #dc2626;
-            --warning: #f59e0b;
-            --info: #3b82f6;
-            --text: #f9fafb;
-            --text-muted: #9ca3af;
-            --border: #1f2937;
-            --card-bg: #1f2937;
-        }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--primary); color: var(--text); overflow-x: hidden; }
-        .app { display: flex; min-height: 100vh; }
-        .sidebar { width: 280px; background: var(--primary-light); border-right: 1px solid var(--border); position: fixed; height: 100vh; overflow-y: auto; transition: transform 0.3s ease; z-index: 100; }
-        .sidebar-header { padding: 24px 20px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, #0a0f1a 0%, #111827 100%); }
-        .sidebar-header h1 { font-size: 1.4rem; color: var(--accent); display: flex; align-items: center; gap: 8px; }
-        .sidebar-header p { font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; margin: 6px 12px; border-radius: 12px; cursor: pointer; transition: all 0.2s; color: var(--text-muted); font-weight: 500; }
-        .nav-item:hover { background: rgba(16, 185, 129, 0.1); color: var(--text); }
-        .nav-item.active { background: var(--accent); color: white; }
-        .main-content { flex: 1; margin-left: 280px; padding: 24px 32px; min-height: 100vh; }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
-        .page-title h2 { font-size: 1.6rem; font-weight: 600; }
-        .page-title p { color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; }
-        .user-info { display: flex; align-items: center; gap: 16px; background: var(--card-bg); padding: 8px 20px; border-radius: 40px; border: 1px solid var(--border); }
-        .logout-btn { background: var(--danger); border: none; padding: 6px 14px; border-radius: 30px; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 600; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: var(--card-bg); border-radius: 20px; padding: 20px; border: 1px solid var(--border); transition: transform 0.2s; }
-        .stat-card:hover { transform: translateY(-2px); border-color: var(--accent); }
-        .stat-card h4 { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; letter-spacing: 1px; }
-        .stat-number { font-size: 2rem; font-weight: 700; color: var(--accent); }
-        .card { background: var(--card-bg); border-radius: 20px; padding: 24px; margin-bottom: 24px; border: 1px solid var(--border); }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-        .card-header h3 { font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
-        .table-wrapper { overflow-x: auto; border-radius: 16px; max-height: 600px; overflow-y: auto; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: #f0f2f5; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #1a2c3e; }
+        :root { --primary: #1f4e4a; }
+        .app-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 280px; background: #0f2c2c; color: #e2e8f0; position: fixed; height: 100vh; overflow-y: auto; z-index: 20; }
+        .logo-area { padding: 28px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo-area h1 { font-size: 1.6rem; font-weight: 600; color: white; }
+        .logo-area p { font-size: 0.7rem; color: #8ea5a5; margin-top: 6px; }
+        .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 24px; margin: 4px 12px; border-radius: 14px; color: #cbdcd9; font-weight: 500; cursor: pointer; transition: 0.1s; }
+        .nav-item.active { background: #2b5a55; color: white; }
+        .nav-item:active { opacity: 0.6; }
+        .main-content { flex: 1; margin-left: 280px; padding: 24px 32px; width: calc(100% - 280px); }
+        .mobile-header { display: none; background: #0f2c2c; padding: 16px 20px; color: white; align-items: center; justify-content: space-between; position: sticky; top:0; z-index:100; }
+        .menu-toggle { background: none; border: none; font-size: 1.8rem; color: white; cursor: pointer; }
+        .mobile-sidebar { position: fixed; top: 0; left: -280px; width: 260px; height: 100%; background: #0f2c2c; z-index: 200; transition: 0.2s; padding-top: 20px; }
+        .mobile-sidebar.open { left: 0; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 199; display: none; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 36px; }
+        .stat-card { background: white; border-radius: 24px; padding: 22px 20px; border: 1px solid #e2edf2; }
+        .stat-card h4 { font-size: 0.7rem; text-transform: uppercase; color: #5f7f7c; margin-bottom: 12px; }
+        .stat-number { font-size: 2.2rem; font-weight: 700; color: #1f4e4a; }
+        .form-card { background: white; border-radius: 28px; padding: 28px 30px; margin-bottom: 28px; border: 1px solid #e7edf2; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px 32px; }
+        .input-field { display: flex; flex-direction: column; gap: 6px; }
+        .input-field label { font-size: 0.7rem; font-weight: 600; color: #2b5a55; text-transform: uppercase; }
+        input, select { padding: 12px 14px; border-radius: 18px; border: 1px solid #d4e0e5; font-size: 0.9rem; }
+        button { background: #1f4e4a; border: none; padding: 12px 24px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; transition: 0.1s; min-height: 48px; }
+        button:active { opacity: 0.7; transform: scale(0.98); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-outline { background: white; border: 1px solid #cbd5e1; color: #1f4e4a; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 40px; font-size: 0.7rem; font-weight: 600; }
+        .badge-VVIP { background: #fde68a; color: #92400e; }
+        .badge-VIP { background: #e2e8f0; color: #334155; }
+        .badge-UMUM { background: #d1fae5; color: #065f46; }
+        .toast-msg { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white; padding: 10px 20px; border-radius: 40px; z-index: 1000; font-size: 0.8rem; animation: fadeIn 0.2s; max-width: 90%; }
+        .toast-msg.success { background: #1f4e4a; }
+        .toast-msg.error { background: #b91c1c; }
+        .toast-msg.warning { background: #d97706; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 3000; visibility: hidden; opacity: 0; transition: 0.2s; }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal-card { background: white; width: 480px; max-width: 90%; border-radius: 32px; padding: 28px; }
+        .qr-preview { width: 120px; margin: 16px auto; display: block; }
+        .flex-btns { display: flex; gap: 12px; margin-top: 20px; }
+        .tab-pane { display: none; }
+        .tab-pane.active-pane { display: block; animation: fade 0.2s; }
+        @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+        .table-wrap { overflow-x: auto; border-radius: 20px; }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 14px 12px; background: var(--primary); color: var(--text-muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; position: sticky; top: 0; z-index: 10; }
-        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
-        tr:hover { background: rgba(16, 185, 129, 0.05); }
-        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
-        .badge-active { background: #10b98120; color: #10b981; border: 1px solid #10b981; }
-        .badge-expired { background: #ef444420; color: #ef4444; border: 1px solid #ef4444; }
-        .badge-pending { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b; }
-        .badge-in { background: #10b98120; color: #10b981; border: 1px solid #10b981; }
-        .badge-out { background: #6b728020; color: #9ca3af; border: 1px solid #6b7280; }
-        .btn { padding: 8px 16px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: var(--accent-dark); }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-        .btn-outline:hover { background: var(--border); }
-        .btn-sm { padding: 4px 10px; font-size: 0.7rem; }
-        input, select { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--primary); color: var(--text); font-size: 0.85rem; width: 100%; outline: none; }
-        input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
-        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: var(--card-bg); border-radius: 32px; padding: 40px; width: 380px; border: 1px solid var(--border); }
-        .login-card h2 { text-align: center; margin-bottom: 28px; color: var(--accent); }
-        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1100; display: flex; flex-direction: column; gap: 8px; }
-        .toast { background: var(--card-bg); padding: 12px 20px; border-radius: 12px; border-left: 4px solid var(--accent); animation: slideIn 0.3s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); font-size: 0.85rem; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .modal-box { background: var(--primary-light); padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; border: 1px solid var(--border); }
-        .modal-box h3 { margin-bottom: 20px; font-size: 1.2rem; }
-        .modal-box .input { width: 100%; padding: 10px 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--primary); color: var(--text); font-size: 0.85rem; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-        .btn-secondary { background: var(--border); color: var(--text); }
-        .text-muted { color: var(--text-muted); }
-        .text-danger { color: var(--danger); }
-        .text-warning { color: var(--warning); }
-        .text-success { color: var(--accent); }
-        .refresh-indicator { position: fixed; bottom: 10px; left: 10px; font-size: 0.7rem; color: var(--text-muted); background: var(--primary-light); padding: 4px 12px; border-radius: 20px; }
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 16px; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-            .mobile-menu-btn { display: block; position: fixed; top: 16px; left: 16px; z-index: 1001; background: var(--accent); border: none; padding: 10px 14px; border-radius: 10px; color: white; cursor: pointer; font-size: 1.2rem; }
-            .top-bar { margin-top: 50px; }
+        th { text-align: left; padding: 14px 16px; background: #f8fafc; color: #1f4e4a; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 12px 16px; border-bottom: 1px solid #edf2f7; }
+        #cameraPreview { width: 100%; max-width: 500px; background: #000; border-radius: 24px; overflow: hidden; min-height: 200px; margin: 0 auto; }
+        @media (max-width: 780px) {
+            .sidebar { display: none; }
+            .mobile-header { display: flex; }
+            .main-content { margin-left: 0; width: 100%; padding: 16px; }
+            .grid-2 { grid-template-columns: 1fr; }
         }
-        @media (min-width: 769px) { .mobile-menu-btn { display: none; } }
-        .site-selector { background: var(--primary); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; margin-left: 12px; }
+        .queue-status { position: fixed; bottom: 10px; left: 10px; z-index: 9999; background: rgba(0,0,0,0.8); color: #ff9800; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-family: monospace; pointer-events: none; }
+        .license-badge { background: #fbbf24; color: #92400e; padding: 4px 12px; border-radius: 40px; font-size: 0.7rem; font-weight: 600; margin-left: 12px; }
+        body.disable-interaction { pointer-events: none; opacity: 0.7; }
+        .qr-reader-region { margin: 0 auto; }
     </style>
 </head>
 <body>
-
-<button class="mobile-menu-btn" id="mobileMenuBtn">☰ MENU</button>
-
-<div class="app">
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h1>🎯 VMS COMMAND</h1>
-            <p>Enterprise Control Center v5.0</p>
-        </div>
-        <div class="nav-item active" data-tab="dashboard"><span>📊</span> Dashboard</div>
-        <div class="nav-item" data-tab="monitor"><span>📱</span> Live Monitor</div>
-        <div class="nav-item" data-tab="logs"><span>📜</span> Audit Logs</div>
-        <div style="margin-top: 40px; padding: 20px; border-top: 1px solid var(--border);">
-            <div class="user-info" style="margin-bottom: 12px; background: transparent; padding: 0;">
-                <span>👤 <span id="sidebarUsername">Admin</span></span>
-                <span class="badge badge-active" id="sidebarRole">ADMIN</span>
-            </div>
-            <div style="margin-bottom: 12px;">
-                <label style="font-size: 0.7rem; color: var(--text-muted);">Site Filter</label>
-                <select id="siteFilterSidebar" class="site-selector" style="width: 100%; margin-top: 4px;">
-                    <option value="ALL">🌍 ALL SITES</option>
-                    <option value="SITE_A">🏭 SITE A</option>
-                    <option value="SITE_B">🏢 SITE B</option>
-                    <option value="SITE_C">🏬 SITE C</option>
-                </select>
-            </div>
-            <button class="btn btn-warning" id="sidebarChangePasswordBtn" style="width: 100%; margin-bottom: 8px;">🔐 Ganti Password</button>
-            <button class="btn btn-danger" id="sidebarLogoutBtn" style="width: 100%;">🚪 Logout</button>
-        </div>
-    </div>
-
-    <div class="main-content">
-        <div class="top-bar">
-            <div class="page-title"><h2 id="pageTitle">Dashboard</h2><p id="pageSubtitle">Live Monitoring System</p></div>
-            <div class="user-info">
-                <span>🌍 <select id="siteFilterTop" class="site-selector"><option value="ALL">ALL SITES</option><option value="SITE_A">SITE A</option><option value="SITE_B">SITE B</option><option value="SITE_C">SITE C</option></select></span>
-                <span>👤 <span id="topUsername">Admin</span></span>
-                <span class="badge badge-active" id="topRole">ADMIN</span>
-                <button class="btn btn-warning btn-sm" id="topChangePasswordBtn">🔐 Ganti Password</button>
-                <button class="logout-btn" id="topLogoutBtn">Logout</button>
-            </div>
-        </div>
-
-        <div id="dashboardTab" class="tab-pane active">
-            <div class="stats-grid" id="statsGrid">
-                <div class="stat-card"><h4>Total Visitors</h4><div class="stat-number" id="statTotalVisitors">-</div></div>
-                <div class="stat-card"><h4>Active Inside (IN)</h4><div class="stat-number" id="statActiveInside">-</div></div>
-                <div class="stat-card"><h4>Check-ins Today</h4><div class="stat-number" id="statTodayCheckins">-</div></div>
-                <div class="stat-card"><h4>Active Sites</h4><div class="stat-number" id="statActiveSites">-</div></div>
-            </div>
-            <div class="card">
-                <div class="card-header"><h3>📊 Visitor Status Overview</h3><button class="btn btn-outline btn-sm" id="refreshDashboardBtn">🔄 Refresh</button></div>
-                <canvas id="statusChart" height="120"></canvas>
-            </div>
-        </div>
-
-        <div id="monitorTab" class="tab-pane">
-            <div class="card">
-                <div class="card-header">
-                    <h3>📱 Live Visitor Monitor</h3>
-                    <div><input type="text" id="visitorSearch" placeholder="Search name or REG..." style="width: 200px;"><button class="btn btn-outline btn-sm" id="refreshMonitorBtn">🔄 Refresh</button></div>
-                </div>
-                <div class="table-wrapper">
-                    <table id="visitorsTable">
-                        <thead>
-                            <tr><th>REG</th><th>Name</th><th>Company</th><th>Site</th><th>Status</th><th>Last Activity</th><th>Valid Until</th></tr>
-                        </thead>
-                        <tbody id="visitorsTableBody"><tr><td colspan="7" class="text-muted">Loading data...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="logsTab" class="tab-pane">
-            <div class="card">
-                <div class="card-header">
-                    <h3>📜 Audit Trail</h3>
-                    <div><input type="text" id="logSearch" placeholder="Search..." style="width: 200px;"><button class="btn btn-info btn-sm" id="exportLogsExcelBtn">📊 Export Excel</button><button class="btn btn-outline btn-sm" id="refreshLogsBtn">🔄 Refresh</button></div>
-                </div>
-                <div class="table-wrapper">
-                    <table id="logsTable">
-                        <thead><tr><th>Time</th><th>REG</th><th>Name</th><th>Company</th><th>Action</th><th>Site</th></tr></thead>
-                        <tbody id="logsTableBody"><tr><td colspan="6" class="text-muted">Loading logs...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="loginOverlay" class="login-overlay"><div class="login-card"><h2>🔐 VMS Command Center</h2><div class="form-group"><label>Username</label><input type="text" id="loginUser" placeholder="admin"></div><div class="form-group"><label>Password</label><input type="password" id="loginPass" placeholder="********"></div><button class="btn btn-primary" id="doLoginBtn" style="width:100%;">Login</button><div style="margin-top:16px; text-align:center; font-size:0.7rem; color:#6b7280;">Enter your credentials</div></div></div>
-<div id="changePasswordModal" class="modal-overlay" style="display:none;"><div class="modal-box"><h3>🔐 Ganti Password</h3><input type="password" id="oldPassword" placeholder="Password Lama" class="input"/><input type="password" id="newPassword" placeholder="Password Baru" class="input"/><input type="password" id="confirmPassword" placeholder="Konfirmasi" class="input"/><div class="modal-actions"><button class="btn btn-secondary" id="closePasswordModalBtn">Batal</button><button class="btn btn-warning" id="submitPasswordBtn">Simpan</button></div></div></div>
-<div class="toast-container" id="toastContainer"></div>
-<div class="refresh-indicator" id="refreshIndicator">🟢 Live | Last sync: --:--:--</div>
+<div id="temp-reader" style="display:none;"></div>
+<div class="mobile-header"><button class="menu-toggle" id="mobileMenuBtn">☰</button><strong id="brandMobile" data-site="SITE_A">VMS ELITE</strong><div style="width: 28px;"></div></div>
+<div class="overlay" id="overlay"></div>
+<div class="mobile-sidebar" id="mobileSidebar"><div class="logo-area"><h1 id="brandSidebar" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item mobile-nav" data-tab="dashboard">📊 Dashboard</div><div class="nav-item mobile-nav" data-tab="register">📝 Register</div><div class="nav-item mobile-nav" data-tab="scanner">📷 Scanner</div><div class="nav-item mobile-nav" data-tab="logs">📜 Logs</div></div>
+<div class="app-layout"><div class="sidebar"><div class="logo-area"><h1 id="brandSidebarMain" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item active" data-tab="dashboard">📊 Dashboard</div><div class="nav-item" data-tab="register">📝 Register Visitor</div><div class="nav-item" data-tab="scanner">📷 Security Scan</div><div class="nav-item" data-tab="logs">📜 Audit Logs</div><div style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);"><div style="background:transparent; border:none; color:white; padding:0;"><label style="color:white;">🌍 Site</label><select id="siteSelector" style="background:#2b5a55; color:white;"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button id="vmsSiteEditBtn" onclick="vmsSite_open()" style="background:#2b5a55; margin-left:8px; padding:6px 12px;">⚙️ Rename</button></div></div></div><div class="main-content"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;"><div style="background:white; border-radius:28px; padding:8px 20px; display:flex; align-items:center; gap:16px;"><label>🌐 Active Site</label><select id="siteSelectorTop"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button onclick="vmsSite_open()" style="background:#0f2c2c; padding:6px 12px;">⚙️ Rename</button></div></div><div style="background:white; border-radius:20px; padding:16px; margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;"><input type="text" id="licenseInput" placeholder="License key..." style="flex:1;"><button id="submitLicenseBtn">Aktivasi</button><div id="licenseStatusBadge" class="license-badge">ELITE</div></div><div id="dashboardPane" class="tab-pane active-pane"><div class="stats-row" id="statsWidget"></div><div class="form-card"><canvas id="trendChart" height="90"></canvas></div><div class="form-card"><canvas id="categoryChart" height="90"></canvas></div></div><div id="registerPane" class="tab-pane"><div class="form-card"><div class="grid-2"><div class="input-field"><label>Full name</label><input type="text" id="regName" placeholder="John Carter"></div><div class="input-field"><label>Company</label><input type="text" id="regCompany" placeholder="PT Nusantara"></div><div class="input-field"><label>Category</label><select id="regCategory"><option value="UMUM">UMUM</option><option value="VIP">VIP</option><option value="VVIP">VVIP</option></select></div><div class="input-field"><label>Purpose</label><select id="regPurpose"><option>Meeting</option><option>Interview</option><option>Service</option><option>Lainnya</option></select><input type="text" id="regCustomPurpose" placeholder="Other purpose" style="margin-top:8px;"></div><div class="input-field"><label>PIC</label><input type="text" id="regPic" placeholder="Budi Santoso"></div><div class="input-field"><label>Department</label><input type="text" id="regDept" placeholder="IT / HR"></div><div class="input-field"><label>Start date</label><input type="date" id="regStartDate"></div><div class="input-field"><label>Expired date</label><input type="date" id="regExpDate"></div><div class="input-field"><label>Photo</label><input type="file" id="regPhotoFile" accept="image/*"><img id="previewPhotoThumb" width="50" style="margin-top:8px; border-radius:12px;"></div></div><div style="display:flex; gap:16px; margin-top:24px;"><button id="walkinBtn">⚡ Walk-in</button><button id="generateQRBtn">🔐 Generate QR</button></div></div></div><div id="scannerPane" class="tab-pane"><div class="form-card"><div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;"><select id="scanMode"><option value="CHECK_IN">CHECK-IN</option><option value="CHECK_OUT">CHECK-OUT</option></select><button id="startCamBtn">📷 Start Camera</button><button id="stopCamBtn" class="btn-outline">Stop</button><button id="uploadQrBtn">🖼️ Upload QR</button><input type="file" id="uploadQrFile" accept="image/*" style="display:none"></div><div id="cameraPreview"></div><div style="margin-top:24px;"><label>Manual REG Number</label><input type="text" id="manualReg" placeholder="REG2026xxxx"><button id="manualProcess" style="margin-top:8px;">Proses</button></div></div></div><div id="logsPane" class="tab-pane"><div class="form-card"><div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;"><input type="text" id="searchLog" placeholder="Cari Nama / REG" style="width:200px;"><button id="refreshLogsBtn">Refresh</button><button id="selectAllBtn">Select all</button><button id="deselectAllBtn">Deselect</button><button id="deleteSelectedBtn" style="background:#b91c1c;">Hapus terpilih</button><button id="deleteAllBtn" style="background:#b91c1c;">Hapus semua</button><button id="exportExcelAction">Export Excel</button><button id="backupAction">Backup</button><button id="resetDatabaseAction" style="background:#92400e;">Reset DB</button></div><div class="table-wrap"><table id="logTable"><thead>汽<th><input type="checkbox" id="checkAllMaster"></th><th>REG</th><th>Nama</th><th>Perusahaan</th><th>Kategori</th><th>Aksi</th><th>Waktu</th><th>Site</th><th>PDF</th> </thead><tbody id="logTableBody"></tbody> </table></div></div></div></div></div>
+<div id="vmsSiteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:10001;"><div style="background:white; border-radius:28px; padding:28px; width:420px; max-width:90%;"><h3>⚙️ Edit Site Names</h3><div style="margin-bottom:16px;"><label>🏭 SITE A</label><input type="text" id="vmsA" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏢 SITE B</label><input type="text" id="vmsB" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏬 SITE C</label><input type="text" id="vmsC" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="display:flex; gap:12px;"><button id="vmsSaveBtn" onclick="vmsSite_submit()" style="background:#1f4e4a;">💾 Save</button><button onclick="vmsSite_close()" class="btn-outline">Cancel</button></div></div></div>
 
 <script>
-// ================= CONFIG =================
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGpmVob5xxtoml6jqKVpaQhFdgoU6B8A_RLAzzJUL6rZC2s9Wcmk0_pn-opmdZguRAQ/exec";
-const SECRET = "OMNIGUARD_SECRET_2026";
-const SESSION_TIMEOUT_MS = 43200000;
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGpmVob5xxtoml6jqKVpaQhFdgoU6B8A_RLAzzJUL6rZC2s9Wcmk0_pn-opmdZguRAQ/exec";
+
+async function safeFetch(params, retry = 0) {
+    const MAX_RETRY = 2;
+    try {
+        const body = new URLSearchParams(params);
+        const res = await fetch(SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: body.toString()
+        });
+        const raw = await res.text();
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (e) {
+            console.error("RAW_RESPONSE:", raw);
+            return { status: "error", message: "INVALID_JSON_BACKEND" };
+        }
+        return data;
+    } catch (err) {
+        if (retry < MAX_RETRY) {
+            await new Promise(r => setTimeout(r, 800));
+            return safeFetch(params, retry + 1);
+        }
+        return { status: "error", message: "NETWORK_ERROR" };
+    }
+}
+
+window.VMS_SAFE = true;
+
+window.addEventListener("error", function(e){
+    console.error("GLOBAL ERROR:", e.message);
+    if(window.toast) toast("⚠️ System error terdeteksi", "error");
+});
+
+window.addEventListener("unhandledrejection", function(e){
+    console.error("PROMISE ERROR:", e.reason);
+    if(window.toast) toast("⚠️ Network/async error", "warning");
+});
+
+const SCAN_COOLDOWN_MS = 500;
+const SCAN_MAX_PER_MIN = 20;
 const SYNC_INTERVAL_MS = 4000;
-
-// ================= GLOBAL STATE =================
-let currentUser = null;
-let currentToken = null;
-let currentRole = null;
+let scanCounter = 0;
 let syncLock = false;
-let refreshInterval = null;
-let currentSiteFilter = "ALL";
-let visitorsData = [];
-let logsData = [];
-let statusChart = null;
+let globalScanLock = false;
+let currentFetchId = 0;
 
-// ================= HELPER FUNCTIONS =================
+setInterval(() => scanCounter = 0, 60000);
+
+function lockUI(lock=true){
+    document.body.style.pointerEvents = lock ? "none" : "auto";
+    document.body.style.opacity = lock ? "0.6" : "1";
+}
+
+function vibrate(){
+    if (navigator.vibrate) navigator.vibrate(100);
+}
+
+function validateRegFormat(reg){
+    const regex = /^REG\d{10,20}$/i;
+    return regex.test(reg);
+}
+
+function cleanOldData(data, maxItems = 1000){
+    if(Array.isArray(data) && data.length > maxItems){
+        return data.slice(0, maxItems);
+    }
+    if(typeof data === 'object' && data !== null && Object.keys(data).length > maxItems){
+        const entries = Object.entries(data).slice(0, maxItems);
+        return Object.fromEntries(entries);
+    }
+    return data;
+}
+
+function isValid(res) {
+  return res && res.status === "success";
+}
+
 async function sha256(str) {
     const encoder = new TextEncoder();
     const data = encoder.encode(str);
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
 }
 
-function validateApiResponse(response) {
-    if (!response || typeof response !== 'object') return false;
-    if (!response.hasOwnProperty('status')) return false;
-    return true;
+(function initSiteNameDefault() {  
+    let saved = localStorage.getItem("vms_site_names");  
+    if (!saved) {  
+        localStorage.setItem("vms_site_names", JSON.stringify({ SITE_A: "SITE A", SITE_B: "SITE B", SITE_C: "SITE C" }));  
+    }  
+})();  
+
+var vmsSiteData = {
+  names: { SITE_A: "SITE A", SITE_B: "SITE B", SITE_C: "SITE C" }
+};
+
+let visitors = {};  
+let logs = [];  
+let SITE_ID = localStorage.getItem("vms_site") || "SITE_A";  
+let syncQueue = [];
+let isProcessingQueue = false;  
+let lastScanTime = {};  
+let processingRegs = new Set();  
+let scannerInstance = null;  
+let isScanning = false;  
+let currentCameraId = null;  
+let cameraResetInterval = null;  
+let actionMutex = false;  
+let localStorageVersion = parseInt(localStorage.getItem("vms_version") || "0");  
+
+function incrementVersion() {
+    localStorageVersion++;
+    localStorage.setItem("vms_version", localStorageVersion);
 }
 
-async function safeFetch(paramsObj, retryCount = 0) {
-    const MAX_RETRY = 2;
-    const timestamp = Date.now().toString();
-    const base = String(paramsObj.reg || "") + String(paramsObj.action) + timestamp + SECRET;
-    const sign = await sha256(base);
-    const formData = new URLSearchParams({ ...paramsObj, timestamp: timestamp, sign: sign, secret: SECRET });
+function getSiteName(siteId) {  
+    let names = {};  
+    try { names = JSON.parse(localStorage.getItem("vms_site_names") || "{}"); } catch(e) { console.error("getSiteName parse error:", e); }  
+    let name = names[siteId];  
+    if (!name || name.trim() === "" || name === "undefined") {  
+        name = siteId.replace(/_/g, " ");  
+        names[siteId] = name;  
+        localStorage.setItem("vms_site_names", JSON.stringify(names));  
+    }  
+    return name;  
+}  
+
+function toast(msg, type = "info") {  
+    let t = document.createElement("div");  
+    t.className = `toast-msg ${type}`;  
+    t.innerText = msg;  
+    document.body.appendChild(t);  
+    setTimeout(() => t.remove(), 3000);  
+}  
+window.toast = toast;  
+
+function generateReg() {  
+    let reg; let attempts = 0;  
+    do {  
+        reg = "REG" + Date.now() + Math.floor(Math.random() * 10000);  
+        attempts++;  
+        if (attempts > 10) break;  
+    } while (visitors[SITE_ID + "_" + reg]);  
+    return reg;  
+}  
+
+function secureSave() {
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-        const response = await fetch(APPS_SCRIPT_URL, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: formData.toString(), signal: controller.signal });
-        clearTimeout(timeout);
-        if (!response.ok) throw new Error("Network error");
-        let data;
-        try { data = await response.json(); } catch (e) { throw new Error("Invalid JSON response"); }
-        return data;
-    } catch (err) {
-        if (retryCount < MAX_RETRY) {
-            await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
-            return safeFetch(paramsObj, retryCount + 1);
+        let cleanedVisitors = {};
+        for (let k in visitors) {
+            let v = { ...visitors[k] };
+            delete v.foto;
+            cleanedVisitors[k] = v;
         }
-        console.error("SAFE FETCH ERROR:", err);
-        return { status: "error", message: err.message };
+        
+        let finalVisitors = cleanOldData(cleanedVisitors, 1200);
+        let finalLogs = cleanOldData(logs, 1200);
+        
+        localStorage.setItem("vms_visitors", JSON.stringify(finalVisitors));
+        localStorage.setItem("vms_logs", JSON.stringify(finalLogs));
+        incrementVersion();
+    } catch (e) {
+        console.error("STORAGE ERROR:", e);
+        toast("⚠️ Storage error", "warning");
     }
 }
 
-function isSessionValid() {
-    const sessionTime = localStorage.getItem("vms_session");
-    if (!sessionTime) return false;
-    return (Date.now() - parseInt(sessionTime)) < SESSION_TIMEOUT_MS;
-}
-
-function extendSession() { localStorage.setItem("vms_session", Date.now().toString()); }
-
-function showToast(message, type = "info") {
-    const container = document.getElementById("toastContainer");
-    if (!container) return;
-    const toast = document.createElement("div");
-    toast.className = "toast";
-    const colors = { success: "#10b981", error: "#ef4444", warning: "#f59e0b", info: "#3b82f6" };
-    toast.style.borderLeftColor = colors[type] || colors.info;
-    toast.innerHTML = message;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
-}
-
-function updateRefreshIndicator() {
-    const el = document.getElementById("refreshIndicator");
-    if (el) el.innerHTML = `🟢 Live | Last sync: ${new Date().toLocaleTimeString('id-ID')}`;
-}
-
-// ================= AUTH =================
-async function doLogin() {
-    const username = document.getElementById("loginUser").value.trim();
-    const password = document.getElementById("loginPass").value.trim();
-    if (!username || !password) { showToast("Isi username & password", "error"); return; }
-    showToast("Logging in...", "info");
+function secureLoad() {  
     try {
-        const data = await safeFetch({ action: "admin_login", u: username, p: password });
-        if (data.status === "success") {
-            currentUser = username;
-            currentToken = data.token;
-            currentRole = data.role;
-            localStorage.setItem("vms_admin_user", username);
-            localStorage.setItem("vms_admin_token", currentToken);
-            localStorage.setItem("vms_admin_role", currentRole);
-            extendSession();
-            document.getElementById("loginOverlay").style.display = "none";
-            document.getElementById("topUsername").innerText = username;
-            document.getElementById("sidebarUsername").innerText = username;
-            document.getElementById("topRole").innerText = currentRole;
-            document.getElementById("sidebarRole").innerText = currentRole;
-            showToast("Login berhasil", "success");
-            await loadAllData();
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(async () => { if (!syncLock) await loadAllData(); }, SYNC_INTERVAL_MS);
-        } else { showToast(data.message || "Login gagal", "error"); }
-    } catch (err) { console.error("LOGIN ERROR:", err); showToast("Server error", "error"); }
-}
+        let storedVisitors = localStorage.getItem("vms_visitors");
+        let storedLogs = localStorage.getItem("vms_logs");
+        
+        if(storedVisitors) visitors = JSON.parse(storedVisitors);
+        if(storedLogs) logs = JSON.parse(storedLogs);
+        
+        if (!visitors) visitors = {};
+        if (!logs) logs = [];
+        
+        if (logs.length > 1500) logs = logs.slice(0, 1500);
+        if (Object.keys(visitors).length > 1500){
+            visitors = Object.fromEntries(Object.entries(visitors).slice(0, 1200));
+        }
+        
+        window.visitors = visitors;
+        window.logs = logs;
+    } catch(e) {
+        console.error("secureLoad error:", e);
+        visitors = {};
+        logs = [];
+        toast("⚠️ Data corrupt, reset", "warning");
+    }
+}  
 
-function logout() {
-    if (refreshInterval) clearInterval(refreshInterval);
-    localStorage.clear();
-    sessionStorage.clear();
-    currentUser = null; currentToken = null; currentRole = null;
-    location.reload();
+function cleanMemory(){
+    if (logs.length > 1000) logs = logs.slice(0, 800);
+    if (Object.keys(visitors).length > 1000){
+        visitors = Object.fromEntries(Object.entries(visitors).slice(-800));
+    }
+    secureSave();
 }
+setInterval(cleanMemory, 60000);
 
-// ================= DATA LOADING =================
-async function loadAllData() {
-    if (syncLock || !currentToken) return;
-    syncLock = true;
+function addLocalLog(reg, action) {  
+    let siteKey = SITE_ID + "_" + reg;  
+    let v = visitors[siteKey];  
+    let name = v?.nama || reg;  
+    let company = v?.perusahaan || "";  
+    let category = v?.kategori || "UMUM";  
+    logs.unshift({ reg, name, company, category, action, time: Date.now(), site: SITE_ID, site_name: getSiteName(SITE_ID) });  
+    if (logs.length > 2000) logs = logs.slice(0, 1500);  
+    secureSave();  
+}  
+
+async function apiCall(params) {
+    if (!navigator.onLine) return { status: "error", message: "offline" };
     try {
-        const data = await safeFetch({ action: "admin_pull", token: currentToken });
-        if (data.status === "unauthorized" || data.status === "forbidden") { console.warn("Session expired"); logout(); return; }
-        if (data.status !== "success") throw new Error("Server returned non-success");
-        const rows = data.data || [];
-        if (!Array.isArray(rows)) throw new Error("Invalid data format");
-        const newVisitors = [];
-        const newLogs = [];
-        for (let i = 1; i < rows.length && i < 1000; i++) {
-            const row = rows[i];
-            if (!row || row.length < 14) continue;
-            const siteId = row[13] || "SITE_A";
-            const status = row[10] || "OUT";
-            const lastActivity = row[11] || row[12] || row[0];
-            newVisitors.push({
-                reg: row[1] || "",
-                name: row[2] || "Unknown",
-                company: row[3] || "",
-                site: siteId,
-                site_name: row[14] || siteId,
-                status: status,
-                lastActivity: lastActivity ? new Date(lastActivity).getTime() : Date.now(),
-                expDate: row[8] || "",
-                checkin: row[11] || "",
-                checkout: row[12] || ""
-            });
-            let action = "REGISTER";
-            let actionTime = new Date(row[0]).getTime();
-            if(row[12]){ action = "CHECK_OUT"; actionTime = new Date(row[12]).getTime(); }
-            else if(row[11]){ action = "CHECK_IN"; actionTime = new Date(row[11]).getTime(); }
-            newLogs.push({
-                time: actionTime,
-                reg: row[1] || "",
-                name: row[2] || "",
-                company: row[3] || "",
-                action: action,
-                site: siteId,
-                site_name: row[14] || siteId
-            });
+        const timestamp = Date.now().toString();
+        const base = String(params.action || "") + timestamp;
+        const sign = await sha256(base);
+        const formData = { ...params, timestamp: timestamp, sign: sign };
+        const res = await safeFetch(formData);
+        return res;
+    } catch (e) {
+        console.error("API Error:", e);
+        return { status: "error", message: e.message };
+    }
+}
+
+async function registerVisitor(reg, data) {  
+    if(!validateRegFormat(reg)) return { status: "error", message: "invalid_reg" };
+    let result = await apiCall({ action: "register", reg, name: data.nama, company: data.perusahaan, purpose: data.tujuan, pic: data.pic, dept: data.dept, start: data.startDate, exp: data.expDate, category: data.kategori, site_id: SITE_ID, site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), photo: data.foto || "" });  
+    return result;
+}  
+
+async function walkinVisitor(reg, data) {  
+    if(!validateRegFormat(reg)) return { status: "error", message: "invalid_reg" };
+    let result = await apiCall({ action: "walkin", reg, name: data.nama, company: data.perusahaan, purpose: data.tujuan, pic: data.pic, dept: data.dept, start: data.startDate, exp: data.expDate, category: data.kategori, site_id: SITE_ID, site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), photo: data.foto || "" });  
+    return result;
+}  
+
+async function checkinVisitor(reg) { 
+    if(!validateRegFormat(reg)) return { status: "error", message: "invalid_reg" };
+    let result = await apiCall({ action: "checkin", reg, site_id: SITE_ID }); 
+    return result;
+}  
+
+async function checkoutVisitor(reg) { 
+    if(!validateRegFormat(reg)) return { status: "error", message: "invalid_reg" };
+    let result = await apiCall({ action: "checkout", reg, site_id: SITE_ID }); 
+    return result;
+}  
+
+async function generateQRCode(reg) {
+    if(!validateRegFormat(reg)) return { status: "error", message: "invalid_reg" };
+    return await apiCall({ action: "generateqr", reg }); 
+}  
+
+async function validateQRCode(qrData) { 
+    return await apiCall({ action: "validateqr", qrData }); 
+}  
+
+async function pullFromSheet() {
+  if (syncLock) return;
+  syncLock = true;
+  try {
+    const result = await safeFetch({ action: "pull", site_id: SITE_ID });
+    if (isValid(result) && result.data) {
+      syncVisitorStatus(result.data);
+    } else {
+      console.error("Pull failed:", result.message);
+    }
+  } catch (err) {
+    console.error("Pull error:", err);
+  } finally {
+    syncLock = false;
+  }
+}
+
+function syncVisitorStatus(sheetData) {
+    if (!Array.isArray(sheetData)) return;
+    let newVisitors = {};
+    let newLogs = [];
+    for (let i = 1; i < sheetData.length; i++) {
+        const row = sheetData[i];
+        const reg = row[1];
+        const siteId = row[13];
+        if (!reg || siteId !== SITE_ID) continue;
+        const key = SITE_ID + "_" + reg;
+        newVisitors[key] = {
+            nama: row[2] || "Unknown",
+            perusahaan: row[3] || "",
+            kategori: row[9] || "UMUM",
+            tujuan: row[4] || "-",
+            pic: row[5] || "-",
+            dept: row[6] || "-",
+            startDate: row[7] || "",
+            expDate: row[8] || "",
+            currentStatus: row[10] || "OUT",
+            checkinTime: row[11] || "",
+            checkoutTime: row[12] || "",
+            updatedAt: Date.now(),
+            sessions: []
+        };
+        if(newVisitors[key].currentStatus === "IN" && newVisitors[key].checkinTime){
+            newVisitors[key].sessions = [{ checkIn: new Date(newVisitors[key].checkinTime).getTime(), checkOut: null }];
+        } else if(newVisitors[key].checkoutTime){
+            newVisitors[key].sessions = [{ checkIn: newVisitors[key].checkinTime ? new Date(newVisitors[key].checkinTime).getTime() : null, checkOut: new Date(newVisitors[key].checkoutTime).getTime() }];
         }
-        visitorsData = newVisitors;
-        logsData = newLogs.sort((a,b) => b.time - a.time).slice(0, 500);
-        if (typeof localStorage !== 'undefined') {
-            try { localStorage.setItem("vms_cmd_visitors", JSON.stringify(visitorsData.slice(0, 500))); } catch(e) {}
-            try { localStorage.setItem("vms_cmd_logs", JSON.stringify(logsData.slice(0, 500))); } catch(e) {}
+        let action = "REGISTER";
+        let actionTime = new Date(row[0]).getTime();
+        if(row[12]){
+            action = "CHECK_OUT";
+            actionTime = new Date(row[12]).getTime();
+        } else if(row[11]){
+            action = "CHECK_IN";
+            actionTime = new Date(row[11]).getTime();
         }
-        renderDashboard();
-        renderVisitorsTable();
-        renderLogsTable();
-        updateRefreshIndicator();
-        extendSession();
-    } catch (err) {
-        console.error("LOAD ALL DATA ERROR:", err);
-        try {
-            const cachedVisitors = localStorage.getItem("vms_cmd_visitors");
-            const cachedLogs = localStorage.getItem("vms_cmd_logs");
-            if (cachedVisitors) visitorsData = JSON.parse(cachedVisitors);
-            if (cachedLogs) logsData = JSON.parse(cachedLogs);
-            if (visitorsData.length > 0 || logsData.length > 0) {
-                renderDashboard();
-                renderVisitorsTable();
-                renderLogsTable();
-                showToast("Using cached data", "warning");
-            }
-        } catch(e) { console.error("Cache fallback error:", e); }
-    } finally { syncLock = false; }
-}
-
-// ================= RENDER FUNCTIONS =================
-function getFilteredVisitors() {
-    if (currentSiteFilter === "ALL") return visitorsData;
-    return visitorsData.filter(v => v.site === currentSiteFilter);
-}
-
-function renderDashboard() {
-    try {
-        const filtered = getFilteredVisitors();
-        const total = filtered.length;
-        const active = filtered.filter(v => v.status === "IN").length;
-        const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-        const todayCheckins = logsData.filter(l => l.action === "CHECK_IN" && l.time >= todayStart.getTime()).length;
-        const uniqueSites = new Set(visitorsData.map(v => v.site)).size;
-        document.getElementById("statTotalVisitors").innerText = total;
-        document.getElementById("statActiveInside").innerText = active;
-        document.getElementById("statTodayCheckins").innerText = todayCheckins;
-        document.getElementById("statActiveSites").innerText = uniqueSites;
-        const inCount = filtered.filter(v => v.status === "IN").length;
-        const outCount = filtered.filter(v => v.status === "OUT").length;
-        const ctx = document.getElementById("statusChart");
-        if (ctx) {
-            if (statusChart) statusChart.destroy();
-            statusChart = new Chart(ctx.getContext("2d"), {
-                type: 'doughnut',
-                data: { labels: ['IN (Inside)', 'OUT (Outside)'], datasets: [{ data: [inCount, outCount], backgroundColor: ['#10b981', '#6b7280'], borderWidth: 0 }] },
-                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#f9fafb' } } } }
-            });
+        newLogs.push({
+            reg: reg,
+            name: row[2] || "",
+            company: row[3] || "",
+            category: row[9] || "UMUM",
+            action: action,
+            time: actionTime,
+            site: siteId,
+            site_name: row[14] || ""
+        });
+    }
+    newLogs.sort((a,b) => b.time - a.time);
+    for(let key in newVisitors){
+        if(visitors[key]){
+            visitors[key] = Object.assign(visitors[key], newVisitors[key]);
+        } else {
+            visitors[key] = newVisitors[key];
         }
-    } catch(e) { console.error("renderDashboard error:", e); }
-}
-
-function renderVisitorsTable() {
-    const tbody = document.getElementById("visitorsTableBody");
-    if (!tbody) return;
-    const search = document.getElementById("visitorSearch")?.value.toLowerCase() || "";
-    let filtered = getFilteredVisitors();
-    if (search) filtered = filtered.filter(v => v.name.toLowerCase().includes(search) || v.reg.toLowerCase().includes(search));
-    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-muted">No visitors found</td></tr>'; return; }
-    tbody.innerHTML = filtered.slice(0, 300).map(v => {
-        let expStatus = "";
-        let isExpired = false;
-        if (v.expDate) {
-            try { isExpired = new Date(v.expDate) < new Date(); } catch(e) {}
-            if (isExpired) expStatus = " ⚠️ EXPIRED";
+    }
+    const existingRegs = new Set(logs.map(l => l.reg));
+    for(let newLog of newLogs){
+        if(!existingRegs.has(newLog.reg)){
+            logs.push(newLog);
         }
-        return `<tr>
-            <td><code>${escapeHtml(v.reg)}</code></td>
-            <td><strong>${escapeHtml(v.name)}</strong>${expStatus}</td>
-            <td>${escapeHtml(v.company)}</td>
-            <td>${escapeHtml(v.site_name)}</td>
-            <td><span class="badge ${v.status === 'IN' ? 'badge-in' : 'badge-out'}">${escapeHtml(v.status)}</span></td>
-            <td>${v.lastActivity ? new Date(v.lastActivity).toLocaleString('id-ID') : '-'}</td>
-            <td class="${isExpired ? 'text-danger' : ''}">${escapeHtml(v.expDate || '-')}</td>
-        </tr>`;
-    }).join('');
-}
-
-function renderLogsTable() {
-    const tbody = document.getElementById("logsTableBody");
-    if (!tbody) return;
-    const search = document.getElementById("logSearch")?.value.toLowerCase() || "";
-    let filtered = logsData;
-    if (currentSiteFilter !== "ALL") filtered = filtered.filter(l => l.site === currentSiteFilter);
-    if (search) filtered = filtered.filter(l => l.name.toLowerCase().includes(search) || l.reg.toLowerCase().includes(search) || l.company.toLowerCase().includes(search));
-    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-muted">No logs found</td></tr>'; return; }
-    tbody.innerHTML = filtered.slice(0, 200).map(l => `<tr>
-        <td>${new Date(l.time).toLocaleString('id-ID')}</td>
-        <td><code>${escapeHtml(l.reg)}</code></td>
-        <td>${escapeHtml(l.name)}</td>
-        <td>${escapeHtml(l.company)}</td>
-        <td><span class="badge ${l.action === 'CHECK_IN' ? 'badge-in' : (l.action === 'CHECK_OUT' ? 'badge-out' : 'badge-pending')}">${escapeHtml(l.action)}</span></td>
-        <td>${escapeHtml(l.site_name)}</td>
-    </tr>`).join('');
-}
-
-function exportLogsToExcel() {
-    if (!window.XLSX) { showToast("Excel engine belum siap", "error"); return; }
-    let filtered = logsData;
-    if (currentSiteFilter !== "ALL") filtered = filtered.filter(l => l.site === currentSiteFilter);
-    const exportData = filtered.map(l => ({ Time: new Date(l.time).toLocaleString('id-ID'), REG: l.reg, Name: l.name, Company: l.company, Action: l.action, Site: l.site_name }));
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "AuditLogs");
-    XLSX.writeFile(wb, `VMS_Logs_${new Date().toISOString().slice(0, 19)}.xlsx`);
-    showToast("Export berhasil", "success");
-}
-
-function switchTab(tabId) {
-    document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-    document.getElementById(`${tabId}Tab`)?.classList.add("active");
-    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-    const nav = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
-    if (nav) nav.classList.add("active");
-    document.getElementById("pageTitle").innerText = tabId === "dashboard" ? "Dashboard" : (tabId === "monitor" ? "Live Monitor" : "Audit Logs");
-}
-
-function setSiteFilter(site) {
-    currentSiteFilter = site;
-    document.getElementById("siteFilterTop").value = site;
-    document.getElementById("siteFilterSidebar").value = site;
+    }
+    logs.sort((a,b) => b.time - a.time);
+    if(logs.length > 1500) logs = logs.slice(0, 1500);
+    secureSave();
     renderDashboard();
-    renderVisitorsTable();
-    renderLogsTable();
+    renderLogTable();
 }
 
-// ================= PASSWORD CHANGE =================
-function openChangePasswordModal() { document.getElementById("changePasswordModal").style.display = "flex"; }
-function closeChangePasswordModal() {
-    document.getElementById("changePasswordModal").style.display = "none";
-    document.getElementById("oldPassword").value = "";
-    document.getElementById("newPassword").value = "";
-    document.getElementById("confirmPassword").value = "";
-}
-async function submitChangePassword() {
-    const oldPass = document.getElementById("oldPassword").value;
-    const newPass = document.getElementById("newPassword").value;
-    const confirmPass = document.getElementById("confirmPassword").value;
-    if (!oldPass || !newPass) { showToast("Password tidak boleh kosong", "error"); return; }
-    if (newPass !== confirmPass) { showToast("Password baru tidak cocok", "error"); return; }
-    if (newPass.length < 4) { showToast("Password minimal 4 karakter", "error"); return; }
+function renderDashboard() {  
+    try {  
+        let v = Object.values(visitors);  
+        let active = v.filter(x => x.currentStatus === "IN").length;  
+        let todayCheckins = logs.filter(l => new Date(l.time).toDateString() === new Date().toDateString() && l.action === "CHECK_IN").length;  
+        let statsWidget = document.getElementById("statsWidget");  
+        if (statsWidget) {  
+            statsWidget.innerHTML = `<div class="stat-card"><h4>Total Visitors</h4><div class="stat-number">${v.length}</div></div><div class="stat-card"><h4>Active Inside</h4><div class="stat-number">${active}</div></div><div class="stat-card"><h4>Check-ins Today</h4><div class="stat-number">${todayCheckins}</div></div>`;  
+        }  
+        let last7Days = [], last7Labels = [];  
+        for (let i = 6; i >= 0; i--) {  
+            let d = new Date();  
+            d.setDate(d.getDate() - i);  
+            last7Labels.push(d.toLocaleDateString("id", { weekday: "short" }));  
+            let count = logs.filter(l => new Date(l.time).toDateString() === d.toDateString() && l.action === "CHECK_IN").length;  
+            last7Days.push(count);  
+        }  
+        let trendChart = document.getElementById("trendChart");  
+        if (trendChart && window.Chart) {  
+            if (window.lineChart) {
+                window.lineChart.data.labels = last7Labels;
+                window.lineChart.data.datasets[0].data = last7Days;
+                window.lineChart.update();
+            } else {
+                window.lineChart = new Chart(trendChart, { type: "line", data: { labels: last7Labels, datasets: [{ label: "Daily Visits", data: last7Days, borderColor: "#1f4e4a", fill: false }] } });
+            }
+        }  
+        let catCount = { VVIP: 0, VIP: 0, UMUM: 0 };  
+        v.forEach(x => { if (x.kategori) catCount[x.kategori]++; });  
+        let categoryChart = document.getElementById("categoryChart");  
+        if (categoryChart && window.Chart) {  
+            if (window.pieChart) {
+                window.pieChart.data.datasets[0].data = [catCount.VVIP, catCount.VIP, catCount.UMUM];
+                window.pieChart.update();
+            } else {
+                window.pieChart = new Chart(categoryChart, { type: "pie", data: { labels: ["VVIP", "VIP", "UMUM"], datasets: [{ data: [catCount.VVIP, catCount.VIP, catCount.UMUM], backgroundColor: ["#fbbf24", "#94a3b8", "#1f4e4a"] }] } });
+            }
+        }  
+    } catch (e) { console.error("renderDashboard error:", e); }  
+}  
+
+function renderLogTable() {  
+    try {  
+        let search = document.getElementById("searchLog")?.value.toLowerCase() || "";  
+        let filtered = logs.filter(l => (l.name?.toLowerCase().includes(search) || l.reg?.toLowerCase().includes(search)) && (!l.site || l.site === SITE_ID));  
+        let tbody = document.getElementById("logTableBody");  
+        if (!tbody) return;  
+        tbody.innerHTML = "";  
+        filtered.slice(0, 200).forEach(l => {  
+            let row = tbody.insertRow();  
+            let checkCell = row.insertCell(0); checkCell.innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${l.reg}">`;
+            row.insertCell(1).innerText = l.reg;  
+            row.insertCell(2).innerText = l.name;  
+            row.insertCell(3).innerText = l.company;  
+            row.insertCell(4).innerHTML = `<span class="badge badge-${l.category}">${l.category}</span>`;  
+            row.insertCell(5).innerText = l.action;  
+            row.insertCell(6).innerText = new Date(l.time).toLocaleString();  
+            row.insertCell(7).innerText = l.site_name || l.site || "SITE_A";  
+            let btn = document.createElement("button");  
+            btn.innerText = "PDF";  
+            btn.classList.add("btn-outline");  
+            btn.style.padding = "4px 12px";  
+            let key = SITE_ID + "_" + l.reg;  
+            let v = visitors[key];  
+            if (v) btn.onclick = () => showPreview(l.reg, v);  
+            row.insertCell(8).appendChild(btn);  
+        });  
+    } catch (e) { console.error("renderLogTable error:", e); }  
+}  
+
+async function processScan(qrText) {  
+    if (actionMutex) return false;
+    if (globalScanLock) return false;
+    if (!qrText || typeof qrText !== "string") return false;
+    if (scanCounter > SCAN_MAX_PER_MIN) {
+        toast("⚠️ Scanner overload, tunggu sebentar", "warning");
+        return false;
+    }
+    scanCounter++;
+    globalScanLock = true;
+    qrText = qrText.trim();  
+    const mode = document.getElementById("scanMode").value;  
+    let reg = null;
+    if (qrText.match(/^REG\d+/i)) {
+        if(validateRegFormat(qrText)){
+            reg = qrText;
+        }
+    } 
+    else if (qrText.includes("|")) {
+        const parts = qrText.split("|");
+        if (parts[0].match(/^REG\d+/i) && validateRegFormat(parts[0])) {
+            reg = parts[0];
+        }
+    }
+    else {
+        let validation = await validateQRCode(qrText);
+        if (isValid(validation) && validation.data && validation.data.reg && validateRegFormat(validation.data.reg)) {
+            reg = validation.data.reg;
+        }
+    }
+    if (!reg) {
+        toast("QR tidak valid! Format harus REG + 10-20 digit", "error");
+        globalScanLock = false;
+        return false;
+    }
+    const nowTime = Date.now();  
+    if (lastScanTime[reg] && nowTime - lastScanTime[reg] < SCAN_COOLDOWN_MS) { 
+        toast("Scan terlalu cepat", "warning"); 
+        globalScanLock = false; 
+        return false;
+    }  
+    lastScanTime[reg] = nowTime;  
+    if (processingRegs.has(reg)) { 
+        toast("Sedang diproses", "warning"); 
+        globalScanLock = false; 
+        return false;
+    }  
+    processingRegs.add(reg);  
+    actionMutex = true;  
+    lockUI(true);
+    try {  
+        let siteKey = SITE_ID + "_" + reg;  
+        let visitor = visitors[siteKey];  
+        if (!visitor) {  
+            visitor = { 
+                nama: "Unknown", 
+                perusahaan: "", 
+                kategori: "UMUM", 
+                tujuan: "-", 
+                pic: "-", 
+                dept: "-", 
+                startDate: "", 
+                expDate: "", 
+                foto: "", 
+                sessions: [], 
+                currentStatus: "OUT", 
+                updatedAt: Date.now() 
+            };  
+            visitors[siteKey] = visitor;  
+        }  
+        let today = new Date();  
+        let expDate = visitor.expDate ? new Date(visitor.expDate) : null;
+        if (expDate && !isNaN(expDate.getTime())) {
+            expDate.setHours(23, 59, 59, 999);
+            if (expDate < today) { 
+                toast("Visitor sudah expired!", "error"); 
+                return false;
+            }
+        }
+        if (mode === "CHECK_IN") {
+            let hasOpen = visitor.sessions?.some(s => !s.checkOut);
+            if (hasOpen) {
+                toast("Sudah dalam keadaan CHECK-IN!", "warning");
+                return false;
+            }
+            let result = await checkinVisitor(reg);
+            if(!isValid(result)){
+                toast(result.message || "Server response invalid", "error");
+                return false;
+            }
+            if (result.status === "success") {
+                if (!visitor.sessions) visitor.sessions = [];
+                visitor.sessions.push({ checkIn: Date.now(), checkOut: null });
+                visitor.currentStatus = "IN";
+                visitor.updatedAt = Date.now();
+                visitors[siteKey] = visitor;
+                addLocalLog(reg, "CHECK_IN");
+                await new Promise(r => setTimeout(r, 300));
+                await pullFromSheet();
+                vibrate();
+                toast(`✅ CHECK-IN ${visitor.nama} berhasil`, "success");
+            } else if (result.status === "already_in") {
+                toast("Sudah CHECK-IN!", "warning");
+            } else {
+                toast("Gagal CHECK-IN, sync ulang", "error");
+            }
+        } else {
+            let result = await checkoutVisitor(reg);
+            if(!isValid(result)){
+                toast(result.message || "Server response invalid", "error");
+                return false;
+            }
+            if (result.status === "success") {
+                let openSession = visitor.sessions?.find(s => !s.checkOut);
+                if (openSession) openSession.checkOut = Date.now();
+                visitor.currentStatus = "OUT";
+                visitor.updatedAt = Date.now();
+                visitors[siteKey] = visitor;
+                addLocalLog(reg, "CHECK_OUT");
+                await new Promise(r => setTimeout(r, 300));
+                await pullFromSheet();
+                vibrate();
+                toast(`✅ CHECK-OUT ${visitor.nama} berhasil`, "success");
+            } else if (result.status === "not_checked_in") {
+                toast("Belum CHECK-IN!", "warning");
+            } else {
+                toast("Gagal CHECK-OUT, sync ulang", "error");
+            }
+        }
+        renderDashboard();  
+        renderLogTable();  
+        secureSave();  
+        return true;  
+    } catch (e) {  
+        console.error("processScan error:", e);  
+        toast("Error proses scan", "error");
+        return false;  
+    } finally {  
+        actionMutex = false;  
+        globalScanLock = false;
+        lockUI(false);
+        setTimeout(() => processingRegs.delete(reg), 1000);  
+    }  
+}  
+
+async function generateQRandShow(reg, data) {  
     try {
-        const data = await safeFetch({ action: "change_password", username: currentUser, old_password: oldPass, new_password: newPass });
-        if (data.status === "success") { showToast("Password berhasil diubah", "success"); closeChangePasswordModal(); }
-        else { showToast("Password lama salah", "error"); }
-    } catch(e) { showToast("Gagal ganti password", "error"); }
-}
+        let result = await generateQRCode(reg);  
+        let qrData = reg;
+        let qrImage;  
+        try {  
+            qrImage = await QRCode.toDataURL(qrData, { width: 200 });  
+        } catch (e) {  
+            console.error("QR FAIL:", e);  
+            try { qrImage = await QRCode.toDataURL(reg, { width: 200 }); } catch (e2) { console.error("QR FALLBACK FAIL:", e2); qrImage = null; }  
+        }  
+        showPreviewWithQR(reg, data, qrImage);  
+    } catch (e) {
+        console.error("generateQRandShow error:", e);
+        toast("Gagal generate QR", "error");
+    }
+}  
 
-// ================= INIT =================
-document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".nav-item").forEach(nav => { nav.addEventListener("click", () => { const tab = nav.dataset.tab; if (tab) switchTab(tab); if (window.innerWidth <= 768) document.getElementById("sidebar").classList.remove("open"); }); });
-    document.getElementById("mobileMenuBtn")?.addEventListener("click", () => { document.getElementById("sidebar").classList.toggle("open"); });
-    document.getElementById("topLogoutBtn")?.addEventListener("click", logout);
-    document.getElementById("sidebarLogoutBtn")?.addEventListener("click", logout);
-    document.getElementById("visitorSearch")?.addEventListener("input", () => renderVisitorsTable());
-    document.getElementById("logSearch")?.addEventListener("input", () => renderLogsTable());
-    document.getElementById("doLoginBtn")?.addEventListener("click", doLogin);
-    document.getElementById("topChangePasswordBtn")?.addEventListener("click", openChangePasswordModal);
-    document.getElementById("sidebarChangePasswordBtn")?.addEventListener("click", openChangePasswordModal);
-    document.getElementById("closePasswordModalBtn")?.addEventListener("click", closeChangePasswordModal);
-    document.getElementById("submitPasswordBtn")?.addEventListener("click", submitChangePassword);
-    document.getElementById("refreshDashboardBtn")?.addEventListener("click", () => loadAllData());
-    document.getElementById("refreshMonitorBtn")?.addEventListener("click", () => loadAllData());
-    document.getElementById("refreshLogsBtn")?.addEventListener("click", () => loadAllData());
-    document.getElementById("exportLogsExcelBtn")?.addEventListener("click", exportLogsToExcel);
-    document.getElementById("siteFilterTop")?.addEventListener("change", (e) => setSiteFilter(e.target.value));
-    document.getElementById("siteFilterSidebar")?.addEventListener("change", (e) => setSiteFilter(e.target.value));
-    document.getElementById("loginPass")?.addEventListener("keypress", (e) => { if (e.key === "Enter") doLogin(); });
-    const savedUser = localStorage.getItem("vms_admin_user");
-    const savedToken = localStorage.getItem("vms_admin_token");
-    const savedRole = localStorage.getItem("vms_admin_role");
-    if (savedUser && savedToken && isSessionValid()) {
-        currentUser = savedUser;
-        currentToken = savedToken;
-        currentRole = savedRole;
-        document.getElementById("loginOverlay").style.display = "none";
-        document.getElementById("topUsername").innerText = savedUser;
-        document.getElementById("sidebarUsername").innerText = savedUser;
-        document.getElementById("topRole").innerText = savedRole;
-        document.getElementById("sidebarRole").innerText = savedRole;
-        loadAllData();
-        if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(async () => { if (!syncLock && currentToken) await loadAllData(); }, SYNC_INTERVAL_MS);
-    } else { document.getElementById("loginOverlay").style.display = "flex"; }
-    setInterval(() => { if (document.getElementById("refreshIndicator")) updateRefreshIndicator(); }, 1000);
-});
+function showPreviewWithQR(reg, data, qrImage) {  
+    if (!qrImage || !qrImage.startsWith("data:image")) { toast("QR gagal dibuat, ulangi!", "error"); return; }  
+    let modal = document.createElement("div");  
+    modal.className = "modal-overlay";  
+    modal.innerHTML = `<div class="modal-card"><h3>📄 Preview Invitation</h3><div style="background:#f8fafc; padding:14px; border-radius:20px; margin-bottom:16px;"><p><strong>Name</strong> : ${data.nama}</p><p><strong>Company</strong> : ${data.perusahaan}</p><p><strong>Purpose</strong> : ${data.tujuan}</p><p><strong>PIC</strong> : ${data.pic}</p><p><strong>Department</strong> : ${data.dept}</p><p><strong>Validity</strong> : ${data.startDate} → ${data.expDate}</p><p><strong>REG</strong> : ${reg}</p></div><img class="qr-preview" src="${qrImage}"><div class="flex-btns"><button id="previewDownloadBtn">Download PDF</button><button id="previewCloseBtn" class="btn-outline">Close</button></div></div>`;  
+    document.body.appendChild(modal);  
+    setTimeout(() => modal.classList.add("active"), 10);  
+    let downloadBtn = modal.querySelector("#previewDownloadBtn");  
+    let closeBtn = modal.querySelector("#previewCloseBtn");  
+    if (downloadBtn) {  
+        downloadBtn.onclick = async () => {  
+            if (window.downloading) return;  
+            window.downloading = true;  
+            if (!qrImage || !qrImage.startsWith("data:image")) { toast("QR belum siap, tunggu...", "warning"); window.downloading = false; return; }  
+            await new Promise(r => setTimeout(r, 200));  
+            data.qrImage = qrImage;  
+            await downloadPDF(reg, data);  
+            window.downloading = false;  
+            modal.remove();  
+        };  
+    }  
+    if (closeBtn) closeBtn.onclick = () => modal.remove();  
+}  
+
+async function downloadPDF(reg, data) {  
+    try {  
+        await ensureJSPDF();  
+        const { jsPDF } = window.jspdf;  
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });  
+        doc.setFillColor(31, 78, 74);  
+        doc.rect(0, 0, 210, 40, "F");  
+        doc.setTextColor(255, 255, 255);  
+        doc.setFontSize(22);  
+        doc.text("INVITATION LETTER", 105, 20, { align: "center" });  
+        doc.setTextColor(0, 0, 0);  
+        doc.setFontSize(12);  
+        doc.setFont(undefined, "bold");  
+        doc.text("VISITOR INFORMATION", 20, 60);  
+        let y = 75;  
+        doc.setFontSize(10);  
+        doc.setFont(undefined, "normal");  
+        doc.text(`Name : ${data.nama || "-"}`, 20, y); y += 8;  
+        doc.text(`Company : ${data.perusahaan || "-"}`, 20, y); y += 8;  
+        doc.text(`Purpose : ${data.tujuan || "-"}`, 20, y); y += 8;  
+        doc.text(`PIC : ${data.pic || "-"}`, 20, y); y += 8;  
+        doc.text(`Department : ${data.dept || "-"}`, 20, y); y += 8;  
+        doc.text(`REG Number : ${reg}`, 20, y); y += 8;  
+        doc.text(`Start Date : ${data.startDate || "-"}`, 20, y); y += 8;  
+        doc.text(`Expired Date : ${data.expDate || "-"}`, 20, y); y += 8;  
+        doc.text(`Status : ${data.currentStatus === "IN" ? "IN (Inside Area)" : "OUT"}`, 20, y);  
+        if (data.qrImage && data.qrImage.startsWith("data:image")) { try { doc.addImage(data.qrImage, "PNG", 140, 60, 40, 40); } catch (e) { console.error("QR image PDF error:", e); } }  
+        if (data.foto && data.foto.startsWith("data:image")) { try { let fotoLower = data.foto.toLowerCase(); let format = fotoLower.includes("png") ? "PNG" : "JPEG"; doc.addImage(data.foto, format, 140, 130, 40, 40); } catch (e) { console.error("Photo PDF error:", e); } }  
+        let blob = doc.output("blob");  
+        let url = URL.createObjectURL(blob);  
+        let a = document.createElement("a");  
+        a.href = url;  
+        a.download = `INVITATION_${reg}.pdf`;  
+        document.body.appendChild(a);  
+        a.click();  
+        document.body.removeChild(a);  
+        setTimeout(() => URL.revokeObjectURL(url), 3000);  
+        toast(`PDF ${reg} berhasil di download`, "success");  
+        return true;  
+    } catch (err) {  
+        console.error("PDF Error:", err);  
+        toast("Error saat generate PDF", "error");  
+        return false;  
+    }  
+}  
+
+async function ensureJSPDF() {  
+    if (window.jspdf) return true;  
+    return new Promise(resolve => {  
+        let i = 0, iv = setInterval(() => {  
+            if (window.jspdf) { clearInterval(iv); resolve(true); }  
+            if (i++ > 100) { clearInterval(iv); resolve(false); }  
+        }, 100);  
+    });  
+}  
+
+function showPreview(reg, data) { generateQRandShow(reg, data); }  
+
+async function initScanner() {  
+    if (scannerInstance) {  
+        try { await scannerInstance.stop(); } catch(e) { console.error("stop error:", e); }  
+        try { await scannerInstance.clear(); } catch(e) { console.error("clear error:", e); }  
+        scannerInstance = null;  
+    }  
+    try {  
+        let cameras = await Html5Qrcode.getCameras();  
+        if (!cameras || cameras.length === 0) { toast("Tidak ada kamera terdeteksi", "error"); return false; }  
+        currentCameraId = cameras[0].id;  
+        scannerInstance = new Html5Qrcode("cameraPreview");  
+        return true;  
+    } catch (err) { toast("Gagal inisialisasi kamera: " + err.message, "error"); console.error("initScanner error:", err); return false; }  
+}  
+
+async function startScanner() {  
+    if (isScanning) return;  
+    if (!scannerInstance) { let init = await initScanner(); if (!init) return; }  
+    try {  
+        await scannerInstance.start(currentCameraId, { 
+            fps: 10, 
+            qrbox: { width: 280, height: 280 }, 
+            aspectRatio: 1.0 
+        },  
+            async (decodedText) => { 
+                console.log("QR Scanned:", decodedText);
+                if (!processingRegs.has(decodedText)) await processScan(decodedText); 
+            },  
+            (error) => { 
+                if (error && !error.includes("No MultiFormat Readers") && !error.includes("No barcode")) {
+                    console.log("Scan error:", error); 
+                }
+            }  
+        );  
+        isScanning = true;  
+        toast("Scanner siap, arahkan ke QR Code", "success");  
+        if (cameraResetInterval) clearInterval(cameraResetInterval);  
+        cameraResetInterval = setInterval(async () => { 
+            if (!isScanning) return;
+            try {
+                await stopScanner();
+                await startScanner();
+            } catch(e){
+                console.warn("Camera reset fail", e);
+            }
+        }, 180000);
+    } catch (err) { 
+        toast("Gagal start kamera: " + err.message, "error"); 
+        console.error("startScanner error:", err); 
+        isScanning = false; 
+    }  
+}  
+
+async function stopScanner() {  
+    if (cameraResetInterval) { clearInterval(cameraResetInterval); cameraResetInterval = null; }  
+    if (scannerInstance && isScanning) { 
+        try { 
+            await scannerInstance.stop(); 
+            await scannerInstance.clear(); 
+        } catch (err) { 
+            console.error("stopScanner error:", err); 
+        } 
+    }  
+    isScanning = false;  
+}  
+
+function setSite(site) {  
+    SITE_ID = site;  
+    localStorage.setItem("vms_site", SITE_ID);  
+    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { if (sel && sel.value !== site) sel.value = site; });  
+    vmsSite_applyToUI();  
+    toast(`Site aktif: ${getSiteName(SITE_ID)}`, "success");  
+    pullFromSheet();
+    renderDashboard();  
+    renderLogTable();  
+}  
+
+document.getElementById("generateQRBtn").onclick = async () => {  
+    if (actionMutex) return;  
+    actionMutex = true;  
+    lockUI(true);
+    try {  
+        let nama = document.getElementById("regName").value;  
+        let perusahaan = document.getElementById("regCompany").value;  
+        let kategori = document.getElementById("regCategory").value;  
+        let tujuan = document.getElementById("regPurpose").value;  
+        let custom = document.getElementById("regCustomPurpose").value;  
+        if (tujuan === "Lainnya") tujuan = custom || "Custom";  
+        let pic = document.getElementById("regPic").value;  
+        let dept = document.getElementById("regDept").value;  
+        let startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);  
+        let expDate = document.getElementById("regExpDate").value;  
+        if (!nama || !perusahaan || !pic || !dept || !expDate) { toast("Lengkapi semua field wajib", "error"); return; }  
+        let reg = generateReg();  
+        let siteKey = SITE_ID + "_" + reg;  
+        if (visitors[siteKey]) { toast("REG sudah ada di local!", "warning"); return; }  
+        let foto = "";  
+        let file = document.getElementById("regPhotoFile").files[0];  
+        if (file) {  
+            try {  
+                let reader = await new Promise(resolve => { let fr = new FileReader(); fr.onload = () => resolve(fr.result); fr.readAsDataURL(file); });  
+                let img = new Image();  
+                img.src = reader;  
+                await new Promise(r => img.onload = r);  
+                let canvas = document.createElement("canvas");  
+                let maxWidth = 400;  
+                let scale = maxWidth / img.width;  
+                canvas.width = maxWidth;  
+                canvas.height = img.height * scale;  
+                let ctx = canvas.getContext("2d");  
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);  
+                foto = canvas.toDataURL("image/jpeg", 0.5);  
+            } catch (e) { console.warn("Photo processing error:", e); }  
+        }  
+        let data = { nama, perusahaan, kategori, tujuan, pic, dept, startDate, expDate, foto, sessions: [], currentStatus: "OUT", updatedAt: Date.now() };  
+        visitors[siteKey] = data;  
+        addLocalLog(reg, "REGISTER");  
+        let result = await registerVisitor(reg, data);  
+        if(!isValid(result)){
+            toast(result.message || "Server response invalid", "error");
+            delete visitors[siteKey];
+            secureSave();
+            return;
+        }
+        if (result.status === "duplicate") { toast("REG sudah terdaftar di server!", "warning"); delete visitors[siteKey]; secureSave(); return; }  
+        if (result.status !== "success") { toast(`Gagal register: ${result.message || "Unknown"}`, "error"); delete visitors[siteKey]; secureSave(); return; }  
+        toast(`✅ ${nama} terdaftar (${reg})`, "success");  
+        vibrate();
+        generateQRandShow(reg, data);  
+        document.getElementById("regName").value = "";  
+        document.getElementById("regCompany").value = "";  
+        document.getElementById("regPic").value = "";  
+        document.getElementById("regDept").value = "";  
+        document.getElementById("regPhotoFile").value = "";  
+        document.getElementById("previewPhotoThumb").src = "";  
+        await new Promise(r => setTimeout(r, 300));
+        await pullFromSheet();
+        renderDashboard();  
+        renderLogTable();  
+        secureSave();  
+    } catch (e) {  
+        console.error("generateQRBtn error:", e);  
+        toast("Terjadi kesalahan", "error");  
+    } finally {  
+        actionMutex = false;  
+        lockUI(false);
+    }  
+};  
+
+document.getElementById("walkinBtn").onclick = async () => {  
+    if (actionMutex) return;  
+    actionMutex = true;  
+    lockUI(true);
+    try {  
+        let reg = generateReg();  
+        let now = new Date();  
+        let exp = new Date(now);  
+        exp.setDate(exp.getDate() + 1);  
+        let walkData = { nama: `WALK-IN ${now.toLocaleString()}`, perusahaan: "Guest Visitor", kategori: "UMUM", tujuan: "Immediate Visit", pic: "Reception", dept: "Umum", startDate: now.toISOString().slice(0, 10), expDate: exp.toISOString().slice(0, 10), foto: "", sessions: [], currentStatus: "OUT", updatedAt: Date.now() };  
+        let siteKey = SITE_ID + "_" + reg;  
+        visitors[siteKey] = walkData;  
+        addLocalLog(reg, "WALK-IN");  
+        let result = await walkinVisitor(reg, walkData);  
+        if(!isValid(result)){
+            toast(result.message || "Server response invalid", "error");
+            delete visitors[siteKey];
+            secureSave();
+            return;
+        }
+        if (result.status === "duplicate") { toast("REG sudah terdaftar!", "warning"); delete visitors[siteKey]; secureSave(); return; }  
+        if (result.status !== "success") { toast(`Gagal walk-in: ${result.message || "Unknown"}`, "error"); delete visitors[siteKey]; secureSave(); return; }  
+        toast(`Walk-in registered ${reg}`, "success");  
+        vibrate();
+        generateQRandShow(reg, walkData);  
+        await new Promise(r => setTimeout(r, 300));
+        await pullFromSheet();
+        renderDashboard();  
+        renderLogTable();  
+        secureSave();  
+    } catch (e) {  
+        console.error("walkinBtn error:", e);  
+        toast("Terjadi kesalahan", "error");  
+    } finally {  
+        actionMutex = false;  
+        lockUI(false);
+    }  
+};  
+
+document.getElementById("startCamBtn").onclick = async () => { 
+    document.getElementById("cameraPreview").innerHTML = ""; 
+    await stopScanner(); 
+    if (scannerInstance) { 
+        try { await scannerInstance.clear(); } catch(e) { console.error("clear error:", e); } 
+        scannerInstance = null; 
+    } 
+    await startScanner(); 
+};  
+
+document.getElementById("stopCamBtn").onclick = async () => { 
+    await stopScanner(); 
+    if (scannerInstance) { 
+        try { await scannerInstance.clear(); } catch(e) { console.error("clear error:", e); } 
+        scannerInstance = null; 
+    } 
+    toast("Kamera berhenti", "info"); 
+};  
+
+document.getElementById("uploadQrBtn").onclick = () => document.getElementById("uploadQrFile")?.click();  
+document.getElementById("uploadQrFile").onchange = async (e) => {  
+    if (actionMutex) return;  
+    actionMutex = true;  
+    lockUI(true);
+    try {  
+        let file = e.target.files[0];  
+        if (!file) return;  
+        try {  
+            let url = URL.createObjectURL(file);  
+            let img = new Image();  
+            img.src = url;  
+            await img.decode();  
+            URL.revokeObjectURL(url);  
+            let canvas = document.createElement("canvas");  
+            canvas.width = img.width;  
+            canvas.height = img.height;  
+            canvas.getContext("2d").drawImage(img, 0, 0);  
+            let scanner = new Html5Qrcode("temp-reader");  
+            let decoded = await scanner.scanImage(canvas, { qrbox: { width: img.width, height: img.height } });  
+            await processScan(decoded);  
+            await scanner.clear();  
+            document.getElementById("temp-reader").innerHTML = "";  
+        } catch (err) { toast("QR tidak terbaca", "error"); console.error("upload QR error:", err); }  
+    } catch (e) {  
+        console.error("uploadQrFile error:", e);  
+    } finally {  
+        actionMutex = false;  
+        lockUI(false);
+    }  
+};  
+
+document.getElementById("manualProcess").onclick = async () => {  
+    if (actionMutex) return;  
+    actionMutex = true;  
+    lockUI(true);
+    try {  
+        let reg = document.getElementById("manualReg").value.trim();  
+        const mode = document.getElementById("scanMode").value;  
+        if (!reg || !validateRegFormat(reg)) {
+            toast("Format REG salah (contoh: REG20260504001, 10-20 digit)", "error");
+            return;
+        }
+        let siteKey = SITE_ID + "_" + reg;  
+        let visitor = visitors[siteKey];  
+        if (!visitor) { 
+            toast("REG tidak ditemukan", "error"); 
+            return; 
+        }  
+        let expDate = visitor.expDate ? new Date(visitor.expDate) : null;
+        if (expDate && !isNaN(expDate.getTime())) {
+            expDate.setHours(23, 59, 59, 999);
+            if (expDate < new Date()) {
+                toast("QR sudah expired", "error");
+                return;
+            }
+        }
+        if (mode === "CHECK_IN") {
+            let hasOpen = visitor.sessions?.some(s => !s.checkOut);
+            if (hasOpen) {
+                toast("Sudah check-in!", "warning");
+                return;
+            }
+            let result = await checkinVisitor(reg);
+            if(!isValid(result)){
+                toast(result.message || "Server response invalid", "error");
+                return;
+            }
+            if (result.status === "success") {
+                if (!visitor.sessions) visitor.sessions = [];
+                visitor.sessions.push({ checkIn: Date.now(), checkOut: null });
+                visitor.currentStatus = "IN";
+                visitor.updatedAt = Date.now();
+                visitors[siteKey] = visitor;
+                addLocalLog(reg, "CHECK_IN");
+                await new Promise(r => setTimeout(r, 300));
+                await pullFromSheet();
+                vibrate();
+                toast(`Check-in ${visitor.nama} success`, "success");
+            } else if (result.status === "already_in") {
+                toast("Sudah check-in!", "warning");
+            } else {
+                toast("Gagal check-in, sync ulang", "error");
+            }
+        } else {
+            let openSession = visitor.sessions?.find(s => !s.checkOut);
+            if (!openSession) {
+                toast("Tidak ada sesi aktif", "warning");
+                return;
+            }
+            let result = await checkoutVisitor(reg);
+            if(!isValid(result)){
+                toast(result.message || "Server response invalid", "error");
+                return;
+            }
+            if (result.status === "success") {
+                openSession.checkOut = Date.now();
+                visitor.currentStatus = "OUT";
+                visitor.updatedAt = Date.now();
+                visitors[siteKey] = visitor;
+                addLocalLog(reg, "CHECK_OUT");
+                await new Promise(r => setTimeout(r, 300));
+                await pullFromSheet();
+                vibrate();
+                toast(`Check-out ${visitor.nama} success`, "success");
+            } else if (result.status === "not_checked_in") {
+                toast("Belum check-in!", "warning");
+            } else {
+                toast("Gagal check-out, sync ulang", "error");
+            }
+        }
+        renderDashboard();  
+        renderLogTable();  
+        secureSave();  
+    } catch (e) {  
+        console.error("manualProcess error:", e);  
+        toast("Terjadi kesalahan", "error");  
+    } finally {  
+        actionMutex = false;  
+        lockUI(false);
+    }  
+};  
+
+document.getElementById("refreshLogsBtn").onclick = () => { pullFromSheet(); renderLogTable(); };  
+document.getElementById("selectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = true);  
+document.getElementById("deselectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = false);  
+document.getElementById("deleteSelectedBtn").onclick = () => {  
+    let regs = [...new Set([...document.querySelectorAll(".logCheckItem:checked")].map(c => c.dataset.reg))];  
+    regs.forEach(r => delete visitors[SITE_ID + "_" + r]);  
+    logs = logs.filter(l => !regs.includes(l.reg));  
+    secureSave();  
+    renderDashboard();  
+    renderLogTable();  
+    toast(`Deleted ${regs.length} records`, "success");  
+};  
+document.getElementById("deleteAllBtn").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("All data cleared", "info"); };  
+document.getElementById("backupAction").onclick = () => { try { let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify({ visitors, logs })], { type: "application/json" })); a.download = `vms_backup_${Date.now()}.json`; a.click(); toast("Backup ready", "success"); } catch (e) { toast("Backup gagal", "error"); console.error("backup error:", e); } };  
+document.getElementById("resetDatabaseAction").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("Database reset", "info"); };  
+document.getElementById("regPhotoFile").onchange = (e) => { if (e.target.files[0]) { let r = new FileReader(); r.onload = ev => { let preview = document.getElementById("previewPhotoThumb"); if (preview) preview.src = ev.target.result; }; r.readAsDataURL(e.target.files[0]); } };  
+document.getElementById("submitLicenseBtn").onclick = () => { let input = document.getElementById("licenseInput"); if (input && input.value) toast("✅ License activated", "success"); if (input) input.value = ""; };  
+document.getElementById("siteSelector").onchange = (e) => setSite(e.target.value);  
+document.getElementById("siteSelectorTop").onchange = (e) => setSite(e.target.value);  
+
+function exportToExcel() {  
+    try {  
+        if (!window.XLSX) { toast("Excel engine belum siap", "error"); return; }  
+        let dataForExcel = [];  
+        Object.entries(visitors).forEach(([siteKey, visitor]) => {  
+            if (!siteKey.startsWith(SITE_ID + "_")) return;  
+            let reg = siteKey.replace(SITE_ID + "_", "");  
+            let jamMasuk = "-", jamKeluar = "-", durasi = "-", keterangan = "";  
+            if (visitor.sessions && visitor.sessions.length > 0) {  
+                let last = visitor.sessions[visitor.sessions.length - 1];  
+                if (last.checkIn) jamMasuk = new Date(last.checkIn).toLocaleString("id-ID");  
+                if (last.checkOut) jamKeluar = new Date(last.checkOut).toLocaleString("id-ID");  
+                if (last.checkIn && last.checkOut) durasi = Math.floor((last.checkOut - last.checkIn) / 60000) + " menit";  
+                keterangan = visitor.currentStatus === "IN" ? "Sedang di dalam" : (last.checkOut ? "Sudah check-out" : "Belum check-in");  
+            } else keterangan = "Belum pernah check-in";  
+            if (visitor.expDate && new Date(visitor.expDate) < new Date()) keterangan = "❌ EXPIRED - " + keterangan;  
+            dataForExcel.push({ "Nama": visitor.nama || "-", "Perusahaan": visitor.perusahaan || "-", "Tujuan": visitor.tujuan || "-", "PIC": visitor.pic || "-", "Start Date": visitor.startDate || "-", "Expired Date": visitor.expDate || "-", "Jam Masuk": jamMasuk, "Jam Keluar": jamKeluar, "Durasi": durasi, "Nomor Registrasi": reg, "Keterangan": keterangan });  
+        });  
+        if (dataForExcel.length === 0) { toast("Tidak ada data", "warning"); return; }  
+        let ws = XLSX.utils.json_to_sheet(dataForExcel);  
+        let wb = XLSX.utils.book_new();  
+        XLSX.utils.book_append_sheet(wb, ws, "VMS_Visitor_Report");  
+        XLSX.writeFile(wb, `VMS_Report_${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.xlsx`);  
+        toast("✅ Export Excel berhasil", "success");  
+    } catch (err) { toast("Export gagal", "error"); console.error("export error:", err); }  
+}  
+document.getElementById("exportExcelAction").onclick = exportToExcel;  
+
+let panes = { dashboard: document.getElementById("dashboardPane"), register: document.getElementById("registerPane"), scanner: document.getElementById("scannerPane"), logs: document.getElementById("logsPane") };  
+function switchTab(tabId) {  
+    Object.values(panes).forEach(p => p?.classList.remove("active-pane"));  
+    if (panes[tabId]) panes[tabId].classList.add("active-pane");  
+    document.querySelectorAll(".nav-item").forEach(nav => { if (nav.dataset?.tab === tabId) nav.classList.add("active"); else nav.classList.remove("active"); });  
+}  
+document.querySelectorAll(".nav-item, .mobile-nav").forEach(el => { if (el.dataset?.tab) { el.addEventListener("click", () => { switchTab(el.dataset.tab); if (window.innerWidth <= 780) { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.remove("open"); if (overlay) overlay.style.display = "none"; } }); } });  
+document.getElementById("mobileMenuBtn").onclick = () => { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.add("open"); if (overlay) overlay.style.display = "block"; };  
+document.getElementById("overlay").onclick = () => { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.remove("open"); if (overlay) overlay.style.display = "none"; };  
+
+if (window._vmsIntervals) { window._vmsIntervals.forEach(clearInterval); }  
+window._vmsIntervals = [];  
+secureLoad();
+vmsSite_load();   
+setSite(SITE_ID);
+renderDashboard();  
+renderLogTable();  
+pullFromSheet();  
+
+let syncInterval = setInterval(() => { if (navigator.onLine && !syncLock) pullFromSheet(); }, SYNC_INTERVAL_MS);  
+window._vmsIntervals.push(syncInterval);  
+
+window.addEventListener("beforeunload", () => { if (scannerInstance) { try { scannerInstance.stop(); scannerInstance.clear(); } catch (e) { console.error("beforeunload scanner error:", e); } } if (cameraResetInterval) clearInterval(cameraResetInterval); window._vmsIntervals.forEach(clearInterval); secureSave(); });  
+
+function vmsSite_load() { try { let stored = localStorage.getItem("vms_site_names"); if (stored) Object.assign(vmsSiteData.names, JSON.parse(stored)); } catch(e) { console.error("vmsSite_load error:", e); } vmsSite_applyToUI(); }  
+function vmsSite_applyToUI() {
+    if (!window.vmsSiteData || !vmsSiteData.names) {
+        console.warn("vmsSiteData belum siap (skip render)");
+        return;
+    }
+    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { if (!sel) return; Array.from(sel.options).forEach(opt => { let val = opt.value; let siteNames = {}; try { siteNames = JSON.parse(localStorage.getItem("vms_site_names") || "{}"); } catch(e) { console.error("parse error:", e); } if (siteNames[val]) { let icon = opt.textContent.substring(0, 2); let hasIcon = icon === "🏭" || icon === "🏢" || icon === "🏬"; opt.textContent = (hasIcon ? icon + " " : "") + siteNames[val]; } }); });  
+}  
+function vmsSite_save() { localStorage.setItem("vms_site_names", JSON.stringify(vmsSiteData.names)); return true; }  
+function vmsSite_open() { let modal = document.getElementById("vmsSiteModal"); if (modal) { modal.style.display = "flex"; let vmsA = document.getElementById("vmsA"); if (vmsA) vmsA.value = vmsSiteData.names.SITE_A || "SITE A"; let vmsB = document.getElementById("vmsB"); if (vmsB) vmsB.value = vmsSiteData.names.SITE_B || "SITE B"; let vmsC = document.getElementById("vmsC"); if (vmsC) vmsC.value = vmsSiteData.names.SITE_C || "SITE C"; } }  
+function vmsSite_close() { let modal = document.getElementById("vmsSiteModal"); if (modal) modal.style.display = "none"; }  
+function vmsSite_submit() {  
+    let vmsA = document.getElementById("vmsA");  
+    let vmsB = document.getElementById("vmsB");  
+    let vmsC = document.getElementById("vmsC");  
+    let newNames = { ...vmsSiteData.names };  
+    if (vmsA) newNames.SITE_A = vmsA.value.trim() || "SITE A";  
+    if (vmsB) newNames.SITE_B = vmsB.value.trim() || "SITE B";  
+    if (vmsC) newNames.SITE_C = vmsC.value.trim() || "SITE C";  
+    vmsSiteData.names = newNames;  
+    localStorage.setItem("vms_site_names", JSON.stringify(vmsSiteData.names));  
+    vmsSite_applyToUI();  
+    if (typeof toast === "function") toast("✅ Site names saved!", "success");  
+    vmsSite_close();  
+}  
+vmsSite_load();  
 </script>
 </body>
 </html>
