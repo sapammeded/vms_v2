@@ -362,11 +362,24 @@ async function loadAllData() {
     syncLock = true;
 
     try {
-        const data = await safeFetch({ action: "pull" });
+        const res = await fetch(APPS_SCRIPT_URL + "?action=pull");
+const text = await res.text();
 
-        if (!data || data.status !== "success") {
-            throw new Error("Server returned non-success");
-        }
+console.log("RAW:", text);
+
+const data = JSON.parse(text);
+
+console.log("PARSED:", data);
+
+        if (!data) {
+  console.error("DATA KOSONG:", data);
+  throw new Error("Server returned non-success");
+}
+
+if (data.status !== "success") {
+  console.error("STATUS SALAH:", data);
+  throw new Error("Server returned non-success");
+}
 
         const rows = data.data || [];
 
