@@ -139,7 +139,20 @@ var vmsSiteData = {
 // ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA ⚠️
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGpmVob5xxtoml6jqKVpaQhFdgoU6B8A_RLAzzJUL6rZC2s9Wcmk0_pn-opmdZguRAQ/exec";  
 const SYNC_INTERVAL_MS = 10000;  
+function updateQueueStatus() {  
+    let div = document.getElementById("queueStatusIndicator");  
 
+    if (!div) {  
+        div = document.createElement("div");  
+        div.id = "queueStatusIndicator";  
+        div.className = "queue-status";  
+        document.body.appendChild(div);  
+    }  
+
+    div.innerHTML = syncQueue.length 
+        ? `📦 Queue: ${syncQueue.length}` 
+        : `✅ Sync OK`;  
+}
 let visitors = {};  
 let logs = [];  
 let SITE_ID = localStorage.getItem("vms_site") || "SITE_A";  
