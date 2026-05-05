@@ -337,7 +337,10 @@ async function validateQRCode(qrData) { return await apiCall({ action: "validate
 
 // ================= PULL =================
 async function pullFromSheet() {
-  if (syncLock) return;
+function syncVisitorStatus(sheetData) {  
+    console.log("📊 SYNC DATA:", sheetData);
+}
+if (syncLock) return;
   if (document.hidden) return;
 
   syncLock = true;
