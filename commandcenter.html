@@ -760,7 +760,7 @@ async function handleAddAdmin() {
         showToast("Password minimal 4 karakter", "error");
         return;
     }
-    await addAdminUser(username, password, role);
+    // await addAdminUser(username, password, role);
     document.getElementById("newAdminUser").value = "";
     document.getElementById("newAdminPass").value = "";
 }
