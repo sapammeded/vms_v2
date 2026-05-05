@@ -223,51 +223,43 @@ async function sha256(str) {
 // ================= SAFE FETCH dengan RETRY + SIGNATURE =================
 async function safeFetch(paramsObj, retryCount = 0) {
     const MAX_RETRY = 2;
-    
-    // Untuk admin endpoints, tidak perlu signature (sudah pakai secret)
-    // Tapi kita tetap kirim secret saja (backend akan validasi)
-    const timestamp = Date.now().toString();
-    const base = String(paramsObj.reg || "") + String(paramsObj.action) + timestamp + SECRET;
-    const sign = await sha256(base);
-    
-    const formData = new URLSearchParams({
-        ...paramsObj,
-        timestamp: timestamp,
-        sign: sign,
-        secret: SECRET
-    });
-    
+
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-        
         const response = await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: formData.toString(),
-            signal: controller.signal
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams(paramsObj).toString()
         });
-        
-        clearTimeout(timeout);
-        
-        if (!response.ok) throw new Error("Network error");
-        
+
+        const text = await response.text();
+        console.log("SAFE RAW:", text);
+
         let data;
         try {
-            data = await response.json();
+            data = JSON.parse(text);
         } catch (e) {
+            console.error("❌ JSON PARSE ERROR:", text);
             throw new Error("Invalid JSON response");
         }
-        
+
+        console.log("SAFE PARSED:", data);
+
         return data;
-        
+
     } catch (err) {
+        console.error("SAFE FETCH ERROR:", err);
+
         if (retryCount < MAX_RETRY) {
-            await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+            await new Promise(r => setTimeout(r, 1000));
             return safeFetch(paramsObj, retryCount + 1);
         }
-        console.error("SAFE FETCH ERROR:", err);
-        return { status: "error", message: err.message };
+
+        return {
+            status: "error",
+            message: err.message
+        };
     }
 }
 
