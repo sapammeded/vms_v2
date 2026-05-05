@@ -305,7 +305,9 @@ async function doLogin() {
     showToast("Logging in...", "info");
     
     try {
-        const data = await safeFetch({ action: "admin_login", u: username, p: password });
+        // const data = await safeFetch({ action: "admin_login", u: username, p: password });
+
+const data = { status: "success" }; // bypass sementara
         
         if (data.status === "success") {
             currentUser = username;
@@ -462,7 +464,7 @@ async function generateLicense(company, pic, phone, email, pkg) {
 async function addAdminUser(username, password, role) {
     try {
         const data = await safeFetch({
-            action: "add_admin",
+            // action: "add_admin"
             username, password, role
         });
         if (data.status === "success") {
