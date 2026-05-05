@@ -424,7 +424,7 @@ async function loadAllData() {
 async function loadLicenses() {
     if (!currentToken) return;
     try {
-        const data = await safeFetch({ action: "get_licenses" });
+        const data = await safeFetch({ action: "pull" });
         
         if (data.status === "success") {
             licensesData = data.data || [];
