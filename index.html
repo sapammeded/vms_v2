@@ -146,8 +146,8 @@ let centralData = [];
 async function syncMultiDevice() {
     if (!navigator.onLine) return;
     try {
-        // Tambahkan redirect: 'follow' untuk menangani URL Google Script
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=pull`, {
+        // MODIFIKASI DISINI: Tambahkan timestamp (?t=...) agar browser selalu ambil data FRESH
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=pull&t=${new Date().getTime()}`, {
             method: 'GET',
             redirect: 'follow' 
         });
@@ -160,6 +160,7 @@ async function syncMultiDevice() {
             const headers = result.data[0];
             const rows = result.data.slice(1);
             
+            // Konversi data Sheet ke Object (PENTING: Semua Key jadi UPPERCASE)
             centralData = rows.map(row => {
                 let obj = {};
                 headers.forEach((h, i) => {
@@ -169,19 +170,23 @@ async function syncMultiDevice() {
                 return obj;
             });
             
+            // Update log utama dengan data terbaru dari server
             vmsData.logs = centralData;
+            
+            // Refresh tampilan tabel dan dashboard detik itu juga
             renderLogTable();
             renderDashboard();
-            console.log("✅ Sync Berhasil! Data ditarik: " + centralData.length);
+            
+            console.log("✅ Sync Multi-Device Berhasil! Total: " + centralData.length + " data.");
         }
     } catch (err) {
-        console.warn("⚠️ Sync Background Gagal:", err.message);
+        console.warn("⚠️ Sync Gagal (Mungkin CORS atau URL salah):", err.message);
     }
 }
 
-
-// Jalankan sync tiap 60 detik
+// Jalankan sync otomatis tiap 60 detik (bisa lo perpendek jadi 30000 kalau mau lebih cepat)
 setInterval(syncMultiDevice, 60000);
+
 
 
 
@@ -240,7 +245,7 @@ var vmsSiteData = {
 };
 
 // ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA ⚠️
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDkBZSvsygqMhRn4EA6BNTfxNDb8vDf-dOYmZnc0tpK-XG9wngvfHeiqw1jClQ1tI/exec";  
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnPclWGF7Dv3aaXN-9014V1RfkOhW-K7ITy1KFxAnaTwW9BWYRtnFyO7JBtgVSTlCT/exec";  
 const SYNC_INTERVAL_MS = 10000;  
 // ================= CORE VARIABLES & QUEUE ENGINE =================
 let visitors = {};  
