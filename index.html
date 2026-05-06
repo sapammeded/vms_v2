@@ -1148,7 +1148,7 @@ function setSite(site) {
     renderLogTable();  
 }  
 
-// ================= EVENT HANDLERS=================
+// ================= EVENT HANDLERS =================
 document.getElementById("generateQRBtn").onclick = async () => {  
     if (actionMutex) return;  
     actionMutex = true;  
@@ -1161,14 +1161,16 @@ document.getElementById("generateQRBtn").onclick = async () => {
         let tujuan = document.getElementById("regPurpose").value;  
         const custom = document.getElementById("regCustomPurpose").value.trim();  
         
-        if (tujuan === "Lainnya") tujuan = custom || "Custom";  
+        if (tujuan === "Lainnya") {
+            tujuan = custom || "Custom";
+        }
         
         const pic = document.getElementById("regPic").value.trim();  
         const dept = document.getElementById("regDept").value.trim();  
         const startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);  
         const expDate = document.getElementById("regExpDate").value;  
 
-        // Validasi Ketat
+        // Validasi: Pakai throw biar loncat ke finally (buka lockUI), bukan return manual
         if (!nama || !perusahaan || !pic || !dept || !expDate) { 
             toast("Lengkapi semua field wajib, Komandan!", "error"); 
             throw new Error("ValidationIncomplete"); 
@@ -1211,6 +1213,7 @@ document.getElementById("generateQRBtn").onclick = async () => {
             currentStatus: "OUT", updatedAt: Date.now() 
         };  
         
+        // Simpan ke Memory & LocalStorage
         visitors[reg] = dataLocal;  
         addLocalLog(reg, "REGISTER");  
         secureSave();
@@ -1230,7 +1233,7 @@ document.getElementById("generateQRBtn").onclick = async () => {
             site_id: SITE_ID 
         };
 
-        // Kirim ke Cloud
+        // Kirim ke Google Sheets via apiCall
         const result = await apiCall(payload);  
         
         if (!result || result.status !== "success") {
@@ -1261,10 +1264,12 @@ document.getElementById("generateQRBtn").onclick = async () => {
             toast("Sistem Error!", "error");  
         }
     } finally {  
+        // Hard-Lock Proteksi: Pastikan UI kebuka lagi
         actionMutex = false;  
         lockUI(false); 
     }  
 };
+
 
       
         let reg = generateReg();  
