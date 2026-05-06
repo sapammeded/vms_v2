@@ -1152,55 +1152,60 @@ function setSite(site) {
 document.getElementById("generateQRBtn").onclick = async () => {  
     if (actionMutex) return;  
     actionMutex = true;  
-    lockUI(true); // Layar dikunci biar gak double klik
+    lockUI(true); 
 
     try {  
-        let nama = document.getElementById("regName").value.trim();  
-        let perusahaan = document.getElementById("regCompany").value.trim();  
-        let kategori = document.getElementById("regCategory").value;  
+        const nama = document.getElementById("regName").value.trim();  
+        const perusahaan = document.getElementById("regCompany").value.trim();  
+        const kategori = document.getElementById("regCategory").value;  
         let tujuan = document.getElementById("regPurpose").value;  
-        let custom = document.getElementById("regCustomPurpose").value.trim();  
+        const custom = document.getElementById("regCustomPurpose").value.trim();  
+        
         if (tujuan === "Lainnya") tujuan = custom || "Custom";  
-        let pic = document.getElementById("regPic").value.trim();  
-        let dept = document.getElementById("regDept").value.trim();  
-        let startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);  
-        let expDate = document.getElementById("regExpDate").value;  
+        
+        const pic = document.getElementById("regPic").value.trim();  
+        const dept = document.getElementById("regDept").value.trim();  
+        const startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);  
+        const expDate = document.getElementById("regExpDate").value;  
 
-        // [FIX] Validasi harus buka kunci UI kalau gagal
+        // Validasi Ketat
         if (!nama || !perusahaan || !pic || !dept || !expDate) { 
             toast("Lengkapi semua field wajib, Komandan!", "error"); 
-            actionMutex = false; // Buka kunci mutex
-            lockUI(false);      // Buka kunci layar
-            return; 
+            throw new Error("ValidationIncomplete"); 
         }  
       
-        let reg = generateReg();  
-        
+        const reg = generateReg();  
         let foto = "";  
-        let file = document.getElementById("regPhotoFile").files[0];  
+        const fileInput = document.getElementById("regPhotoFile");
+        const file = fileInput ? fileInput.files[0] : null;  
+
         if (file) {  
             try {  
-                let reader = await new Promise(resolve => { 
-                    let fr = new FileReader(); 
+                const reader = await new Promise((resolve, reject) => { 
+                    const fr = new FileReader(); 
                     fr.onload = () => resolve(fr.result); 
+                    fr.onerror = reject;
                     fr.readAsDataURL(file); 
                 });  
-                let img = new Image();  
+                
+                const img = new Image();  
                 img.src = reader;  
                 await new Promise(r => img.onload = r);  
-                let canvas = document.createElement("canvas");  
-                let maxWidth = 400;  
-                let scale = maxWidth / img.width;  
+                
+                const canvas = document.createElement("canvas");  
+                const maxWidth = 400;  
+                const scale = maxWidth / img.width;  
                 canvas.width = maxWidth;  
                 canvas.height = img.height * scale;  
-                let ctx = canvas.getContext("2d");  
+                const ctx = canvas.getContext("2d");  
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);  
                 foto = canvas.toDataURL("image/jpeg", 0.5);  
-            } catch (e) { console.warn("Gagal proses foto, lanjut tanpa foto."); }  
+            } catch (err) { 
+                console.warn("Gagal proses foto, lanjut tanpa foto."); 
+            }  
         }  
 
-        // Simpan Data Lokal (Full data termasuk foto untuk PDF)
-        let dataLocal = { 
+        const dataLocal = { 
             nama, perusahaan, kategori, tujuan, pic, dept, 
             startDate, expDate, foto, sessions: [], 
             currentStatus: "OUT", updatedAt: Date.now() 
@@ -1210,8 +1215,7 @@ document.getElementById("generateQRBtn").onclick = async () => {
         addLocalLog(reg, "REGISTER");  
         secureSave();
 
-        // [PENTING] Payload yang dikirim ke GS harus pas dengan p.action, p.reg, dll
-        let payload = { 
+        const payload = { 
             action: "register", 
             reg: reg, 
             nama: nama,
@@ -1222,40 +1226,43 @@ document.getElementById("generateQRBtn").onclick = async () => {
             startDate: startDate, 
             expDate: expDate,
             kategori: kategori, 
-            photoBase64: foto, // Masuk ke p.photoBase64 di GS
+            photoBase64: foto, 
             site_id: SITE_ID 
         };
 
         // Kirim ke Cloud
-        let result = await apiCall(payload);  
+        const result = await apiCall(payload);  
         
         if (!result || result.status !== "success") {
-            addToQueue("register", reg, payload); // Masuk antrean kalau lemot/offline
-            toast(`⚠️ Tersimpan di HP (Antrean Cloud)`, "warning"); 
+            addToQueue("register", reg, payload); 
+            toast(`⚠️ Tersimpan Lokal (Antrean Cloud)`, "warning"); 
         } else {
             toast(`✅ Berhasil Sync ke Cloud!`, "success");
         }
 
         toast(`✅ Terdaftar: ${nama} (${reg})`, "success");  
         vibrate();
-        generateQRandShow(reg, dataLocal); // Tampilkan QR
+        generateQRandShow(reg, dataLocal); 
         
-        // Reset Form
+        // Reset Form Safe Mode
         ["regName", "regCompany", "regPic", "regDept", "regPhotoFile", "regCustomPurpose"].forEach(id => {
             const el = document.getElementById(id);
-            if(el) el.value = "";
+            if (el) el.value = "";
         });
-        document.getElementById("previewPhotoThumb").src = "";  
+        const preview = document.getElementById("previewPhotoThumb");
+        if (preview) preview.src = "";  
         
         renderDashboard();  
         renderLogTable();  
         
     } catch (e) {  
-        console.error("Critical Error:", e);  
-        toast("Sistem Error!", "error");  
+        if (e.message !== "ValidationIncomplete") {
+            console.error("Critical Error:", e);  
+            toast("Sistem Error!", "error");  
+        }
     } finally {  
         actionMutex = false;  
-        lockUI(false); // Pastikan layar kebuka lagi apa pun yang terjadi
+        lockUI(false); 
     }  
 };
 
