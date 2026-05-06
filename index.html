@@ -689,6 +689,7 @@ async function processScan(qrText) {
                 currentStatus: "OUT", 
                 updatedAt: Date.now() 
             };  
+visitor.foto = data?.foto || visitor.foto || "";
             visitors[siteKey] = visitor;  
         }  
         
