@@ -146,43 +146,39 @@ let centralData = [];
 async function syncMultiDevice() {
     if (!navigator.onLine) return;
     try {
-        // Menggunakan APPS_SCRIPT_URL yang sudah lo definisikan di bawah
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=pull`);
+        // Tambahkan redirect: 'follow' untuk menangani URL Google Script
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=pull`, {
+            method: 'GET',
+            redirect: 'follow' 
+        });
+        
+        if (!response.ok) throw new Error('Network response was not ok');
+        
         const result = await response.json();
         
         if (result.status === "success" && result.data) {
             const headers = result.data[0];
             const rows = result.data.slice(1);
             
-            // Konversi array Sheets ke Object agar mudah dibaca (Fix Undefined)
             centralData = rows.map(row => {
                 let obj = {};
                 headers.forEach((h, i) => {
-                    // Mapping header ke nama yang digunakan di PDF
-                    let key = h.toUpperCase();
+                    let key = h.toString().toUpperCase().trim();
                     obj[key] = row[i];
-                    // Mapping cadangan untuk case sensitive
-                    if(key === "NAMA") obj.nama = row[i];
-                    if(key === "PERUSAHAAN") obj.perusahaan = row[i];
-                    if(key === "REG") obj.reg = row[i];
-                    if(key === "PIC") obj.pic = row[i];
                 });
                 return obj;
             });
             
-            // Sinkronkan ke log utama
             vmsData.logs = centralData;
-            
-            // Update UI Otomatis
-            if (typeof renderLogTable === "function") renderLogTable();
-            if (typeof renderDashboard === "function") renderDashboard();
-            
-            console.log("🔄 Sync Berhasil: " + centralData.length + " data ditarik.");
+            renderLogTable();
+            renderDashboard();
+            console.log("✅ Sync Berhasil! Data ditarik: " + centralData.length);
         }
     } catch (err) {
         console.warn("⚠️ Sync Background Gagal:", err.message);
     }
 }
+
 
 // Jalankan sync tiap 60 detik
 setInterval(syncMultiDevice, 60000);
