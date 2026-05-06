@@ -780,73 +780,136 @@ async function generateQRandShow(reg, data) {
 
 function showPreviewWithQR(reg, data, qrImage) {  
     if (!qrImage || !qrImage.startsWith("data:image")) { toast("QR gagal dibuat, ulangi!", "error"); return; }  
+    
     let modal = document.createElement("div");  
     modal.className = "modal-overlay";  
-    modal.innerHTML = `<div class="modal-card"><h3>📄 Preview Invitation</h3><div style="background:#f8fafc; padding:14px; border-radius:20px; margin-bottom:16px;"><p><strong>Name</strong> : ${data.nama}</p><p><strong>Company</strong> : ${data.perusahaan}</p><p><strong>Purpose</strong> : ${data.tujuan}</p><p><strong>PIC</strong> : ${data.pic}</p><p><strong>Department</strong> : ${data.dept}</p><p><strong>Validity</strong> : ${data.startDate} → ${data.expDate}</p><p><strong>REG</strong> : ${reg}</p></div><img class="qr-preview" src="${qrImage}"><div class="flex-btns"><button id="previewDownloadBtn">Download PDF</button><button id="previewCloseBtn" class="btn-outline">Close</button></div></div>`;  
+    
+    // Blok HTML Modal dengan tambahan Foto Visitor (data.foto)
+    modal.innerHTML = `
+        <div class="modal-card" style="max-height: 90vh; overflow-y: auto;">
+            <h3 style="text-align:center; margin-bottom:15px;">📄 Preview Invitation</h3>
+            
+            <div style="display:flex; gap:15px; background:#f8fafc; padding:14px; border-radius:20px; margin-bottom:16px; align-items:center;">
+                <img src="${data.foto || ''}" 
+                     style="width:70px; height:70px; border-radius:12px; object-fit:cover; border:2px solid #1f4e4a; display: ${data.foto ? 'block' : 'none'};">
+                
+                <div style="font-size:0.75rem; flex:1;">
+                    <p><strong>Name</strong>: ${data.nama}</p>
+                    <p><strong>Company</strong>: ${data.perusahaan}</p>
+                    <p><strong>REG</strong>: ${reg}</p>
+                </div>
+            </div>
+
+            <div style="text-align:center;">
+                <img class="qr-preview" src="${qrImage}" style="width:140px; margin: 0 auto;">
+                <p style="font-size:0.65rem; color:#666; margin-top:5px;">${reg}</p>
+            </div>
+
+            <div class="flex-btns">
+                <button id="previewDownloadBtn" style="flex:1;">Download PDF</button>
+                <button id="previewCloseBtn" class="btn-outline" style="flex:1;">Close</button>
+            </div>
+        </div>`;
+        
     document.body.appendChild(modal);  
     setTimeout(() => modal.classList.add("active"), 10);  
+    
     let downloadBtn = modal.querySelector("#previewDownloadBtn");  
     let closeBtn = modal.querySelector("#previewCloseBtn");  
+    
     if (downloadBtn) {  
         downloadBtn.onclick = async () => {  
             if (window.downloading) return;  
             window.downloading = true;  
-            if (!qrImage || !qrImage.startsWith("data:image")) { toast("QR belum siap, tunggu...", "warning"); window.downloading = false; return; }  
-            await new Promise(r => setTimeout(r, 200));  
+            
+            // Pastikan data QR dikirim ke fungsi downloadPDF
             data.qrImage = qrImage;  
+            
             await downloadPDF(reg, data);  
             window.downloading = false;  
             modal.remove();  
         };  
     }  
     if (closeBtn) closeBtn.onclick = () => modal.remove();  
-}  
+}
+
 
 async function downloadPDF(reg, data) {  
     try {  
         await ensureJSPDF();  
         const { jsPDF } = window.jspdf;  
-        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });  
+        // Menggunakan ukuran A6 (105x148mm) agar lebih pas sebagai standar kartu visitor
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a6" });  
+
+        // 1. Header Akses (Background warna gelap khas Security)
         doc.setFillColor(31, 78, 74);  
-        doc.rect(0, 0, 210, 40, "F");  
+        doc.rect(0, 0, 105, 25, "F");  
+        
         doc.setTextColor(255, 255, 255);  
-        doc.setFontSize(22);  
-        doc.text("INVITATION LETTER", 105, 20, { align: "center" });  
+        doc.setFontSize(14);  
+        doc.setFont(undefined, "bold");  
+        doc.text("VISITOR PASS", 52.5, 12, { align: "center" });  
+        doc.setFontSize(8);
+        doc.text("SECURITY AUTHORIZED", 52.5, 18, { align: "center" });
+
+        // 2. Foto Visitor (Posisi Tengah - Standar ID Card Bank)
+        if (data.foto && data.foto.startsWith("data:image")) { 
+            try { 
+                let format = data.foto.includes("png") ? "PNG" : "JPEG";
+                // Frame Foto
+                doc.setDrawColor(200, 200, 200);
+                doc.rect(32.5, 30, 40, 50); 
+                doc.addImage(data.foto, format, 33, 30.5, 39, 49); 
+            } catch (e) { console.error("Foto error:", e); } 
+        }
+
+        // 3. Nama & Info (Text Besar di Tengah)
         doc.setTextColor(0, 0, 0);  
         doc.setFontSize(12);  
         doc.setFont(undefined, "bold");  
-        doc.text("VISITOR INFORMATION", 20, 60);  
-        let y = 75;  
-        doc.setFontSize(10);  
+        doc.text(data.nama.toUpperCase(), 52.5, 90, { align: "center" });  
+        
+        doc.setFontSize(9);  
         doc.setFont(undefined, "normal");  
-        doc.text(`Name : ${data.nama || "-"}`, 20, y); y += 8;  
-        doc.text(`Company : ${data.perusahaan || "-"}`, 20, y); y += 8;  
-        doc.text(`Purpose : ${data.tujuan || "-"}`, 20, y); y += 8;  
-        doc.text(`PIC : ${data.pic || "-"}`, 20, y); y += 8;  
-        doc.text(`Department : ${data.dept || "-"}`, 20, y); y += 8;  
-        doc.text(`REG Number : ${reg}`, 20, y); y += 8;  
-        doc.text(`Start Date : ${data.startDate || "-"}`, 20, y); y += 8;  
-        doc.text(`Expired Date : ${data.expDate || "-"}`, 20, y); y += 8;  
-        doc.text(`Status : ${data.currentStatus === "IN" ? "IN (Inside Area)" : "OUT"}`, 20, y);  
-        if (data.qrImage && data.qrImage.startsWith("data:image")) { try { doc.addImage(data.qrImage, "PNG", 140, 60, 40, 40); } catch (e) { console.error("QR image PDF error:", e); } }  
-        if (data.foto && data.foto.startsWith("data:image")) { try { let fotoLower = data.foto.toLowerCase(); let format = fotoLower.includes("png") ? "PNG" : "JPEG"; doc.addImage(data.foto, format, 140, 130, 40, 40); } catch (e) { console.error("Photo PDF error:", e); } }  
-        let blob = doc.output("blob");  
-        let url = URL.createObjectURL(blob);  
-        let a = document.createElement("a");  
-        a.href = url;  
-        a.download = `INVITATION_${reg}.pdf`;  
-        document.body.appendChild(a);  
-        a.click();  
-        document.body.removeChild(a);  
-        setTimeout(() => URL.revokeObjectURL(url), 3000);  
-        toast(`PDF ${reg} berhasil di download`, "success");  
+        doc.text(data.perusahaan, 52.5, 96, { align: "center" });  
+
+        // Garis Pembatas
+        doc.setDrawColor(31, 78, 74);
+        doc.setLineWidth(0.5);
+        doc.line(15, 102, 90, 102);
+
+        // 4. Detail Identitas (Layout Bersih)
+        doc.setFontSize(8);
+        let y = 108;
+        doc.text(`PIC      : ${data.pic}`, 15, y);
+        doc.text(`DATE     : ${data.startDate}`, 15, y + 5);
+        doc.text(`VALID TO : ${data.expDate}`, 15, y + 10);
+
+        // 5. QR Code di pojok bawah (Standar Scan Data Center)
+        if (data.qrImage) {
+            doc.addImage(data.qrImage, "PNG", 70, 115, 25, 25);
+        }
+
+        // Nomor REG di bawah QR
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.text(reg, 82.5, 142, { align: "center" });
+
+        // 6. Footer Legal
+        doc.setFontSize(6);
+        doc.text("Property of Security Department. Must be worn at all times.", 52.5, 146, { align: "center" });
+
+        // Download
+        doc.save(`VISITOR_PASS_${reg}.pdf`);
+        toast("Badge Visitor berhasil di-download", "success");  
         return true;  
     } catch (err) {  
         console.error("PDF Error:", err);  
-        toast("Error saat generate PDF", "error");  
+        toast("Gagal membuat Badge", "error");  
         return false;  
     }  
-}  
+}
+
 
 async function ensureJSPDF() {  
     if (window.jspdf) return true;  
