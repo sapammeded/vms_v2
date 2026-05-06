@@ -79,7 +79,33 @@
 <div class="mobile-header"><button class="menu-toggle" id="mobileMenuBtn">☰</button><strong id="brandMobile" data-site="SITE_A">VMS ELITE</strong><div style="width: 28px;"></div></div>
 <div class="overlay" id="overlay"></div>
 <div class="mobile-sidebar" id="mobileSidebar"><div class="logo-area"><h1 id="brandSidebar" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item mobile-nav" data-tab="dashboard">📊 Dashboard</div><div class="nav-item mobile-nav" data-tab="register">📝 Register</div><div class="nav-item mobile-nav" data-tab="scanner">📷 Scanner</div><div class="nav-item mobile-nav" data-tab="logs">📜 Logs</div></div>
-<div class="app-layout"><div class="sidebar"><div class="logo-area"><h1 id="brandSidebarMain" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item active" data-tab="dashboard">📊 Dashboard</div><div class="nav-item" data-tab="register">📝 Register Visitor</div><div class="nav-item" data-tab="scanner">📷 Security Scan</div><div class="nav-item" data-tab="logs">📜 Audit Logs</div><div style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);"><div style="background:transparent; border:none; color:white; padding:0;"><label style="color:white;">🌍 Site</label><select id="siteSelector" style="background:#2b5a55; color:white;"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button id="vmsSiteEditBtn" onclick="vmsSite_open()" style="background:#2b5a55; margin-left:8px; padding:6px 12px;">⚙️ Rename</button></div></div></div><div class="main-content"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;"><div style="background:white; border-radius:28px; padding:8px 20px; display:flex; align-items:center; gap:16px;"><label>🌐 Active Site</label><select id="siteSelectorTop"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button onclick="vmsSite_open()" style="background:#0f2c2c; padding:6px 12px;">⚙️ Rename</button></div></div><div style="background:white; border-radius:20px; padding:16px; margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;"><input type="text" id="licenseInput" placeholder="License key..." style="flex:1;"><button id="submitLicenseBtn">Aktivasi</button><div id="licenseStatusBadge" class="license-badge">ELITE</div></div><div id="dashboardPane" class="tab-pane active-pane"><div class="stats-row" id="statsWidget"></div><div class="form-card"><canvas id="trendChart" height="90"></canvas></div><div class="form-card"><canvas id="categoryChart" height="90"></canvas></div></div><div id="registerPane" class="tab-pane"><div class="form-card"><div class="grid-2"><div class="input-field"><label>Full name</label><input type="text" id="regName" placeholder="John Carter"></div><div class="input-field"><label>Company</label><input type="text" id="regCompany" placeholder="PT Nusantara"></div><div class="input-field"><label>Category</label><select id="regCategory"><option value="UMUM">UMUM</option><option value="VIP">VIP</option><option value="VVIP">VVIP</option></select></div><div class="input-field"><label>Purpose</label><select id="regPurpose"><option>Meeting</option><option>Interview</option><option>Service</option><option>Lainnya</option></select><input type="text" id="regCustomPurpose" placeholder="Other purpose" style="margin-top:8px;"></div><div class="input-field"><label>PIC</label><input type="text" id="regPic" placeholder="Budi Santoso"></div><div class="input-field"><label>Department</label><input type="text" id="regDept" placeholder="IT / HR"></div><div class="input-field"><label>Start date</label><input type="date" id="regStartDate"></div><div class="input-field"><label>Expired date</label><input type="date" id="regExpDate"></div><div class="input-field"><label>Photo</label><input type="file" id="regPhotoFile" accept="image/*"><img id="previewPhotoThumb" width="50" style="margin-top:8px; border-radius:12px;"></div></div><div style="display:flex; gap:16px; margin-top:24px;"><button id="walkinBtn">⚡ Walk-in</button><button id="generateQRBtn">🔐 Generate QR</button></div></div></div><div id="scannerPane" class="tab-pane"><div class="form-card"><div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;"><select id="scanMode"><option value="CHECK_IN">CHECK-IN</option><option value="CHECK_OUT">CHECK-OUT</option></select><button id="startCamBtn">📷 Start Camera</button><button id="stopCamBtn" class="btn-outline">Stop</button><button id="uploadQrBtn">🖼️ Upload QR</button><input type="file" id="uploadQrFile" accept="image/*" style="display:none"></div><div id="cameraPreview"></div><div style="margin-top:24px;"><label>Manual REG Number</label><input type="text" id="manualReg" placeholder="REG2026xxxx"><button id="manualProcess" style="margin-top:8px;">Proses</button></div></div></div><div id="logsPane" class="tab-pane"><div class="form-card"><div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;"><input type="text" id="searchLog" placeholder="Cari Nama / REG" style="width:200px;"><button id="refreshLogsBtn">Refresh</button><button id="selectAllBtn">Select all</button><button id="deselectAllBtn">Deselect</button><button id="deleteSelectedBtn" style="background:#b91c1c;">Hapus terpilih</button>
+<div class="app-layout"><div class="sidebar"><div class="logo-area"><h1 id="brandSidebarMain" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item active" data-tab="dashboard">📊 Dashboard</div><div class="nav-item" data-tab="register">📝 Register Visitor</div><div class="nav-item" data-tab="scanner">📷 Security Scan</div><div class="nav-item" data-tab="logs">📜 Audit Logs</div><div style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);"><div style="background:transparent; border:none; color:white; padding:0;"><label style="color:white;">🌍 Site</label><select id="siteSelector" style="background:#2b5a55; color:white;"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button id="vmsSiteEditBtn" onclick="vmsSite_open()" style="background:#2b5a55; margin-left:8px; padding:6px 12px;">⚙️ Rename</button></div></div></div><div class="main-content"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;"><div style="background:white; border-radius:28px; padding:8px 20px; display:flex; align-items:center; gap:16px;"><label>🌐 Active Site</label><select id="siteSelectorTop"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button onclick="vmsSite_open()" style="background:#0f2c2c; padding:6px 12px;">⚙️ Rename</button></div></div><div style="background:white; border-radius:20px; padding:16px; margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;"><input type="text" id="licenseInput" placeholder="License key..." style="flex:1;"><button id="submitLicenseBtn">Aktivasi</button><div id="licenseStatusBadge" class="license-badge">ELITE</div></div><div id="dashboardPane" class="tab-pane active-pane"><div class="stats-row" id="statsWidget"></div><div class="form-card"><canvas id="trendChart" height="90"></canvas></div><div class="form-card"><canvas id="categoryChart" height="90"></canvas></div></div><div id="registerPane" class="tab-pane"><div class="form-card"><div class="grid-2"><div class="input-field"><label>Full name</label><input type="text" id="regName" placeholder="John Carter"></div><div class="input-field"><label>Company</label><input type="text" id="regCompany" placeholder="PT Nusantara"></div><div class="input-field"><label>Category</label><select id="regCategory"><option value="UMUM">UMUM</option><option value="VIP">VIP</option><option value="VVIP">VVIP</option></select></div><div class="input-field"><label>Purpose</label><select id="regPurpose"><option>Meeting</option><option>Interview</option><option>Service</option><option>Lainnya</option></select><input type="text" id="regCustomPurpose" placeholder="Other purpose" style="margin-top:8px;"></div><div class="input-field"><label>PIC</label><input type="text" id="regPic" placeholder="Budi Santoso"></div><div class="input-field"><label>Department</label><input type="text" id="regDept" placeholder="IT / HR"></div><div class="input-field"><label>Start date</label><input type="date" id="regStartDate"></div><div class="input-field"><label>Expired date</label><input type="date" id="regExpDate"></div><div class="input-field"><label>Photo</label><input type="file" id="regPhotoFile" accept="image/*"><img id="previewPhotoThumb" width="50" style="margin-top:8px; border-radius:12px;"></div></div><div style="display:flex; gap:16px; margin-top:24px;"><button id="walkinBtn">⚡ Walk-in</button><button id="generateQRBtn">🔐 Generate QR</button></div></div></div><div id="scannerPane" class="tab-pane">
+    <div class="form-card">
+        <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+            <select id="scanMode" style="padding: 8px; border-radius: 12px;">
+                <option value="CHECK_IN">CHECK-IN</option>
+                <option value="CHECK_OUT">CHECK-OUT</option>
+            </select>
+            
+            <select id="cameraSelection" style="padding: 8px; border-radius: 12px; flex: 1; min-width: 150px;">
+                <option value="">⏳ Mencari Kamera...</option>
+            </select>
+
+            <button id="startCamBtn">📷 Start</button>
+            <button id="stopCamBtn" class="btn-outline">Stop</button>
+        </div>
+
+        <button id="uploadQrBtn">🖼️ Upload QR</button>
+        <input type="file" id="uploadQrFile" accept="image/*" style="display:none">
+
+        <div id="cameraPreview" style="margin-top:24px;"></div>
+
+        <label>Manual REG Number</label>
+        <input type="text" id="manualReg" placeholder="REG2026xxxx">
+        <button id="manualProcess" style="margin-top:8px;">Proses</button>
+    </div>
+</div>
+</div><div id="logsPane" class="tab-pane"><div class="form-card"><div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;"><input type="text" id="searchLog" placeholder="Cari Nama / REG" style="width:200px;"><button id="refreshLogsBtn">Refresh</button><button id="selectAllBtn">Select all</button><button id="deselectAllBtn">Deselect</button><button id="deleteSelectedBtn" style="background:#b91c1c;">Hapus terpilih</button>
 <button id="deleteAllBtn" style="background:#b91c1c;">Hapus semua</button>
 <button id="exportExcelAction">Export Excel</button>
 <button id="backupAction">Backup</button>
@@ -950,58 +976,84 @@ async function ensureJSPDF() {
 
 function showPreview(reg, data) { generateQRandShow(reg, data); }  
 
-async function initScanner() {  
-    if (scannerInstance) {  
-        try { await scannerInstance.stop(); } catch(e) { console.error("stop error:", e); }  
-        try { await scannerInstance.clear(); } catch(e) { console.error("clear error:", e); }  
-        scannerInstance = null;  
-    }  
-    try {  
-        let cameras = await Html5Qrcode.getCameras();  
-        if (!cameras || cameras.length === 0) { toast("Tidak ada kamera terdeteksi", "error"); return false; }  
-        currentCameraId = cameras[0].id;  
-        scannerInstance = new Html5Qrcode("cameraPreview");  
-        return true;  
-    } catch (err) { toast("Gagal inisialisasi kamera: " + err.message, "error"); console.error("initScanner error:", err); return false; }  
-}  
+// ================= REPLACE TOTAL DISINI =================
 
+// 1. Fungsi Deteksi Kamera (Otomatis mengisi dropdown saat aplikasi dibuka)
+async function getAvailableCameras() {
+    try {
+        const devices = await Html5Qrcode.getCameras();
+        const select = document.getElementById("cameraSelection");
+        if (devices && devices.length > 0) {
+            select.innerHTML = ""; 
+            devices.forEach((device, index) => {
+                const option = document.createElement("option");
+                option.value = device.id;
+                let label = device.label.toLowerCase();
+                
+                // Logika identifikasi kamera untuk HP (seperti Oppo A92)
+                if (label.includes("back") || label.includes("rear") || label.includes("0")) {
+                    option.text = "📷 Kamera Belakang";
+                    option.selected = true; 
+                } else if (label.includes("front") || label.includes("user") || label.includes("1")) {
+                    option.text = "🤳 Kamera Depan";
+                } else {
+                    option.text = `Kamera ${index + 1}`;
+                }
+                select.appendChild(option);
+            });
+        } else {
+            select.innerHTML = "<option>Kamera tdk ditemukan</option>";
+        }
+    } catch (err) {
+        console.error("Gagal cari kamera:", err);
+        toast("Izin kamera diperlukan", "error");
+    }
+}
+
+// 2. Fungsi Start Scanner (Mengambil ID kamera dari pilihan user)
 async function startScanner() {  
     if (isScanning) return;  
-    if (!scannerInstance) { let init = await initScanner(); if (!init) return; }  
+    
+    const selectedCamId = document.getElementById("cameraSelection").value;
+    
+    if (!selectedCamId || selectedCamId.includes("Mencari")) {
+        toast("Pilih kamera dulu, Pak!", "warning");
+        return;
+    }
+
+    if (!scannerInstance) { 
+        scannerInstance = new Html5Qrcode("cameraPreview"); 
+    } 
+
     try {  
-        await scannerInstance.start(currentCameraId, { 
-            fps: 10, 
-            qrbox: { width: 280, height: 280 }, 
-            aspectRatio: 1.0 
-        },  
-            async (decodedText) => { 
-                console.log("QR Scanned:", decodedText);
-                if (!processingRegs.has(decodedText)) await processScan(decodedText); 
+        await scannerInstance.start(
+            selectedCamId, 
+            { 
+                fps: 10, 
+                qrbox: { width: 280, height: 280 }, 
+                aspectRatio: 1.0 
             },  
-            (error) => { 
-                if (error && !error.includes("No MultiFormat Readers") && !error.includes("No barcode")) {
-                    console.log("Scan error:", error); 
+            async (decodedText) => { 
+                // Mencegah double scan untuk data yang sama
+                if (!processingRegs.has(decodedText)) {
+                    await processScan(decodedText); 
                 }
-            }  
+            },  
+            (error) => { /* ignore noise */ }
         );  
         isScanning = true;  
-        toast("Scanner siap, arahkan ke QR Code", "success");  
-        if (cameraResetInterval) clearInterval(cameraResetInterval);  
-        cameraResetInterval = setInterval(async () => { 
-            if (!isScanning) return;
-            try {
-                await stopScanner();
-                await startScanner();
-            } catch(e){
-                console.warn("Camera reset fail", e);
-            }
-        }, 180000);
+        toast("Scanner Aktif", "success");  
     } catch (err) { 
-        toast("Gagal start kamera: " + err.message, "error"); 
-        console.error("startScanner error:", err); 
+        toast("Gagal: " + err.message, "error"); 
         isScanning = false; 
     }  
-}  
+}
+
+// Panggil deteksi kamera saat halaman dimuat
+document.addEventListener("DOMContentLoaded", () => {
+    getAvailableCameras();
+});
+
 
 async function stopScanner() {  
     if (cameraResetInterval) { clearInterval(cameraResetInterval); cameraResetInterval = null; }  
