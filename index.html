@@ -1135,43 +1135,34 @@ document.getElementById("generateQRBtn").onclick = async () => {
         const startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);  
         const expDate = document.getElementById("regExpDate").value;  
 
-        // Validasi
         if (!nama || !perusahaan || !pic || !dept || !expDate) { 
-            toast("Lengkapi semua field wajib, Komandan!", "error"); 
+            toast("Lengkapi data wajib, Komandan!", "error"); 
             throw new Error("ValidationIncomplete"); 
         }  
       
         const reg = generateReg();  
-        if (visitors[reg]) {
-            toast("REG sudah ada!", "warning");
-            throw new Error("DuplicateREG");
-        }
-
         let foto = "";  
         const fileInput = document.getElementById("regPhotoFile");
         const file = fileInput ? fileInput.files[0] : null;  
 
         if (file) {  
             try {  
-                const reader = await new Promise((resolve, reject) => { 
+                const reader = await new Promise((res, rej) => { 
                     const fr = new FileReader(); 
-                    fr.onload = () => resolve(fr.result); 
-                    fr.onerror = reject;
+                    fr.onload = () => res(fr.result); 
+                    fr.onerror = rej;
                     fr.readAsDataURL(file); 
                 });  
                 const img = new Image();  
                 img.src = reader;  
                 await new Promise(r => img.onload = r);  
                 const canvas = document.createElement("canvas");  
-                const maxWidth = 400;  
-                const scale = maxWidth / img.width;  
-                canvas.width = maxWidth;  
+                const scale = 400 / img.width;  
+                canvas.width = 400;  
                 canvas.height = img.height * scale;  
                 canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);  
                 foto = canvas.toDataURL("image/jpeg", 0.5);  
-            } catch (err) { 
-                console.warn("Gagal proses foto."); 
-            }  
+            } catch (err) { console.warn("Foto gagal."); }  
         }  
 
         const dataLocal = { 
@@ -1184,312 +1175,95 @@ document.getElementById("generateQRBtn").onclick = async () => {
         addLocalLog(reg, "REGISTER");  
         secureSave();
 
-        const payload = { 
-            action: "register", reg, nama, perusahaan, tujuan, pic, dept, 
-            startDate, expDate, kategori, photoBase64: foto, site_id: SITE_ID 
-        };
-
+        const payload = { action: "register", reg, nama, perusahaan, tujuan, pic, dept, startDate, expDate, kategori, photoBase64: foto, site_id: SITE_ID };
         const result = await apiCall(payload);  
+        
         if (!result || result.status !== "success") {
             addToQueue("register", reg, payload); 
-            toast(`⚠️ Tersimpan Lokal (Antrean Cloud)`, "warning"); 
+            toast(`⚠️ Masuk Antrean`, "warning"); 
         } else {
-            toast(`✅ Berhasil Sync ke Cloud!`, "success");
+            toast(`✅ Sync Cloud Berhasil!`, "success");
         }
 
-        toast(`✅ Terdaftar: ${nama} (${reg})`, "success");  
-        vibrate();
         generateQRandShow(reg, dataLocal); 
-        
-        // Reset Form
         ["regName", "regCompany", "regPic", "regDept", "regPhotoFile", "regCustomPurpose"].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = "";
         });
-        const preview = document.getElementById("previewPhotoThumb");
-        if (preview) preview.src = "";  
         
-        renderDashboard();  
-        renderLogTable();  
-        await pullFromSheet();
-
+        renderDashboard(); renderLogTable();  
+        
     } catch (e) {  
-        if (e.message !== "ValidationIncomplete" && e.message !== "DuplicateREG") {
-            console.error("Critical Error:", e);  
-            toast("Sistem Error!", "error");  
-        }
+        if (e.message !== "ValidationIncomplete") { console.error("Error:", e); toast("Sistem Error!", "error"); }
     } finally {  
-        actionMutex = false;  
-        lockUI(false); 
+        actionMutex = false; lockUI(false); 
     }  
 };
 
-document.getElementById("walkinBtn").onclick = async () => {  
-    if (actionMutex) return;  
-    actionMutex = true;  
-    lockUI(true);
-    try {  
-        let reg = generateReg();  
-        let now = new Date();  
-        let exp = new Date(now);  
-        exp.setDate(exp.getDate() + 1);  
-        
-        let walkData = { 
-            nama: `WALK-IN ${now.getHours()}:${now.getMinutes()}`, 
-            perusahaan: "Guest Visitor", kategori: "UMUM", tujuan: "Immediate Visit", 
-            pic: "Reception", dept: "Umum", startDate: now.toISOString().slice(0, 10), 
-            expDate: exp.toISOString().slice(0, 10), foto: "", sessions: [], 
-            currentStatus: "OUT", updatedAt: Date.now() 
-        };  
-        
-        visitors[reg] = walkData;  
-        addLocalLog(reg, "WALK-IN");  
-        secureSave();
+// ================= NAVIGASI TAB (FIX MENTOK DASHBOARD) =================
+function switchTab(tabId) {  
+    console.log("Pindah ke:", tabId);
+    const panes = ["dashboardPane", "registerPane", "scannerPane", "logsPane"];
+    panes.forEach(p => {
+        const el = document.getElementById(p);
+        if (el) el.classList.remove("active-pane");
+    });
 
-        let result = await apiCall({ action: "register", reg, ...walkData, site_id: SITE_ID });  
-        if (!result || result.status !== "success") addToQueue("register", reg, walkData);
+    const targetPane = document.getElementById(tabId + "Pane");
+    if (targetPane) targetPane.classList.add("active-pane");
 
-        toast(`✅ Walk-in registered ${reg}`, "success");  
-        vibrate();
-        generateQRandShow(reg, walkData);  
-        renderDashboard();  
-        renderLogTable();  
-        await pullFromSheet();  
-    } catch (e) {  
-        console.error("walkinBtn error:", e);  
-        toast("Terjadi kesalahan", "error");  
-    } finally {  
-        actionMutex = false;  
-        lockUI(false);
-    }  
-};
+    document.querySelectorAll(".nav-item").forEach(nav => { 
+        if (nav.dataset.tab === tabId) nav.classList.add("active"); 
+        else nav.classList.remove("active");
+    });
 
-document.getElementById("startCamBtn").onclick = async () => { 
-    document.getElementById("cameraPreview").innerHTML = ""; 
-    await stopScanner(); 
-    if (scannerInstance) { 
-        try { await scannerInstance.clear(); } catch(e) {} 
-        scannerInstance = null; 
-    } 
-    await startScanner(); 
-};  
+    // Mobile Sidebar Close
+    const side = document.getElementById("mobileSidebar");
+    if (side) side.classList.remove("open");
+    const over = document.getElementById("overlay");
+    if (over) over.style.display = "none";
+}  
 
-document.getElementById("stopCamBtn").onclick = async () => { 
-    await stopScanner(); 
-    toast("Kamera berhenti", "info"); 
-};  
-
-document.getElementById("uploadQrFile").onchange = async (e) => {  
-    if (actionMutex) return;  
-    actionMutex = true;  
-    lockUI(true);
-    try {  
-        let file = e.target.files[0];  
-        if (!file) return;  
-        let url = URL.createObjectURL(file);  
-        let img = new Image();  
-        img.src = url;  
-        await img.decode();  
-        let canvas = document.createElement("canvas");  
-        canvas.width = img.width; canvas.height = img.height;  
-        canvas.getContext("2d").drawImage(img, 0, 0);  
-        let scanner = new Html5Qrcode("temp-reader");  
-        let decoded = await scanner.scanImage(canvas);  
-        await processScan(decoded);  
-        await scanner.clear();  
-    } catch (err) { 
-        toast("QR tidak terbaca", "error"); 
-    } finally {  
-        actionMutex = false;  
-        lockUI(false);
-    }  
-};  
-
-document.getElementById("manualProcess").onclick = async () => {  
-    if (actionMutex) return;  
-    actionMutex = true;  
-    lockUI(true);
-    try {  
-        let reg = document.getElementById("manualReg").value.trim();  
-        const mode = document.getElementById("scanMode").value;  
-        if (!reg || !visitors[reg]) { toast("REG tidak ditemukan!", "error"); return; }  
-        
-        let visitor = visitors[reg];
-        if (mode === "CHECK_IN") {
-            let result = await apiCall({ action: "checkin", reg, site_id: SITE_ID });
-            if (result.status === "success") {
-                if (!visitor.sessions) visitor.sessions = [];
-                visitor.sessions.push({ checkIn: Date.now(), checkOut: null });
-                visitor.currentStatus = "IN";
-                addLocalLog(reg, "CHECK_IN");
-                toast("Check-in success", "success");
-            } else {
-                addToQueue("checkin", reg);
-                toast("Masuk queue", "warning");
-            }
-        } else {
-            let openSession = visitor.sessions?.find(s => !s.checkOut);
-            if (!openSession) { toast("Tidak ada sesi aktif", "warning"); return; }
-            let result = await apiCall({ action: "checkout", reg, site_id: SITE_ID });
-            if (result.status === "success") {
-                openSession.checkOut = Date.now();
-                visitor.currentStatus = "OUT";
-                addLocalLog(reg, "CHECK_OUT");
-                toast("Check-out success", "success");
-            } else {
-                addToQueue("checkout", reg);
-                toast("Masuk queue", "warning");
-            }
-        }
-        secureSave(); renderDashboard(); renderLogTable(); await pullFromSheet();  
-    } catch (e) { toast("Kesalahan sistem", "error"); } finally {  
-        actionMutex = false; lockUI(false);
-    }  
-};  
-
-document.getElementById("refreshLogsBtn").onclick = () => { pullFromSheet(); renderLogTable(); };  
-document.getElementById("deleteSelectedBtn").onclick = () => {  
-    let regs = [...new Set([...document.querySelectorAll(".logCheckItem:checked")].map(c => c.dataset.reg))];  
-    regs.forEach(r => delete visitors[r]);  
-    secureSave(); renderDashboard(); renderLogTable(); toast("Data terhapus", "success");  
-};  
-document.getElementById("deleteAllBtn").onclick = () => { if(confirm("Hapus semua?")) { visitors = {}; secureSave(); renderDashboard(); renderLogTable(); } };  
-document.getElementById("exportExcelAction").onclick = () => exportToExcel();
-document.getElementById("siteSelector").onchange = (e) => setSite(e.target.value);  
-document.getElementById("siteSelectorTop").onchange = (e) => setSite(e.target.value);
-document.getElementById("mobileMenuBtn").onclick = () => { document.getElementById("mobileSidebar").classList.add("open"); document.getElementById("overlay").style.display = "block"; };  
-document.getElementById("overlay").onclick = () => { document.getElementById("mobileSidebar").classList.remove("open"); document.getElementById("overlay").style.display = "none"; };
-
-
-// ================= CORE INITIALIZATION (STARTUP UPGRADE) =================
-if (window._vmsIntervals) { window._vmsIntervals.forEach(clearInterval); }  
-window._vmsIntervals = [];  
-
-async function initVmsSystem() {
-    // 1. POINT PENTING: Jalankan Sync Multi-Device saat aplikasi pertama dibuka
-    if (navigator.onLine) {
-        console.log("🚀 Startup Sync: Menarik data terbaru dari server...");
-        await syncMultiDevice(); 
-    }
-
-    // 2. Muat data dari penyimpanan internal HP (Oppo A92)
-    secureLoad();
-    vmsSite_load();   
-    setSite(SITE_ID);
-    
-    // 3. Render Dashboard & Tabel agar data langsung muncul di layar
-    renderDashboard();  
-    renderLogTable();  
-
-    // 4. Cek Antrean (Queue) jika ada data yang belum terkirim
-    try { 
-        const saved = localStorage.getItem("vms_sync_queue"); 
-        if (saved) syncQueue = JSON.parse(saved); 
-        updateQueueStatus(); 
-    } catch (e) { 
-        console.error("initQueue error:", e); 
-    }
-
-    // 5. Atur Jadwal Sinkronisasi Otomatis (Background)
-    let syncInterval = setInterval(() => { 
-        if (navigator.onLine) pullFromSheet(); 
-    }, SYNC_INTERVAL_MS);  
-
-    let queueInterval = setInterval(() => { 
-        if (navigator.onLine && syncQueue.length > 0) processQueue(); 
-    }, 5000);  
-
-    window._vmsIntervals.push(syncInterval, queueInterval);
-}
-
-// Jalankan Inisialisasi Sistem
-initVmsSystem();
-
-// Event Listener Cleanup saat halaman ditutup
-window.addEventListener("beforeunload", () => { 
-    if (scannerInstance) { 
-        try { scannerInstance.stop(); scannerInstance.clear(); } catch (e) {} 
-    } 
-    if (cameraResetInterval) clearInterval(cameraResetInterval); 
-    window._vmsIntervals.forEach(clearInterval); 
-    secureSave(); 
+document.querySelectorAll("[data-tab]").forEach(el => {
+    el.onclick = () => switchTab(el.dataset.tab);
 });
 
+document.getElementById("mobileMenuBtn").onclick = () => { 
+    document.getElementById("mobileSidebar").classList.add("open"); 
+    document.getElementById("overlay").style.display = "block"; 
+};
 
-// ================= SITE MANAGEMENT FUNCTIONS =================
-function vmsSite_load() { 
-    try { 
-        let stored = localStorage.getItem("vms_site_names"); 
-        if (stored) Object.assign(vmsSiteData.names, JSON.parse(stored)); 
-    } catch(e) { 
-        console.error("vmsSite_load error:", e); 
-    } 
-    vmsSite_applyToUI(); 
-}  
-
-function vmsSite_applyToUI() {
-    if (!window.vmsSiteData || !vmsSiteData.names) return;
-    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { 
-        if (!sel) return; 
-        Array.from(sel.options).forEach(opt => { 
-            let val = opt.value; 
-            let siteNames = vmsSiteData.names;
-            if (siteNames[val]) { 
-                let icon = opt.textContent.substring(0, 2); 
-                let hasIcon = icon === "🏭" || icon === "🏢" || icon === "🏬"; 
-                opt.textContent = (hasIcon ? icon + " " : "") + siteNames[val]; 
-            } 
-        }); 
-    });  
-}  
-
-function vmsSite_save() { 
-    localStorage.setItem("vms_site_names", JSON.stringify(vmsSiteData.names)); 
-    return true; 
-}  
-
-function vmsSite_open() { 
-    let modal = document.getElementById("vmsSiteModal"); 
-    if (modal) { 
-        modal.style.display = "flex"; 
-        let vmsA = document.getElementById("vmsA"); 
-        if (vmsA) vmsA.value = vmsSiteData.names.SITE_A || "SITE A"; 
-        let vmsB = document.getElementById("vmsB"); 
-        if (vmsB) vmsB.value = vmsSiteData.names.SITE_B || "SITE B"; 
-        let vmsC = document.getElementById("vmsC"); 
-        if (vmsC) vmsC.value = vmsSiteData.names.SITE_C || "SITE C"; 
-    } 
-}  
-
-function vmsSite_close() { 
-    let modal = document.getElementById("vmsSiteModal"); 
-    if (modal) modal.style.display = "none"; 
-}  
-
-async function vmsSite_submit() {  
-    let vmsA = document.getElementById("vmsA").value.trim();
-    // Kita ambil site yang aktif saja untuk diupdate ke Sheets
-    let activeName = (SITE_ID === "SITE_A") ? vmsA : document.getElementById("vmsB").value.trim();
-
+// ================= RENDER LOG TABLE (FIX COLUMN ERROR) =================
+function renderLogTable() {
     try {
-        const res = await fetch(APPS_SCRIPT_URL, {
-            method: "POST",
-            body: new URLSearchParams({ action: "rename", newName: activeName })
-        });
-        const result = await res.json();
-        if(result.status === "success") {
-            toast("✅ Nama Site di Cloud Terupdate!", "success");
-        }
-    } catch(e) {
-        console.error("Gagal update cloud site name");
-    }
+        const tbody = document.getElementById("logTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+        const displayLogs = [...logs].reverse();
 
-    // Update lokal tetap jalan
-    vmsSiteData.names.SITE_A = vmsA;  
-    vmsSite_save();  
-    vmsSite_applyToUI();  
-    vmsSite_close();  
+        displayLogs.forEach((entry) => {
+            const row = tbody.insertRow();
+            // Total 8 Kolom (Index 0-7) - Pastikan HTML lo punya 8 kolom
+            row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${entry.reg}">`;
+            row.insertCell(1).innerText = new Date(entry.timestamp).toLocaleString("id-ID");
+            row.insertCell(2).innerText = entry.reg;
+            const visitor = visitors[entry.reg] || {};
+            row.insertCell(3).innerText = visitor.nama || "Unknown";
+            row.insertCell(4).innerText = visitor.perusahaan || "-";
+            let badge = entry.action.includes("IN") ? "bg-success" : (entry.action.includes("OUT") ? "bg-danger" : "bg-primary");
+            row.insertCell(5).innerHTML = `<span class="badge ${badge}">${entry.action}</span>`;
+            row.insertCell(6).innerText = visitor.pic || "-";
+            row.insertCell(7).innerText = visitor.site_id || SITE_ID;
+        });
+    } catch (e) { console.error("renderLogTable error:", e); }
 }
+
+// Tambahan tombol pendukung
+document.getElementById("refreshLogsBtn").onclick = () => { pullFromSheet(); renderLogTable(); };
+document.getElementById("overlay").onclick = () => {
+    document.getElementById("mobileSidebar").classList.remove("open");
+    document.getElementById("overlay").style.display = "none";
+};
 
 
 </script>
