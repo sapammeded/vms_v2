@@ -79,7 +79,7 @@
 <div class="mobile-header"><button class="menu-toggle" id="mobileMenuBtn">☰</button><strong id="brandMobile" data-site="SITE_A">VMS ELITE</strong><div style="width: 28px;"></div></div>
 <div class="overlay" id="overlay"></div>
 <div class="mobile-sidebar" id="mobileSidebar"><div class="logo-area"><h1 id="brandSidebar" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item mobile-nav" data-tab="dashboard">📊 Dashboard</div><div class="nav-item mobile-nav" data-tab="register">📝 Register</div><div class="nav-item mobile-nav" data-tab="scanner">📷 Scanner</div><div class="nav-item mobile-nav" data-tab="logs">📜 Logs</div></div>
-<div class="app-layout"><div class="sidebar"><div class="logo-area"><h1 id="brandSidebarMain" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item active" data-tab="dashboard">📊 Dashboard</div><div class="nav-item" data-tab="register">📝 Register Visitor</div><div class="nav-item" data-tab="scanner">📷 Security Scan</div><div class="nav-item" data-tab="logs">📜 Audit Logs</div><div style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);"><div style="background:transparent; border:none; color:white; padding:0;"><label style="color:white;">🌍 Site</label><select id="siteSelector" style="background:#2b5a55; color:white;"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button id="vmsSiteEditBtn" onclick="vmsSite_open()" style="background:#2b5a55; margin-left:8px; padding:6px 12px;">⚙️ Rename</button></div></div></div><div class="main-content"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;"><div style="background:white; border-radius:28px; padding:8px 20px; display:flex; align-items:center; gap:16px;"><label>🌐 Active Site</label><select id="siteSelectorTop"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button onclick="vmsSite_open()" style="background:#0f2c2c; padding:6px 12px;">⚙️ Rename</button></div></div><div style="background:white; border-radius:20px; padding:16px; margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;"><input type="text" id="licenseInput" placeholder="License key..." style="flex:1;"><button id="submitLicenseBtn">Aktivasi</button><div id="licenseStatusBadge" class="license-badge">ELITE</div></div><div id="dashboardPane" class="tab-pane active-pane"><div class="stats-row" id="statsWidget"></div><div class="form-card"><canvas id="trendChart" height="90"></canvas></div><div class="form-card"><canvas id="categoryChart" height="90"></canvas></div></div><div id="registerPane" class="tab-pane"><div class="form-card"><div class="grid-2"><div class="input-field"><label>Full name</label><input type="text" id="regName" placeholder="John Carter"></div><div class="input-field"><label>Company</label><input type="text" id="regCompany" placeholder="PT Nusantara"></div><div class="input-field"><label>Category</label><select id="regCategory"><option value="UMUM">UMUM</option><option value="VIP">VIP</option><option value="VVIP">VVIP</option></select></div><div class="input-field"><label>Purpose</label><select id="regPurpose"><option>Meeting</option><option>Interview</option><option>Service</option><option>Lainnya</option></select><input type="text" id="regCustomPurpose" placeholder="Other purpose" style="margin-top:8px;"></div><div class="input-field"><label>PIC</label><input type="text" id="regPic" placeholder="Budi Santoso"></div><div class="input-field"><label>Department</label><input type="text" id="regDept" placeholder="IT / HR"></div><div class="input-field"><label>Start date</label><input type="date" id="regStartDate"></div><div class="input-field"><label>Expired date</label><input type="date" id="regExpDate"></div><div class="input-field"><label>Photo</label><input type="file" id="regPhotoFile" accept="image/*"><img id="previewPhotoThumb" width="50" style="margin-top:8px; border-radius:12px;"></div></div><div style="display:flex; gap:16px; margin-top:24px;"><button id="walkinBtn">⚡ Walk-in</button><button id="generateQRBtn">🔐 Generate QR</button></div></div></div><div id="scannerPane" class="tab-pane"><div class="form-card"><div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;"><select id="scanMode"><option value="CHECK_IN">CHECK-IN</option><option value="CHECK_OUT">CHECK-OUT</option></select><button id="startCamBtn">📷 Start Camera</button><button id="stopCamBtn" class="btn-outline">Stop</button><button id="uploadQrBtn">🖼️ Upload QR</button><input type="file" id="uploadQrFile" accept="image/*" style="display:none"></div><div id="cameraPreview"></div><div style="margin-top:24px;"><label>Manual REG Number</label><input type="text" id="manualReg" placeholder="REG2026xxxx"><button id="manualProcess" style="margin-top:8px;">Proses</button></div></div></div><div id="logsPane" class="tab-pane"><div class="form-card"><div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;"><input type="text" id="searchLog" placeholder="Cari Nama / REG" style="width:200px;"><button id="refreshLogsBtn">Refresh</button><button id="selectAllBtn">Select all</button><button id="deselectAllBtn">Deselect</button><button id="deleteSelectedBtn" style="background:#b91c1c;">Hapus terpilih</button><button id="deleteAllBtn" style="background:#b91c1c;">Hapus semua</button><button id="exportExcelAction">Export Excel</button><button id="backupAction">Backup</button><button id="resetDatabaseAction" style="background:#92400e;">Reset DB</button></div><div class="table-wrap"><<table id="logTable">
+<div class="app-layout"><div class="sidebar"><div class="logo-area"><h1 id="brandSidebarMain" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item active" data-tab="dashboard">📊 Dashboard</div><div class="nav-item" data-tab="register">📝 Register Visitor</div><div class="nav-item" data-tab="scanner">📷 Security Scan</div><div class="nav-item" data-tab="logs">📜 Audit Logs</div><div style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);"><div style="background:transparent; border:none; color:white; padding:0;"><label style="color:white;">🌍 Site</label><select id="siteSelector" style="background:#2b5a55; color:white;"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button id="vmsSiteEditBtn" onclick="vmsSite_open()" style="background:#2b5a55; margin-left:8px; padding:6px 12px;">⚙️ Rename</button></div></div></div><div class="main-content"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;"><div style="background:white; border-radius:28px; padding:8px 20px; display:flex; align-items:center; gap:16px;"><label>🌐 Active Site</label><select id="siteSelectorTop"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button onclick="vmsSite_open()" style="background:#0f2c2c; padding:6px 12px;">⚙️ Rename</button></div></div><div style="background:white; border-radius:20px; padding:16px; margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;"><input type="text" id="licenseInput" placeholder="License key..." style="flex:1;"><button id="submitLicenseBtn">Aktivasi</button><div id="licenseStatusBadge" class="license-badge">ELITE</div></div><div id="dashboardPane" class="tab-pane active-pane"><div class="stats-row" id="statsWidget"></div><div class="form-card"><canvas id="trendChart" height="90"></canvas></div><div class="form-card"><canvas id="categoryChart" height="90"></canvas></div></div><div id="registerPane" class="tab-pane"><div class="form-card"><div class="grid-2"><div class="input-field"><label>Full name</label><input type="text" id="regName" placeholder="John Carter"></div><div class="input-field"><label>Company</label><input type="text" id="regCompany" placeholder="PT Nusantara"></div><div class="input-field"><label>Category</label><select id="regCategory"><option value="UMUM">UMUM</option><option value="VIP">VIP</option><option value="VVIP">VVIP</option></select></div><div class="input-field"><label>Purpose</label><select id="regPurpose"><option>Meeting</option><option>Interview</option><option>Service</option><option>Lainnya</option></select><input type="text" id="regCustomPurpose" placeholder="Other purpose" style="margin-top:8px;"></div><div class="input-field"><label>PIC</label><input type="text" id="regPic" placeholder="Budi Santoso"></div><div class="input-field"><label>Department</label><input type="text" id="regDept" placeholder="IT / HR"></div><div class="input-field"><label>Start date</label><input type="date" id="regStartDate"></div><div class="input-field"><label>Expired date</label><input type="date" id="regExpDate"></div><div class="input-field"><label>Photo</label><input type="file" id="regPhotoFile" accept="image/*"><img id="previewPhotoThumb" width="50" style="margin-top:8px; border-radius:12px;"></div></div><div style="display:flex; gap:16px; margin-top:24px;"><button id="walkinBtn">⚡ Walk-in</button><button id="generateQRBtn">🔐 Generate QR</button></div></div></div><div id="scannerPane" class="tab-pane"><div class="form-card"><div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;"><select id="scanMode"><option value="CHECK_IN">CHECK-IN</option><option value="CHECK_OUT">CHECK-OUT</option></select><button id="startCamBtn">📷 Start Camera</button><button id="stopCamBtn" class="btn-outline">Stop</button><button id="uploadQrBtn">🖼️ Upload QR</button><input type="file" id="uploadQrFile" accept="image/*" style="display:none"></div><div id="cameraPreview"></div><div style="margin-top:24px;"><label>Manual REG Number</label><input type="text" id="manualReg" placeholder="REG2026xxxx"><button id="manualProcess" style="margin-top:8px;">Proses</button></div></div></div><div id="logsPane" class="tab-pane"><div class="form-card"><div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;"><input type="text" id="searchLog" placeholder="Cari Nama / REG" style="width:200px;"><button id="refreshLogsBtn">Refresh</button><button id="selectAllBtn">Select all</button><button id="deselectAllBtn">Deselect</button><button id="deleteSelectedBtn" style="background:#b91c1c;">Hapus terpilih</button><button id="deleteAllBtn" style="background:#b91c1c;">Hapus semua</button><button id="exportExcelAction">Export Excel</button><button id="backupAction">Backup</button><button id="resetDatabaseAction" style="background:#92400e;">Reset DB</button></div><div class="table-wrap"><table id="logTable">
 <thead>
 <tr>
 <th><input type="checkbox" id="checkAllMaster"></th>
@@ -333,12 +333,23 @@ setInterval(() => {
 }, 300000);
 
 
-// ================= API CALL (FIX FINAL - NO QUEUE BUG) =================
+// ================= API CALL (FIX  MEMORY OPTIMIZED) =================
 async function apiCall(params) {
     try {
+        // --- POINT 3: OPTIMALISASI MEMORI ---
+        // Kita buat salinan data agar data lokal Bapak tetap ada fotonya,
+        // tapi yang dikirim ke Sheets hanya teks saja (foto diringkas).
+        const cleanParams = { ...params };
+        
+        if (cleanParams.photo && cleanParams.photo.length > 1000) {
+            // Kita tidak kirim Base64 mentah ke Sheets karena bikin lemot & memori penuh
+            // Kita ganti dengan tanda saja, fotonya tetap aman di HP Bapak (Local Storage)
+            cleanParams.photo = "LOG_LOCAL_ONLY"; 
+        }
+
         const res = await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            body: new URLSearchParams(params)
+            body: new URLSearchParams(cleanParams) // Gunakan parameter yang sudah dibersihkan
         });
 
         const text = await res.text();
@@ -353,55 +364,69 @@ async function apiCall(params) {
         }
 
         console.log("🔥 PARSED API:", data);
-
         return data;
+
     } catch (e) {
         console.error("❌ FETCH ERROR:", e);
+        // Tetap return status agar tidak crash di browser Oppo Bapak
         return { status: "error_network" };
     }
 }
 
-// ================= VISITOR ACTION =================
+
+// ================= VISITOR ACTION (FIXED FOR POINT 1) =================
 async function registerVisitor(reg, data) {  
     return await apiCall({ 
         action: "register", 
-        reg, 
-        name: data.nama, 
-        company: data.perusahaan, 
-        purpose: data.tujuan, 
+        reg: reg, 
+        nama: data.nama,             // Diubah dari 'name' ke 'nama'
+        perusahaan: data.perusahaan, 
+        tujuan: data.tujuan,         // Diubah dari 'purpose' ke 'tujuan'
         pic: data.pic, 
         dept: data.dept, 
-        start: data.startDate, 
-        exp: data.expDate, 
-        category: data.kategori, 
+        startDate: data.startDate,   // Diubah dari 'start' ke 'startDate'
+        expDate: data.expDate,       // Diubah dari 'exp' ke 'expDate'
+        kategori: data.kategori, 
         site_id: SITE_ID, 
         site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), 
-        photo: data.foto || "" 
+        photo: "" // KUNCI: Kosongkan foto saat kirim ke server agar tidak overload/undefined
     });  
 }  
 
 async function walkinVisitor(reg, data) {  
     return await apiCall({ 
         action: "walkin", 
-        reg, 
-        name: data.nama, 
-        company: data.perusahaan, 
-        purpose: data.tujuan, 
+        reg: reg, 
+        nama: data.nama,             // Diubah dari 'name' ke 'nama'
+        perusahaan: data.perusahaan, 
+        tujuan: data.tujuan,         // Diubah dari 'purpose' ke 'tujuan'
         pic: data.pic, 
         dept: data.dept, 
-        start: data.startDate, 
-        exp: data.expDate, 
-        category: data.kategori, 
+        startDate: data.startDate,   // Diubah dari 'start' ke 'startDate'
+        expDate: data.expDate,       // Diubah dari 'exp' ke 'expDate'
+        kategori: data.kategori, 
         site_id: SITE_ID, 
         site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), 
-        photo: data.foto || "" 
+        photo: "" // Sama, kosongkan foto untuk server
     });  
 }  
 
-async function checkinVisitor(reg) { return await apiCall({ action: "checkin", reg, site_id: SITE_ID }); }  
-async function checkoutVisitor(reg) { return await apiCall({ action: "checkout", reg, site_id: SITE_ID }); }  
-async function generateQRCode(reg) { return await apiCall({ action: "generateqr", reg }); }  
-async function validateQRCode(qrData) { return await apiCall({ action: "validateqr", qrData }); }  
+async function checkinVisitor(reg) { 
+    return await apiCall({ action: "checkin", reg: reg, site_id: SITE_ID }); 
+}  
+
+async function checkoutVisitor(reg) { 
+    return await apiCall({ action: "checkout", reg: reg, site_id: SITE_ID }); 
+}  
+
+async function generateQRCode(reg) { 
+    return await apiCall({ action: "generateqr", reg: reg }); 
+}  
+
+async function validateQRCode(qrData) { 
+    return await apiCall({ action: "validateqr", qrData: qrData }); 
+}
+
 
 // ================= SINKRONISASI DATA (FUNGSI 1) =================
 function syncVisitorStatus(sheetData) {  
@@ -573,51 +598,93 @@ function renderDashboard() {
     } catch (e) { console.error("renderDashboard error:", e); }  
 }  
 
+// ================= RENDER LOG TABLE (FIX POINT 4 - FULL VERSION) =================
 function renderLogTable() {  
     try {  
         let search = document.getElementById("searchLog")?.value.toLowerCase() || "";  
-        // Filter logs berdasarkan input pencarian dan SITE_ID
-        let filtered = logs.filter(l => (l.name?.toLowerCase().includes(search) || l.reg?.toLowerCase().includes(search)) && (!l.site || l.site === SITE_ID));  
-        
         let tbody = document.getElementById("logTableBody");  
         if (!tbody) return;  
+
+        // Ambil data logs dan pastikan itu array
+        let allLogs = Array.isArray(vmsData.logs) ? vmsData.logs : [];
+
+        // POINT 4: FILTER DATA SAMPAH & SESUAIKAN DENGAN POINT 1
+        let filtered = allLogs.filter(l => {
+            // 1. Buang data yang namanya undefined atau kosong
+            if (!l.nama || l.nama === "undefined" || l.nama.trim() === "") return false;
+            
+            // 2. Filter berdasarkan pencarian (Nama atau No. Registrasi)
+            let matchSearch = l.nama.toLowerCase().includes(search) || l.reg?.toLowerCase().includes(search);
+            
+            // 3. Filter berdasarkan SITE_ID (agar data antar site tidak campur aduk)
+            let matchSite = (!l.site_id || l.site_id === SITE_ID);
+            
+            return matchSearch && matchSite;
+        });
+
+        // Urutkan: Data terbaru di paling atas
+        filtered.sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0));
         
         tbody.innerHTML = ""; // Bersihkan tabel sebelum render ulang
         
-        filtered.slice(0, 200).forEach(l => {  
+        filtered.slice(0, 100).forEach((l, index) => {  
             let row = tbody.insertRow();  
+            
+            // Checkbox untuk aksi massal
             row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${l.reg}">`;  
+            
+            // ID Registrasi
             row.insertCell(1).innerText = l.reg;
 
-            // Foto Visitor (Ambil dari data visitor jika ada)
+            // Foto Visitor (Point 3: Ambil dari data lokal vmsData.visitors)
             let photoCell = row.insertCell(2);
-            let vData = visitors[l.reg];
-            photoCell.innerHTML = (vData && vData.foto) 
-                ? `<img src="${vData.foto}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #1f4e4a;">`
-                : `<div style="width:40px; height:40px; border-radius:8px; background:#ddd;"></div>`;
+            let photoUrl = (vmsData.visitors && vmsData.visitors[l.reg]) ? vmsData.visitors[l.reg].foto : "";
+            photoCell.innerHTML = photoUrl 
+                ? `<img src="${photoUrl}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;">`
+                : `<div style="width:40px; height:40px; border-radius:8px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">NO IMG</div>`;
 
-            row.insertCell(3).innerText = l.name || "Unknown";
-            row.insertCell(4).innerText = l.company || "-";
-            row.insertCell(5).innerHTML = `<span class="badge badge-${l.category}">${l.category}</span>`;
+            // Data Teks (Sudah disesuaikan ke Point 1)
+            row.insertCell(3).innerText = l.nama || "-";
+            row.insertCell(4).innerText = l.perusahaan || "-";
+            row.insertCell(5).innerHTML = `<span class="badge badge-${l.kategori || 'umum'}">${l.kategori || 'Visitor'}</span>`;
 
-            // Status IN/OUT dengan warna
-            let statusColor = l.currentStatus === "IN" ? "#16a34a" : "#dc2626";
-            row.insertCell(6).innerHTML = `<span style="background:${statusColor}; color:white; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:bold;">${l.currentStatus || "OUT"}</span>`;
+            // Status IN/OUT dengan warna tajam
+            let statusText = "DAFTAR";
+            let statusColor = "#6b7280"; // Abu-abu (Baru Daftar)
+            
+            if (l.checkin && !l.checkout) {
+                statusText = "DI DALAM";
+                statusColor = "#16a34a"; // Hijau
+            } else if (l.checkout) {
+                statusText = "SELESAI";
+                statusColor = "#dc2626"; // Merah
+            }
+            
+            row.insertCell(6).innerHTML = `<span style="background:${statusColor}; color:white; padding:4px 10px; border-radius:999px; font-size:10px; font-weight:bold;">${statusText}</span>`;
 
-            row.insertCell(7).innerText = l.action;
-            row.insertCell(8).innerText = new Date(l.time).toLocaleString('id-ID');
-            row.insertCell(9).innerText = l.site_name || l.site || "SITE_A";
-                        
+            // Waktu
+            row.insertCell(7).innerText = l.startDate ? new Date(l.startDate).toLocaleDateString('id-ID') : "-";
+            
+            // Tombol Aksi
+            let actionCell = row.insertCell(8);
+            actionCell.style.textAlign = "right";
+            
             let btn = document.createElement("button");  
-            btn.innerText = "PDF";  
+            btn.innerHTML = "🖨️ PDF";  
             btn.className = "btn-outline";  
             btn.style.padding = "4px 8px";  
-            if (vData) btn.onclick = () => showPreview(l.reg, vData);  
-            row.insertCell(10).appendChild(btn); 
+            btn.onclick = () => showPreview(l.reg); // Fungsi cetak Bapak
+            actionCell.appendChild(btn); 
         }); 
-    } catch (e) { console.error("renderLogTable error:", e); }  
-}
 
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#999;">📭 Tidak ada data tamu yang cocok</td></tr>`;
+        }
+
+    } catch (e) { 
+        console.error("renderLogTable error:", e); 
+    }  
+}
 
 // ================= QR SCAN PROCESS (FIXED) =================
 async function processScan(qrText) {  
@@ -1322,32 +1389,111 @@ document.querySelectorAll(".nav-item, .mobile-nav").forEach(el => { if (el.datas
 document.getElementById("mobileMenuBtn").onclick = () => { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.add("open"); if (overlay) overlay.style.display = "block"; };  
 document.getElementById("overlay").onclick = () => { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.remove("open"); if (overlay) overlay.style.display = "none"; };  
 
+// ================= CORE INITIALIZATION & AUTO-SYNC (POINT 2) =================
 if (window._vmsIntervals) { window._vmsIntervals.forEach(clearInterval); }  
 window._vmsIntervals = [];  
-secureLoad();
-vmsSite_load();   
-setSite(SITE_ID);
-renderDashboard();  
-renderLogTable();  
-function initQueue() { try { const saved = localStorage.getItem("vms_sync_queue"); if (saved) syncQueue = JSON.parse(saved); updateQueueStatus(); } catch (e) { console.error("initQueue error:", e); } }  
-initQueue();  
-pullFromSheet();  
-let syncInterval = setInterval(() => { if (navigator.onLine) pullFromSheet(); }, SYNC_INTERVAL_MS);  
-let queueInterval = setInterval(() => { if (navigator.onLine && syncQueue.length > 0) processQueue(); }, 5000);  
-window._vmsIntervals.push(syncInterval, queueInterval);  
-window.addEventListener("beforeunload", () => { if (scannerInstance) { try { scannerInstance.stop(); scannerInstance.clear(); } catch (e) { console.error("beforeunload scanner error:", e); } } if (cameraResetInterval) clearInterval(cameraResetInterval); window._vmsIntervals.forEach(clearInterval); secureSave(); });  
 
-function vmsSite_load() { try { let stored = localStorage.getItem("vms_site_names"); if (stored) Object.assign(vmsSiteData.names, JSON.parse(stored)); } catch(e) { console.error("vmsSite_load error:", e); } vmsSite_applyToUI(); }  
-function vmsSite_applyToUI() {
-    if (!window.vmsSiteData || !vmsSiteData.names) {
-        console.warn("vmsSiteData belum siap (skip render)");
-        return;
+async function initVmsSystem() {
+    // 1. Load Data Lokal agar aplikasi tidak kosong saat dibuka
+    secureLoad();
+    vmsSite_load();   
+    setSite(SITE_ID);
+    renderDashboard();  
+    renderLogTable();  
+
+    // 2. Inisialisasi Antrean (Queue)
+    try { 
+        const saved = localStorage.getItem("vms_sync_queue"); 
+        if (saved) syncQueue = JSON.parse(saved); 
+        updateQueueStatus(); 
+    } catch (e) { 
+        console.error("initQueue error:", e); 
     }
-    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { if (!sel) return; Array.from(sel.options).forEach(opt => { let val = opt.value; let siteNames = {}; try { siteNames = JSON.parse(localStorage.getItem("vms_site_names") || "{}"); } catch(e) { console.error("parse error:", e); } if (siteNames[val]) { let icon = opt.textContent.substring(0, 2); let hasIcon = icon === "🏭" || icon === "🏢" || icon === "🏬"; opt.textContent = (hasIcon ? icon + " " : "") + siteNames[val]; } }); });  
+
+    // 3. POINT 2: SINKRONISASI INSTAN SAAT START-UP
+    // Begitu aplikasi terbuka, langsung tarik data terbaru dari Google Sheets
+    if (navigator.onLine) {
+        console.log("🔄 Melakukan sinkronisasi awal...");
+        await pullFromSheet(); 
+        renderDashboard(); // Update dashboard setelah tarik data
+        renderLogTable();  // Update tabel setelah tarik data
+    }
+
+    // 4. Setel Interval Sinkronisasi Berkala (Latar Belakang)
+    let syncInterval = setInterval(() => { 
+        if (navigator.onLine) pullFromSheet(); 
+    }, SYNC_INTERVAL_MS);  
+
+    let queueInterval = setInterval(() => { 
+        if (navigator.onLine && syncQueue.length > 0) processQueue(); 
+    }, 5000);  
+
+    window._vmsIntervals.push(syncInterval, queueInterval);
+}
+
+// Jalankan Inisialisasi
+initVmsSystem();
+
+// Event Listener saat halaman ditutup/pindah
+window.addEventListener("beforeunload", () => { 
+    if (scannerInstance) { 
+        try { scannerInstance.stop(); scannerInstance.clear(); } catch (e) {} 
+    } 
+    if (cameraResetInterval) clearInterval(cameraResetInterval); 
+    window._vmsIntervals.forEach(clearInterval); 
+    secureSave(); 
+});
+
+// ================= SITE MANAGEMENT FUNCTIONS =================
+function vmsSite_load() { 
+    try { 
+        let stored = localStorage.getItem("vms_site_names"); 
+        if (stored) Object.assign(vmsSiteData.names, JSON.parse(stored)); 
+    } catch(e) { 
+        console.error("vmsSite_load error:", e); 
+    } 
+    vmsSite_applyToUI(); 
 }  
-function vmsSite_save() { localStorage.setItem("vms_site_names", JSON.stringify(vmsSiteData.names)); return true; }  
-function vmsSite_open() { let modal = document.getElementById("vmsSiteModal"); if (modal) { modal.style.display = "flex"; let vmsA = document.getElementById("vmsA"); if (vmsA) vmsA.value = vmsSiteData.names.SITE_A || "SITE A"; let vmsB = document.getElementById("vmsB"); if (vmsB) vmsB.value = vmsSiteData.names.SITE_B || "SITE B"; let vmsC = document.getElementById("vmsC"); if (vmsC) vmsC.value = vmsSiteData.names.SITE_C || "SITE C"; } }  
-function vmsSite_close() { let modal = document.getElementById("vmsSiteModal"); if (modal) modal.style.display = "none"; }  
+
+function vmsSite_applyToUI() {
+    if (!window.vmsSiteData || !vmsSiteData.names) return;
+    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { 
+        if (!sel) return; 
+        Array.from(sel.options).forEach(opt => { 
+            let val = opt.value; 
+            let siteNames = vmsSiteData.names;
+            if (siteNames[val]) { 
+                let icon = opt.textContent.substring(0, 2); 
+                let hasIcon = icon === "🏭" || icon === "🏢" || icon === "🏬"; 
+                opt.textContent = (hasIcon ? icon + " " : "") + siteNames[val]; 
+            } 
+        }); 
+    });  
+}  
+
+function vmsSite_save() { 
+    localStorage.setItem("vms_site_names", JSON.stringify(vmsSiteData.names)); 
+    return true; 
+}  
+
+function vmsSite_open() { 
+    let modal = document.getElementById("vmsSiteModal"); 
+    if (modal) { 
+        modal.style.display = "flex"; 
+        let vmsA = document.getElementById("vmsA"); 
+        if (vmsA) vmsA.value = vmsSiteData.names.SITE_A || "SITE A"; 
+        let vmsB = document.getElementById("vmsB"); 
+        if (vmsB) vmsB.value = vmsSiteData.names.SITE_B || "SITE B"; 
+        let vmsC = document.getElementById("vmsC"); 
+        if (vmsC) vmsC.value = vmsSiteData.names.SITE_C || "SITE C"; 
+    } 
+}  
+
+function vmsSite_close() { 
+    let modal = document.getElementById("vmsSiteModal"); 
+    if (modal) modal.style.display = "none"; 
+}  
+
 function vmsSite_submit() {  
     let vmsA = document.getElementById("vmsA");  
     let vmsB = document.getElementById("vmsB");  
@@ -1357,12 +1503,14 @@ function vmsSite_submit() {
     if (vmsB) newNames.SITE_B = vmsB.value.trim() || "SITE B";  
     if (vmsC) newNames.SITE_C = vmsC.value.trim() || "SITE C";  
     vmsSiteData.names = newNames;  
-    localStorage.setItem("vms_site_names", JSON.stringify(vmsSiteData.names));  
+    vmsSite_save();  
     vmsSite_applyToUI();  
     if (typeof toast === "function") toast("✅ Site names saved!", "success");  
     vmsSite_close();  
-}  
-vmsSite_load();  
+}
+vmsSite_load(); 
+
+Begini Khan
 </script>
 </body>
 </html>
