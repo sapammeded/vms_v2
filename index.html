@@ -110,6 +110,13 @@
 <div id="vmsSiteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:10001;"><div style="background:white; border-radius:28px; padding:28px; width:420px; max-width:90%;"><h3>⚙️ Edit Site Names</h3><div style="margin-bottom:16px;"><label>🏭 SITE A</label><input type="text" id="vmsA" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏢 SITE B</label><input type="text" id="vmsB" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏬 SITE C</label><input type="text" id="vmsC" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="display:flex; gap:12px;"><button id="vmsSaveBtn" onclick="vmsSite_submit()" style="background:#1f4e4a;">💾 Save</button><button onclick="vmsSite_close()" class="btn-outline">Cancel</button></div></div></div>
 
 <script>
+// ================= GLOBAL DATA CORE (PENAWAR ERROR) =================
+// Menyiapkan wadah data utama agar tidak muncul error "vmsData is not defined"
+let vmsData = {
+    logs: [],       // Daftar riwayat tamu
+    visitors: {}    // Detail foto dan data visitor per REG
+};
+
 // ================= FAILSAFE CORE =================
 window.VMS_SAFE = true;
 
@@ -132,6 +139,7 @@ let syncLock = false;
 let globalScanLock = false;
 
 setInterval(() => scanCounter = 0, 60000);
+
 
 function lockUI(lock=true){
     document.body.style.pointerEvents = lock ? "none" : "auto";
