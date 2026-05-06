@@ -289,7 +289,23 @@ function addLocalLog(reg, action) {
     let name = v?.nama || reg;  
     let company = v?.perusahaan || "";  
     let category = v?.kategori || "UMUM";  
-    logs.unshift({ reg, name, company, category, action, time: Date.now(), site: SITE_ID, site_name: getSiteName(SITE_ID) });  
+    logs.unshift({
+    reg,
+    name,
+    company,
+    category,
+
+    // 🔥 TAMBAH FOTO
+    photo: v?.foto || "",
+
+    // 🔥 STATUS
+    currentStatus: v?.currentStatus || "OUT",
+
+    action,
+    time: Date.now(),
+    site: SITE_ID,
+    site_name: getSiteName(SITE_ID)
+});
     if (logs.length > 2000) logs = logs.slice(0, 1500);  
     secureSave();  
 }  
