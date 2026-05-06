@@ -135,66 +135,12 @@
 <div id="vmsSiteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:10001;"><div style="background:white; border-radius:28px; padding:28px; width:420px; max-width:90%;"><h3>⚙️ Edit Site Names</h3><div style="margin-bottom:16px;"><label>🏭 SITE A</label><input type="text" id="vmsA" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏢 SITE B</label><input type="text" id="vmsB" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏬 SITE C</label><input type="text" id="vmsC" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="display:flex; gap:12px;"><button id="vmsSaveBtn" onclick="vmsSite_submit()" style="background:#1f4e4a;">💾 Save</button><button onclick="vmsSite_close()" class="btn-outline">Cancel</button></div></div></div>
 
 <script>
-// ================= GLOBAL DATA CORE & AUTO-SYNC =================
+// ================= GLOBAL DATA CORE (PENAWAR ERROR) =================
+// Menyiapkan wadah data utama agar tidak muncul error "vmsData is not defined"
 let vmsData = {
-    logs: [],       
-    visitors: {}    
+    logs: [],       // Daftar riwayat tamu
+    visitors: {}    // Detail foto dan data visitor per REG
 };
-
-let centralData = []; 
-
-async function syncMultiDevice() {
-    if (!navigator.onLine) return;
-    try {
-        // Tambahkan timestamp agar browser tidak ambil data lama (Cache)
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=pull&t=${Date.now()}`, {
-            method: 'GET',
-            redirect: 'follow' 
-        });
-        
-        const result = await response.json();
-        
-        if (result.status === "success" && result.data) {
-            const headers = result.data[0];
-            const rows = result.data.slice(1);
-            
-            // Mapping data agar key-nya sesuai dengan yang dipahami renderLogTable
-            centralData = rows.map(row => {
-                let obj = {};
-                headers.forEach((h, i) => {
-                    // Paksa semua key jadi lowercase agar sinkron dengan logika visitors[reg]
-                    let key = h.toString().toLowerCase().trim();
-                    obj[key] = row[i];
-                });
-                return obj;
-            });
-            
-            // Update logs utama
-            logs = centralData.map(item => ({
-                reg: item.reg,
-                nama: item.nama,
-                perusahaan: item.perusahaan,
-                kategori: item.kategori,
-                timestamp: new Date(item.logtime).getTime(),
-                status: item.status,
-                site_id: item.site
-            }));
-            
-            renderLogTable();
-            renderDashboard();
-            console.log("✅ Data Terupdate Detik Ini!");
-        }
-    } catch (err) {
-        console.warn("⚠️ Sync Gagal:", err.message);
-    }
-}
-
-
-// Jalankan sync otomatis tiap 60 detik (bisa lo perpendek jadi 30000 kalau mau lebih cepat)
-setInterval(syncMultiDevice, 60000);
-
-
-
 
 // ================= FAILSAFE CORE =================
 window.VMS_SAFE = true;
@@ -251,7 +197,7 @@ var vmsSiteData = {
 };
 
 // ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA ⚠️
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz3kDhwwU6_in5Vc7B8jgJtr5x2Ilep8S9x93NzeDrm-TDLdY9xhdGzFo7JRtw7rtY/exec";  
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbymsNSRIXP_2QAaameNilabmnrK2yplDBoT58D6r0FhuN2z2smDJ3zfjAuaDG4g5N3J/exec";  
 const SYNC_INTERVAL_MS = 10000;  
 // ================= CORE VARIABLES & QUEUE ENGINE =================
 let visitors = {};  
@@ -286,7 +232,7 @@ function updateQueueStatus() {
         : `✅ Sync OK`;  
 }
 
-// Fungsi Antrean Agar Tidak Halu saat Offline
+// FIX POINT 1: Fungsi Antrean Agar Tidak Halu saat Offline
 function addToQueue(action, reg, data = {}) {
     if (!Array.isArray(syncQueue)) syncQueue = [];
     
@@ -448,7 +394,6 @@ async function apiCall(params) {
 }
 
 // Integrasi Action dengan Mapping Data yang Benar (Sesuai Kolom Sheets Bapak)
-// Fungsi Kirim ke API (Ganti yang lama dengan ini)
 async function registerVisitor(reg, data) {  
     return await apiCall({ 
         action: "register", 
@@ -461,8 +406,9 @@ async function registerVisitor(reg, data) {
         startDate: data.startDate,
         expDate: data.expDate,
         kategori: data.kategori, 
-        photoBase64: data.foto, // GS akan proses ini jadi link Drive
-        site_id: SITE_ID 
+        site_id: SITE_ID, 
+        site_name: (getSiteName(SITE_ID) || SITE_ID).trim(), 
+        photo: "" 
     });  
 }  
 
@@ -478,11 +424,11 @@ async function walkinVisitor(reg, data) {
         startDate: data.startDate,
         expDate: data.expDate,
         kategori: data.kategori, 
-        photoBase64: "", 
-        site_id: SITE_ID 
+        site_id: SITE_ID, 
+        site_name: (getSiteName(SITE_ID) || SITE_ID).trim(), 
+        photo: "" 
     });  
-}
-
+}  
 
 async function checkinVisitor(reg) { 
     return await apiCall({ action: "checkin", reg: reg, site_id: SITE_ID }); 
@@ -585,8 +531,34 @@ async function pullFromSheet() {
             body: new URLSearchParams({ action: "pull", site_id: SITE_ID })
         });
         const result = await res.json();
+        
         if (result.status === "success" && result.data) {
-            syncVisitorStatus(result.data); 
+            const headers = result.data[0];
+            const rows = result.data.slice(1);
+
+            rows.forEach(row => {
+                const reg = row[headers.indexOf("REG")];
+                if (!reg) return;
+
+                // Sinkronisasi: Update atau Tambah data dari Cloud ke Lokal HP
+                // Biar HP A dan HP B punya data yang sama persis
+                let existingFoto = (visitors[reg] && visitors[reg].foto) ? visitors[reg].foto : "";
+                
+                visitors[reg] = {
+                    nama: row[headers.indexOf("Nama")] || "Unknown",
+                    perusahaan: row[headers.indexOf("Perusahaan")] || "-",
+                    kategori: row[headers.indexOf("Kategori")] || "UMUM",
+                    currentStatus: row[headers.indexOf("Status")] || "OUT",
+                    expDate: row[headers.indexOf("Exp")] || "",
+                    foto: existingFoto, // Foto tetep prioritas ambil dari memori lokal HP
+                    updatedAt: Date.now()
+                };
+            });
+
+            secureSave(); 
+            renderDashboard(); 
+            renderLogTable(); 
+            console.log("🌐 Cloud Sync Success: All devices updated.");
         }
     } catch (e) {
         console.warn("Pull Sync Fail:", e.message);
@@ -686,53 +658,87 @@ function renderDashboard() {
 }  
 
 // ================= RENDER LOG TABLE (FIXED & CLEAN VERSION) =================
-function renderLogTable() {
-    try {
-        const tbody = document.getElementById("logTableBody");
-        if (!tbody) return;
-        tbody.innerHTML = "";
+function renderLogTable() {  
+    try {  
+        let search = document.getElementById("searchLog")?.value.toLowerCase() || "";  
+        let tbody = document.getElementById("logTableBody");  
+        if (!tbody) return;  
 
-        // Urutkan logs dari yang terbaru
-        const displayLogs = [...logs].reverse();
+        let allLogs = Array.isArray(logs) ? logs : [];
 
-        displayLogs.forEach((entry, index) => {
-            const row = tbody.insertRow();
+        // 1. FILTER DATA
+        let filtered = allLogs.filter(l => {
+            if (!l.nama || l.nama === "undefined" || l.nama.trim() === "") return false;
+            let matchSearch = l.nama.toLowerCase().includes(search) || (l.reg && l.reg.toLowerCase().includes(search));
+            let matchSite = (!l.site_id || l.site_id === SITE_ID);
+            return matchSearch && matchSite;
+        });
+
+        // 2. SORT (Terbaru di atas)
+        filtered.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        
+        tbody.innerHTML = ""; 
+        
+        filtered.slice(0, 100).forEach((l) => {  
+            let row = tbody.insertRow();
+            let v = visitors[l.reg] || {}; // Ambil data visitor pendukung (foto, status asli)
             
             // Kolom 0: Checkbox
-            row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${entry.reg}">`;
+            row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${l.reg}">`;  
             
-            // Kolom 1: Waktu
-            row.insertCell(1).innerText = new Date(entry.timestamp).toLocaleString("id-ID");
-            
-            // Kolom 2: REG ID
-            row.insertCell(2).innerText = entry.reg;
-            
-            // Kolom 3: Nama
-            const visitor = visitors[entry.reg] || {};
-            row.insertCell(3).innerText = visitor.nama || "Unknown";
-            
-            // Kolom 4: Perusahaan
-            row.insertCell(4).innerText = visitor.perusahaan || "-";
-            
-            // Kolom 5: Aksi (REGISTER/IN/OUT)
-            let badgeClass = entry.action === "CHECK_IN" ? "bg-success" : (entry.action === "CHECK_OUT" ? "bg-danger" : "bg-primary");
-            row.insertCell(5).innerHTML = `<span class="badge ${badgeClass}">${entry.action}</span>`;
-            
-            // Kolom 6: PIC
-            row.insertCell(6).innerText = visitor.pic || "-";
+            // Kolom 1: REG
+            row.insertCell(1).innerText = l.reg;
 
-            // Kolom 7: Site ID
-            row.insertCell(7).innerText = visitor.site_id || SITE_ID;
+            // Kolom 2: Foto (Proteksi RAM & HP Oppo)
+            let photoCell = row.insertCell(2);
+            let photoUrl = v.foto || "";
+            photoCell.innerHTML = photoUrl 
+                ? `<img src="${photoUrl}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;">`
+                : `<div style="width:40px; height:40px; border-radius:8px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">NO IMG</div>`;
 
-            // Kolom 8: Keterangan (Opsional/Sisa)
-            row.insertCell(8).innerText = entry.details || "-";
+            // Kolom 3 & 4: Nama & Perusahaan
+            row.insertCell(3).innerText = l.nama || "-";
+            row.insertCell(4).innerText = l.perusahaan || "-";
+            
+            // Kolom 5: Kategori
+            row.insertCell(5).innerHTML = `<span class="badge badge-${(l.kategori || 'umum').toLowerCase()}">${l.kategori || 'Visitor'}</span>`;
 
-            // JANGAN DITAMBAH insertCell(9) kalau di HTML <thead> cuma ada 9 kolom!
-        });
-    } catch (e) {
-        console.error("renderLogTable error:", e);
-    }
+            // Kolom 6: STATUS (Logika Warna Tajam Security)
+            let currentStatus = v.currentStatus || "OUT";
+            let statusText = "DAFTAR";
+            let statusColor = "#6b7280"; // Abu-abu default
+
+            if (currentStatus === "IN") {
+                statusText = "DI DALAM";
+                statusColor = "#16a34a"; // Hijau Tajam
+            } else {
+                statusText = "SELESAI";
+                statusColor = "#dc2626"; // Merah
+            }      
+            row.insertCell(6).innerHTML = `<span style="background:${statusColor}; color:white; padding:4px 10px; border-radius:999px; font-size:10px; font-weight:bold;">${statusText}</span>`;
+
+            // Kolom 7: Aksi (Sesuai order kolom di HTML Bapak)
+            let actionCell = row.insertCell(7);
+            actionCell.innerHTML = `<button class="btn-outline" style="padding:4px 8px;" onclick="showPreview('${l.reg}', visitors['${l.reg}'])">🖨️ PDF</button>`;
+
+            // Kolom 8: Waktu
+            let timeDisplay = l.timestamp ? new Date(l.timestamp).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : "-";
+            row.insertCell(8).innerText = timeDisplay;
+            
+            // Kolom 9: Site
+            row.insertCell(9).innerText = l.site_id || "-";
+        }); 
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#999;">📭 Tidak ada data tamu yang cocok</td></tr>`;
+        }
+
+    } catch (e) { 
+        console.error("renderLogTable error:", e); 
+    }  
 }
+
+
 
 // ================= QR SCAN PROCESS (FIXED) =================
 async function processScan(qrText) {  
@@ -994,24 +1000,7 @@ async function ensureJSPDF() {
     });  
 }  
 
-// ================= UPGRADE 3: FIX UNDEFINED PDF =================
-function showPreview(reg, data) { 
-    // 1. Cari data di centralData (database pusat) berdasarkan nomor REG
-    // Kita cek versi huruf besar (REG) dan huruf kecil (reg) biar aman
-    const dataUtuh = centralData.find(item => (item.REG || item.reg) == reg) || data;
-    
-    // 2. Mapping data agar Nama & PIC terbaca oleh fungsi PDF
-    if (!dataUtuh.nama) dataUtuh.nama = dataUtuh.NAMA || dataUtuh.Nama || "Visitor";
-    if (!dataUtuh.pic) dataUtuh.pic = dataUtuh.PIC || dataUtuh.Pic || "-";
-    if (!dataUtuh.perusahaan) dataUtuh.perusahaan = dataUtuh.PERUSAHAAN || dataUtuh.Perusahaan || "-";
-    
-    // 3. Ambil foto dari data lokal (karena di Sheets biasanya gak ada foto)
-    if (data.foto) dataUtuh.foto = data.foto;
-
-    // 4. Kirim data yang sudah lengkap ke fungsi QR & PDF
-    generateQRandShow(reg, dataUtuh); 
-}
-
+function showPreview(reg, data) { generateQRandShow(reg, data); }  
 
 // ================= REPLACE TOTAL DISINI =================
 
@@ -1115,155 +1104,489 @@ function setSite(site) {
     renderLogTable();  
 }  
 
-// ================= EVENT HANDLERS =================
+// ================= EVENT HANDLERS=================
 document.getElementById("generateQRBtn").onclick = async () => {  
     if (actionMutex) return;  
     actionMutex = true;  
-    lockUI(true); 
-
+    lockUI(true);
     try {  
-        const nama = document.getElementById("regName").value.trim();  
-        const perusahaan = document.getElementById("regCompany").value.trim();  
-        const kategori = document.getElementById("regCategory").value;  
+        let nama = document.getElementById("regName").value.trim();  
+        let perusahaan = document.getElementById("regCompany").value.trim();  
+        let kategori = document.getElementById("regCategory").value;  
         let tujuan = document.getElementById("regPurpose").value;  
-        const custom = document.getElementById("regCustomPurpose").value.trim();  
-        
+        let custom = document.getElementById("regCustomPurpose").value.trim();  
         if (tujuan === "Lainnya") tujuan = custom || "Custom";  
-        
-        const pic = document.getElementById("regPic").value.trim();  
-        const dept = document.getElementById("regDept").value.trim();  
-        const startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);  
-        const expDate = document.getElementById("regExpDate").value;  
+        let pic = document.getElementById("regPic").value.trim();  
+        let dept = document.getElementById("regDept").value.trim();  
+        let startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);  
+        let expDate = document.getElementById("regExpDate").value;  
 
+        // Validasi ketat sebelum proses
         if (!nama || !perusahaan || !pic || !dept || !expDate) { 
-            toast("Lengkapi data wajib, Komandan!", "error"); 
-            throw new Error("ValidationIncomplete"); 
+            toast("Lengkapi semua field wajib", "error"); 
+            return; 
         }  
       
-        const reg = generateReg();  
+        let reg = generateReg();  
+        if (visitors[reg]) { toast("REG sudah ada!", "warning"); return; }  
+        
         let foto = "";  
-        const fileInput = document.getElementById("regPhotoFile");
-        const file = fileInput ? fileInput.files[0] : null;  
-
+        let file = document.getElementById("regPhotoFile").files[0];  
         if (file) {  
             try {  
-                const reader = await new Promise((res, rej) => { 
-                    const fr = new FileReader(); 
-                    fr.onload = () => res(fr.result); 
-                    fr.onerror = rej;
+                let reader = await new Promise(resolve => { 
+                    let fr = new FileReader(); 
+                    fr.onload = () => resolve(fr.result); 
                     fr.readAsDataURL(file); 
                 });  
-                const img = new Image();  
+                let img = new Image();  
                 img.src = reader;  
                 await new Promise(r => img.onload = r);  
-                const canvas = document.createElement("canvas");  
-                const scale = 400 / img.width;  
-                canvas.width = 400;  
+                let canvas = document.createElement("canvas");  
+                let maxWidth = 400;  
+                let scale = maxWidth / img.width;  
+                canvas.width = maxWidth;  
                 canvas.height = img.height * scale;  
-                canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);  
+                let ctx = canvas.getContext("2d");  
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);  
+                // Kompres 0.5 (50%) untuk hemat storage HP
                 foto = canvas.toDataURL("image/jpeg", 0.5);  
-            } catch (err) { console.warn("Foto gagal."); }  
+            } catch (e) { console.warn("Photo processing error:", e); }  
         }  
 
-        const dataLocal = { 
+        // Object Data Lengkap (Untuk Lokal/PDF)
+        let data = { 
             nama, perusahaan, kategori, tujuan, pic, dept, 
             startDate, expDate, foto, sessions: [], 
             currentStatus: "OUT", updatedAt: Date.now() 
         };  
         
-        visitors[reg] = dataLocal;  
+        // Simpan ke Lokal (Lengkap dengan Foto)
+        visitors[reg] = data;  
         addLocalLog(reg, "REGISTER");  
-        secureSave();
+        secureSave(); // Langsung amankan di storage HP
 
-        const payload = { action: "register", reg, nama, perusahaan, tujuan, pic, dept, startDate, expDate, kategori, photoBase64: foto, site_id: SITE_ID };
-        const result = await apiCall(payload);  
+        // Data untuk Server (Foto dibuang biar enteng/Queue lancar)
+        let serverData = { ...data, foto: "" }; 
+
+        let result = await registerVisitor(reg, serverData);  
         
-        if (!result || result.status !== "success") {
-            addToQueue("register", reg, payload); 
-            toast(`⚠️ Masuk Antrean`, "warning"); 
-        } else {
-            toast(`✅ Sync Cloud Berhasil!`, "success");
+        if (!result || typeof result !== "object") { 
+            addToQueue("register", reg, serverData); 
+            toast(`⚠️ ${nama} masuk antrean (Offline)`, "warning"); 
+        } else if (result.status === "duplicate") { 
+            toast("REG sudah terdaftar di server!", "warning"); 
+            delete visitors[reg]; 
+            secureSave(); 
+            return; 
+        } else if (result.status !== "success") {
+            addToQueue("register", reg, serverData);
         }
 
-        generateQRandShow(reg, dataLocal); 
-        ["regName", "regCompany", "regPic", "regDept", "regPhotoFile", "regCustomPurpose"].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = "";
+        toast(`✅ ${nama} terdaftar (${reg})`, "success");  
+        vibrate();
+        generateQRandShow(reg, data); // Tampilkan QR dari data lokal
+        
+        // Reset Form
+        ["regName", "regCompany", "regPic", "regDept", "regPhotoFile"].forEach(id => {
+            document.getElementById(id).value = "";
         });
+        document.getElementById("previewPhotoThumb").src = "";  
         
-        renderDashboard(); renderLogTable();  
-        
+        renderDashboard();  
+        renderLogTable();  
+        await pullFromSheet();  
     } catch (e) {  
-        if (e.message !== "ValidationIncomplete") { console.error("Error:", e); toast("Sistem Error!", "error"); }
+        console.error("generateQRBtn error:", e);  
+        toast("Terjadi kesalahan sistem", "error");  
     } finally {  
-        actionMutex = false; lockUI(false); 
+        actionMutex = false;  
+        lockUI(false);
+    }  
+};  
+
+document.getElementById("walkinBtn").onclick = async () => {  
+    if (actionMutex) return;  
+    actionMutex = true;  
+    lockUI(true);
+    try {  
+        let reg = generateReg();  
+        let now = new Date();  
+        let exp = new Date(now);  
+        exp.setDate(exp.getDate() + 1);  
+        
+        let walkData = { 
+            nama: `WALK-IN ${now.getHours()}:${now.getMinutes()}`, 
+            perusahaan: "Guest Visitor", 
+            kategori: "UMUM", 
+            tujuan: "Immediate Visit", 
+            pic: "Reception", 
+            dept: "Umum", 
+            startDate: now.toISOString().slice(0, 10), 
+            expDate: exp.toISOString().slice(0, 10), 
+            foto: "", 
+            sessions: [], 
+            currentStatus: "OUT", 
+            updatedAt: Date.now() 
+        };  
+        
+        visitors[reg] = walkData;  
+        addLocalLog(reg, "WALK-IN");  
+        secureSave();
+
+        let result = await walkinVisitor(reg, walkData);  
+        
+        if (!result || result.status !== "success") {
+            if (result && result.status === "duplicate") {
+                toast("REG sudah terdaftar!", "warning"); 
+                delete visitors[reg]; 
+                secureSave(); 
+                return;
+            }
+            addToQueue("walkin", reg, walkData);
+        }
+
+        toast(`✅ Walk-in registered ${reg}`, "success");  
+        vibrate();
+        generateQRandShow(reg, walkData);  
+        renderDashboard();  
+        renderLogTable();  
+        await pullFromSheet();  
+    } catch (e) {  
+        console.error("walkinBtn error:", e);  
+        toast("Terjadi kesalahan", "error");  
+    } finally {  
+        actionMutex = false;  
+        lockUI(false);
     }  
 };
+  
 
-// ================= NAVIGASI TAB (FIX MENTOK DASHBOARD) =================
-function switchTab(tabId) {  
-    console.log("Pindah ke:", tabId);
-    const panes = ["dashboardPane", "registerPane", "scannerPane", "logsPane"];
-    panes.forEach(p => {
-        const el = document.getElementById(p);
-        if (el) el.classList.remove("active-pane");
-    });
+document.getElementById("startCamBtn").onclick = async () => { 
+    document.getElementById("cameraPreview").innerHTML = ""; 
+    await stopScanner(); 
+    if (scannerInstance) { 
+        try { await scannerInstance.clear(); } catch(e) { console.error("clear error:", e); } 
+        scannerInstance = null; 
+    } 
+    await startScanner(); 
+};  
 
-    const targetPane = document.getElementById(tabId + "Pane");
-    if (targetPane) targetPane.classList.add("active-pane");
+document.getElementById("stopCamBtn").onclick = async () => { 
+    await stopScanner(); 
+    if (scannerInstance) { 
+        try { await scannerInstance.clear(); } catch(e) { console.error("clear error:", e); } 
+        scannerInstance = null; 
+    } 
+    toast("Kamera berhenti", "info"); 
+};  
 
-    document.querySelectorAll(".nav-item").forEach(nav => { 
-        if (nav.dataset.tab === tabId) nav.classList.add("active"); 
-        else nav.classList.remove("active");
-    });
+document.getElementById("uploadQrBtn").onclick = () => document.getElementById("uploadQrFile")?.click();  
+document.getElementById("uploadQrFile").onchange = async (e) => {  
+    if (actionMutex) return;  
+    actionMutex = true;  
+    lockUI(true);
+    try {  
+        let file = e.target.files[0];  
+        if (!file) return;  
+        try {  
+            let url = URL.createObjectURL(file);  
+            let img = new Image();  
+            img.src = url;  
+            await img.decode();  
+            URL.revokeObjectURL(url);  
+            let canvas = document.createElement("canvas");  
+            canvas.width = img.width;  
+            canvas.height = img.height;  
+            canvas.getContext("2d").drawImage(img, 0, 0);  
+            let scanner = new Html5Qrcode("temp-reader");  
+            let decoded = await scanner.scanImage(canvas, { qrbox: { width: img.width, height: img.height } });  
+            await processScan(decoded);  
+            await scanner.clear();  
+            document.getElementById("temp-reader").innerHTML = "";  
+        } catch (err) { toast("QR tidak terbaca", "error"); console.error("upload QR error:", err); }  
+    } catch (e) {  
+        console.error("uploadQrFile error:", e);  
+    } finally {  
+        actionMutex = false;  
+        lockUI(false);
+    }  
+};  
 
-    // Mobile Sidebar Close
-    const side = document.getElementById("mobileSidebar");
-    if (side) side.classList.remove("open");
-    const over = document.getElementById("overlay");
-    if (over) over.style.display = "none";
+document.getElementById("manualProcess").onclick = async () => {  
+    if (actionMutex) return;  
+    actionMutex = true;  
+    lockUI(true);
+    try {  
+        
+ let reg = document.getElementById("manualReg").value.trim();  
+        const mode = document.getElementById("scanMode").value;  
+        
+        if (!reg || !reg.match(/^REG\d+/i)) {
+            toast("Format REG salah!", "error");
+            return;
+        }
+        
+        let visitor = visitors[reg]; // Mencari langsung berdasarkan REG
+        if (!visitor) { 
+            toast("REG tidak ditemukan!", "error"); 
+            return; 
+        }  
+  
+        let expDate = visitor.expDate ? new Date(visitor.expDate) : null;
+        if (expDate && !isNaN(expDate.getTime())) {
+            expDate.setHours(23, 59, 59, 999);
+            if (expDate < new Date()) {
+                toast("QR sudah expired", "error");
+                return;
+            }
+        }
+        
+        if (mode === "CHECK_IN") {
+            let hasOpen = visitor.sessions?.some(s => !s.checkOut);
+            if (hasOpen) {
+                toast("Sudah check-in!", "warning");
+                return;
+            }
+            let result = await checkinVisitor(reg);
+            if (result.status === "success") {
+                if (!visitor.sessions) visitor.sessions = [];
+                visitor.sessions.push({ checkIn: Date.now(), checkOut: null });
+                visitor.currentStatus = "IN";
+                visitor.updatedAt = Date.now();
+                visitors[reg] = visitor;
+                addLocalLog(reg, "CHECK_IN");
+                vibrate();
+                toast(`Check-in ${visitor.nama} success`, "success");
+            } else if (result.status === "already_in") {
+                toast("Sudah check-in!", "warning");
+            } else {
+                addToQueue("checkin", reg);
+                toast("Masuk queue", "warning");
+            }
+        } else {
+            let openSession = visitor.sessions?.find(s => !s.checkOut);
+            if (!openSession) {
+                toast("Tidak ada sesi aktif", "warning");
+                return;
+            }
+            let result = await checkoutVisitor(reg);
+            if (result.status === "success") {
+                openSession.checkOut = Date.now();
+                visitor.currentStatus = "OUT";
+                visitor.updatedAt = Date.now();
+                visitors[reg] = visitor;
+                addLocalLog(reg, "CHECK_OUT");
+                vibrate();
+                toast(`Check-out ${visitor.nama} success`, "success");
+            } else if (result.status === "not_checked_in") {
+                toast("Belum check-in!", "warning");
+            } else {
+                addToQueue("checkout", reg);
+                toast("Masuk queue", "warning");
+            }
+        }
+        renderDashboard();  
+        renderLogTable();  
+        secureSave();  
+        await pullFromSheet();  
+    } catch (e) {  
+        console.error("manualProcess error:", e);  
+        toast("Terjadi kesalahan", "error");  
+    } finally {  
+        actionMutex = false;  
+        lockUI(false);
+    }  
+};  
+
+document.getElementById("refreshLogsBtn").onclick = () => { pullFromSheet(); renderLogTable(); };  
+document.getElementById("selectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = true);  
+document.getElementById("deselectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = false);  
+
+document.getElementById("deleteSelectedBtn").onclick = () => {  
+    let regs = [...new Set([...document.querySelectorAll(".logCheckItem:checked")].map(c => c.dataset.reg))];  
+    // Hapus dari data visitor secara global
+    regs.forEach(r => delete visitors[r]);  
+    // Hapus dari tampilan logs
+    logs = logs.filter(l => !regs.includes(l.reg));  
+    secureSave();  
+    renderDashboard();  
+    renderLogTable();  
+    toast(`Berhasil menghapus ${regs.length} data`, "success");  
+};  
+
+document.getElementById("deleteAllBtn").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("All data cleared", "info"); };  
+document.getElementById("backupAction").onclick = () => { try { let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify({ visitors, logs })], { type: "application/json" })); a.download = `vms_backup_${Date.now()}.json`; a.click(); toast("Backup ready", "success"); } catch (e) { toast("Backup gagal", "error"); console.error("backup error:", e); } };  
+document.getElementById("resetDatabaseAction").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("Database reset", "info"); };  
+document.getElementById("regPhotoFile").onchange = (e) => { if (e.target.files[0]) { let r = new FileReader(); r.onload = ev => { let preview = document.getElementById("previewPhotoThumb"); if (preview) preview.src = ev.target.result; }; r.readAsDataURL(e.target.files[0]); } };  
+document.getElementById("submitLicenseBtn").onclick = () => { let input = document.getElementById("licenseInput"); if (input && input.value) toast("✅ License activated", "success"); if (input) input.value = ""; };  
+document.getElementById("siteSelector").onchange = (e) => setSite(e.target.value);  
+document.getElementById("siteSelectorTop").onchange = (e) => setSite(e.target.value);  
+
+
+function exportToExcel() {  
+    try {  
+        if (!window.XLSX) { toast("Excel engine belum siap", "error"); return; }  
+        let dataForExcel = [];  
+        Object.entries(visitors).forEach(([reg, visitor]) => {  
+            let jamMasuk = "-", jamKeluar = "-", durasi = "-", keterangan = "";  
+            if (visitor.sessions && visitor.sessions.length > 0) {  
+                let last = visitor.sessions[visitor.sessions.length - 1];  
+                if (last.checkIn) jamMasuk = new Date(last.checkIn).toLocaleString("id-ID");  
+                if (last.checkOut) jamKeluar = new Date(last.checkOut).toLocaleString("id-ID");  
+                if (last.checkIn && last.checkOut) durasi = Math.floor((last.checkOut - last.checkIn) / 60000) + " menit";  
+                keterangan = visitor.currentStatus === "IN" ? "Di Dalam" : (last.checkOut ? "Sudah Keluar" : "Belum Check-in");  
+            } else keterangan = "Data Terdaftar";  
+            
+            dataForExcel.push({ 
+                "Nama": visitor.nama || "-", 
+                "Perusahaan": visitor.perusahaan || "-", 
+                "Kategori": visitor.kategori || "-",
+                "PIC": visitor.pic || "-", 
+                "Jam Masuk": jamMasuk, 
+                "Jam Keluar": jamKeluar, 
+                "REG": reg, 
+                "Keterangan": keterangan 
+            });  
+        });  
+        if (dataForExcel.length === 0) { toast("Tidak ada data", "warning"); return; }  
+        let ws = XLSX.utils.json_to_sheet(dataForExcel);  
+        let wb = XLSX.utils.book_new();  
+        XLSX.utils.book_append_sheet(wb, ws, "VMS_Visitor_Report");  
+        XLSX.writeFile(wb, `VMS_Report_${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.xlsx`);  
+        toast("✅ Export Excel berhasil", "success");  
+    } catch (err) { toast("Export gagal", "error"); console.error("export error:", err); }  
 }  
+document.getElementById("exportExcelAction").onclick = exportToExcel;  
 
-document.querySelectorAll("[data-tab]").forEach(el => {
-    el.onclick = () => switchTab(el.dataset.tab);
-});
+let panes = { dashboard: document.getElementById("dashboardPane"), register: document.getElementById("registerPane"), scanner: document.getElementById("scannerPane"), logs: document.getElementById("logsPane") };  
+function switchTab(tabId) {  
+    Object.values(panes).forEach(p => p?.classList.remove("active-pane"));  
+    if (panes[tabId]) panes[tabId].classList.add("active-pane");  
+    document.querySelectorAll(".nav-item").forEach(nav => { if (nav.dataset?.tab === tabId) nav.classList.add("active"); else nav.classList.remove("active"); });  
+}  
+document.querySelectorAll(".nav-item, .mobile-nav").forEach(el => { if (el.dataset?.tab) { el.addEventListener("click", () => { switchTab(el.dataset.tab); if (window.innerWidth <= 780) { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.remove("open"); if (overlay) overlay.style.display = "none"; } }); } });  
+document.getElementById("mobileMenuBtn").onclick = () => { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.add("open"); if (overlay) overlay.style.display = "block"; };  
+document.getElementById("overlay").onclick = () => { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.remove("open"); if (overlay) overlay.style.display = "none"; };  
 
-document.getElementById("mobileMenuBtn").onclick = () => { 
-    document.getElementById("mobileSidebar").classList.add("open"); 
-    document.getElementById("overlay").style.display = "block"; 
-};
+// ================= CORE INITIALIZATION & AUTO-SYNC (POINT 2) =================
+if (window._vmsIntervals) { window._vmsIntervals.forEach(clearInterval); }  
+window._vmsIntervals = [];  
 
-// ================= RENDER LOG TABLE (FIX COLUMN ERROR) =================
-function renderLogTable() {
-    try {
-        const tbody = document.getElementById("logTableBody");
-        if (!tbody) return;
-        tbody.innerHTML = "";
-        const displayLogs = [...logs].reverse();
+async function initVmsSystem() {
+    // 1. Load Data Lokal agar aplikasi tidak kosong saat dibuka
+    secureLoad();
+    vmsSite_load();   
+    setSite(SITE_ID);
+    renderDashboard();  
+    renderLogTable();  
 
-        displayLogs.forEach((entry) => {
-            const row = tbody.insertRow();
-            // Total 8 Kolom (Index 0-7) - Pastikan HTML lo punya 8 kolom
-            row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${entry.reg}">`;
-            row.insertCell(1).innerText = new Date(entry.timestamp).toLocaleString("id-ID");
-            row.insertCell(2).innerText = entry.reg;
-            const visitor = visitors[entry.reg] || {};
-            row.insertCell(3).innerText = visitor.nama || "Unknown";
-            row.insertCell(4).innerText = visitor.perusahaan || "-";
-            let badge = entry.action.includes("IN") ? "bg-success" : (entry.action.includes("OUT") ? "bg-danger" : "bg-primary");
-            row.insertCell(5).innerHTML = `<span class="badge ${badge}">${entry.action}</span>`;
-            row.insertCell(6).innerText = visitor.pic || "-";
-            row.insertCell(7).innerText = visitor.site_id || SITE_ID;
-        });
-    } catch (e) { console.error("renderLogTable error:", e); }
+    // 2. Inisialisasi Antrean (Queue)
+    try { 
+        const saved = localStorage.getItem("vms_sync_queue"); 
+        if (saved) syncQueue = JSON.parse(saved); 
+        if (typeof updateQueueStatus === "function") updateQueueStatus(); 
+    } catch (e) { 
+        console.error("initQueue error:", e); 
+    }
+
+    // 3. POINT 2: SINKRONISASI INSTAN SAAT START-UP (All Device Sync)
+    // Begitu aplikasi terbuka, langsung tarik data terbaru dari Google Sheets
+    if (navigator.onLine) {
+        console.log("🔄 Melakukan sinkronisasi awal...");
+        try {
+            await pullFromSheet(); 
+            renderDashboard(); // Update dashboard setelah tarik data
+            renderLogTable();  // Update tabel setelah tarik data
+        } catch (err) {
+            console.error("Initial sync failed:", err);
+        }
+    }
+
+    // 4. Setel Interval Sinkronisasi Berkala (Latar Belakang tiap 10 detik)
+    let syncInterval = setInterval(() => { 
+        if (navigator.onLine) pullFromSheet(); 
+    }, SYNC_INTERVAL_MS);  
+
+    let queueInterval = setInterval(() => { 
+        if (navigator.onLine && syncQueue.length > 0) processQueue(); 
+    }, 5000);  
+
+    window._vmsIntervals.push(syncInterval, queueInterval);
 }
 
-// Tambahan tombol pendukung
-document.getElementById("refreshLogsBtn").onclick = () => { pullFromSheet(); renderLogTable(); };
-document.getElementById("overlay").onclick = () => {
-    document.getElementById("mobileSidebar").classList.remove("open");
-    document.getElementById("overlay").style.display = "none";
-};
+// Jalankan Inisialisasi
+initVmsSystem();
+
+// Event Listener saat halaman ditutup/pindah
+window.addEventListener("beforeunload", () => { 
+    if (scannerInstance) { 
+        try { scannerInstance.stop(); scannerInstance.clear(); } catch (e) {} 
+    } 
+    if (cameraResetInterval) clearInterval(cameraResetInterval); 
+    if (window._vmsIntervals) window._vmsIntervals.forEach(clearInterval); 
+    secureSave(); 
+});
+
+// ================= SITE MANAGEMENT FUNCTIONS (FINAL BLOCK) =================
+function vmsSite_load() { 
+    try { 
+        let stored = localStorage.getItem("vms_site_names"); 
+        if (stored) Object.assign(vmsSiteData.names, JSON.parse(stored)); 
+    } catch(e) { 
+        console.error("vmsSite_load error:", e); 
+    } 
+    vmsSite_applyToUI(); 
+}  
+
+function vmsSite_applyToUI() {
+    if (!window.vmsSiteData || !vmsSiteData.names) return;
+    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { 
+        if (!sel) return; 
+        Array.from(sel.options).forEach(opt => { 
+            let val = opt.value; 
+            let siteNames = vmsSiteData.names;
+            if (siteNames[val]) { 
+                let icon = opt.textContent.substring(0, 2); 
+                let hasIcon = icon === "🏭" || icon === "🏢" || icon === "🏬"; 
+                opt.textContent = (hasIcon ? icon + " " : "") + siteNames[val]; 
+            } 
+        }); 
+    });  
+}  
+
+function vmsSite_save() { 
+    localStorage.setItem("vms_site_names", JSON.stringify(vmsSiteData.names)); 
+    return true; 
+}  
+
+function vmsSite_open() { 
+    let modal = document.getElementById("vmsSiteModal"); 
+    if (modal) { 
+        modal.style.display = "flex"; 
+        if (document.getElementById("vmsA")) document.getElementById("vmsA").value = vmsSiteData.names.SITE_A || "SITE A"; 
+        if (document.getElementById("vmsB")) document.getElementById("vmsB").value = vmsSiteData.names.SITE_B || "SITE B"; 
+        if (document.getElementById("vmsC")) document.getElementById("vmsC").value = vmsSiteData.names.SITE_C || "SITE C"; 
+    } 
+}  
+
+function vmsSite_close() { 
+    let modal = document.getElementById("vmsSiteModal"); 
+    if (modal) modal.style.display = "none"; 
+}  
+
+function vmsSite_submit() {  
+    let newNames = { ...vmsSiteData.names };  
+    if (document.getElementById("vmsA")) newNames.SITE_A = document.getElementById("vmsA").value.trim() || "SITE A";  
+    if (document.getElementById("vmsB")) newNames.SITE_B = document.getElementById("vmsB").value.trim() || "SITE B";  
+    if (document.getElementById("vmsC")) newNames.SITE_C = document.getElementById("vmsC").value.trim() || "SITE C";  
+    vmsSiteData.names = newNames;  
+    vmsSite_save();  
+    vmsSite_applyToUI();  
+    toast("✅ Site names saved!", "success");  
+    vmsSite_close();  
+}
+vmsSite_load();
 
 
 </script>
