@@ -79,7 +79,36 @@
 <div class="mobile-header"><button class="menu-toggle" id="mobileMenuBtn">☰</button><strong id="brandMobile" data-site="SITE_A">VMS ELITE</strong><div style="width: 28px;"></div></div>
 <div class="overlay" id="overlay"></div>
 <div class="mobile-sidebar" id="mobileSidebar"><div class="logo-area"><h1 id="brandSidebar" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item mobile-nav" data-tab="dashboard">📊 Dashboard</div><div class="nav-item mobile-nav" data-tab="register">📝 Register</div><div class="nav-item mobile-nav" data-tab="scanner">📷 Scanner</div><div class="nav-item mobile-nav" data-tab="logs">📜 Logs</div></div>
-<div class="app-layout"><div class="sidebar"><div class="logo-area"><h1 id="brandSidebarMain" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item active" data-tab="dashboard">📊 Dashboard</div><div class="nav-item" data-tab="register">📝 Register Visitor</div><div class="nav-item" data-tab="scanner">📷 Security Scan</div><div class="nav-item" data-tab="logs">📜 Audit Logs</div><div style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);"><div style="background:transparent; border:none; color:white; padding:0;"><label style="color:white;">🌍 Site</label><select id="siteSelector" style="background:#2b5a55; color:white;"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button id="vmsSiteEditBtn" onclick="vmsSite_open()" style="background:#2b5a55; margin-left:8px; padding:6px 12px;">⚙️ Rename</button></div></div></div><div class="main-content"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;"><div style="background:white; border-radius:28px; padding:8px 20px; display:flex; align-items:center; gap:16px;"><label>🌐 Active Site</label><select id="siteSelectorTop"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button onclick="vmsSite_open()" style="background:#0f2c2c; padding:6px 12px;">⚙️ Rename</button></div></div><div style="background:white; border-radius:20px; padding:16px; margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;"><input type="text" id="licenseInput" placeholder="License key..." style="flex:1;"><button id="submitLicenseBtn">Aktivasi</button><div id="licenseStatusBadge" class="license-badge">ELITE</div></div><div id="dashboardPane" class="tab-pane active-pane"><div class="stats-row" id="statsWidget"></div><div class="form-card"><canvas id="trendChart" height="90"></canvas></div><div class="form-card"><canvas id="categoryChart" height="90"></canvas></div></div><div id="registerPane" class="tab-pane"><div class="form-card"><div class="grid-2"><div class="input-field"><label>Full name</label><input type="text" id="regName" placeholder="John Carter"></div><div class="input-field"><label>Company</label><input type="text" id="regCompany" placeholder="PT Nusantara"></div><div class="input-field"><label>Category</label><select id="regCategory"><option value="UMUM">UMUM</option><option value="VIP">VIP</option><option value="VVIP">VVIP</option></select></div><div class="input-field"><label>Purpose</label><select id="regPurpose"><option>Meeting</option><option>Interview</option><option>Service</option><option>Lainnya</option></select><input type="text" id="regCustomPurpose" placeholder="Other purpose" style="margin-top:8px;"></div><div class="input-field"><label>PIC</label><input type="text" id="regPic" placeholder="Budi Santoso"></div><div class="input-field"><label>Department</label><input type="text" id="regDept" placeholder="IT / HR"></div><div class="input-field"><label>Start date</label><input type="date" id="regStartDate"></div><div class="input-field"><label>Expired date</label><input type="date" id="regExpDate"></div><div class="input-field"><label>Photo</label><input type="file" id="regPhotoFile" accept="image/*"><img id="previewPhotoThumb" width="50" style="margin-top:8px; border-radius:12px;"></div></div><div style="display:flex; gap:16px; margin-top:24px;"><button id="walkinBtn">⚡ Walk-in</button><button id="generateQRBtn">🔐 Generate QR</button></div></div></div><div id="scannerPane" class="tab-pane"><div class="form-card"><div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;"><select id="scanMode"><option value="CHECK_IN">CHECK-IN</option><option value="CHECK_OUT">CHECK-OUT</option></select><button id="startCamBtn">📷 Start Camera</button><button id="stopCamBtn" class="btn-outline">Stop</button><button id="uploadQrBtn">🖼️ Upload QR</button><input type="file" id="uploadQrFile" accept="image/*" style="display:none"></div><div id="cameraPreview"></div><div style="margin-top:24px;"><label>Manual REG Number</label><input type="text" id="manualReg" placeholder="REG2026xxxx"><button id="manualProcess" style="margin-top:8px;">Proses</button></div></div></div><div id="logsPane" class="tab-pane"><div class="form-card"><div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;"><input type="text" id="searchLog" placeholder="Cari Nama / REG" style="width:200px;"><button id="refreshLogsBtn">Refresh</button><button id="selectAllBtn">Select all</button><button id="deselectAllBtn">Deselect</button><button id="deleteSelectedBtn" style="background:#b91c1c;">Hapus terpilih</button><button id="deleteAllBtn" style="background:#b91c1c;">Hapus semua</button><button id="exportExcelAction">Export Excel</button><button id="backupAction">Backup</button><button id="resetDatabaseAction" style="background:#92400e;">Reset DB</button></div><div class="table-wrap"><table id="logTable"><thead><tr><th><input type="checkbox" id="checkAllMaster"></th><th>REG</th><th>Nama</th><th>Perusahaan</th><th>Kategori</th><th>Aksi</th><th>Waktu</th><th>Site</th><th>PDF</th></tr></thead><tbody id="logTableBody"></tbody></table></div></div></div></div></div>
+<div class="app-layout"><div class="sidebar"><div class="logo-area"><h1 id="brandSidebarMain" data-site="SITE_A">VMS</h1><p>Elite Enterprise</p></div><div class="nav-item active" data-tab="dashboard">📊 Dashboard</div><div class="nav-item" data-tab="register">📝 Register Visitor</div><div class="nav-item" data-tab="scanner">📷 Security Scan</div><div class="nav-item" data-tab="logs">📜 Audit Logs</div><div style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);"><div style="background:transparent; border:none; color:white; padding:0;"><label style="color:white;">🌍 Site</label><select id="siteSelector" style="background:#2b5a55; color:white;"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button id="vmsSiteEditBtn" onclick="vmsSite_open()" style="background:#2b5a55; margin-left:8px; padding:6px 12px;">⚙️ Rename</button></div></div></div><div class="main-content"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;"><div style="background:white; border-radius:28px; padding:8px 20px; display:flex; align-items:center; gap:16px;"><label>🌐 Active Site</label><select id="siteSelectorTop"><option value="SITE_A">🏭 SITE A</option><option value="SITE_B">🏢 SITE B</option><option value="SITE_C">🏬 SITE C</option></select><button onclick="vmsSite_open()" style="background:#0f2c2c; padding:6px 12px;">⚙️ Rename</button></div></div><div style="background:white; border-radius:20px; padding:16px; margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;"><input type="text" id="licenseInput" placeholder="License key..." style="flex:1;"><button id="submitLicenseBtn">Aktivasi</button><div id="licenseStatusBadge" class="license-badge">ELITE</div></div><div id="dashboardPane" class="tab-pane active-pane"><div class="stats-row" id="statsWidget"></div><div class="form-card"><canvas id="trendChart" height="90"></canvas></div><div class="form-card"><canvas id="categoryChart" height="90"></canvas></div></div><div id="registerPane" class="tab-pane"><div class="form-card"><div class="grid-2"><div class="input-field"><label>Full name</label><input type="text" id="regName" placeholder="John Carter"></div><div class="input-field"><label>Company</label><input type="text" id="regCompany" placeholder="PT Nusantara"></div><div class="input-field"><label>Category</label><select id="regCategory"><option value="UMUM">UMUM</option><option value="VIP">VIP</option><option value="VVIP">VVIP</option></select></div><div class="input-field"><label>Purpose</label><select id="regPurpose"><option>Meeting</option><option>Interview</option><option>Service</option><option>Lainnya</option></select><input type="text" id="regCustomPurpose" placeholder="Other purpose" style="margin-top:8px;"></div><div class="input-field"><label>PIC</label><input type="text" id="regPic" placeholder="Budi Santoso"></div><div class="input-field"><label>Department</label><input type="text" id="regDept" placeholder="IT / HR"></div><div class="input-field"><label>Start date</label><input type="date" id="regStartDate"></div><div class="input-field"><label>Expired date</label><input type="date" id="regExpDate"></div><div class="input-field"><label>Photo</label><input type="file" id="regPhotoFile" accept="image/*"><img id="previewPhotoThumb" width="50" style="margin-top:8px; border-radius:12px;"></div></div><div style="display:flex; gap:16px; margin-top:24px;"><button id="walkinBtn">⚡ Walk-in</button><button id="generateQRBtn">🔐 Generate QR</button></div></div></div><div id="scannerPane" class="tab-pane"><div class="form-card"><div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;"><select id="scanMode"><option value="CHECK_IN">CHECK-IN</option><option value="CHECK_OUT">CHECK-OUT</option></select><button id="startCamBtn">📷 Start Camera</button><button id="stopCamBtn" class="btn-outline">Stop</button><button id="uploadQrBtn">🖼️ Upload QR</button><input type="file" id="uploadQrFile" accept="image/*" style="display:none"></div><div id="cameraPreview"></div><div style="margin-top:24px;"><label>Manual REG Number</label><input type="text" id="manualReg" placeholder="REG2026xxxx"><button id="manualProcess" style="margin-top:8px;">Proses</button></div></div></div><div id="logsPane" class="tab-pane"><div class="form-card"><div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;"><input type="text" id="searchLog" placeholder="Cari Nama / REG" style="width:200px;"><button id="refreshLogsBtn">Refresh</button><button id="selectAllBtn">Select all</button><button id="deselectAllBtn">Deselect</button><button id="deleteSelectedBtn" style="background:#b91c1c;">Hapus terpilih</button><button id="deleteAllBtn" style="background:#b91c1c;">Hapus semua</button><button id="exportExcelAction">Export Excel</button><button id="backupAction">Backup</button><button id="resetDatabaseAction" style="background:#92400e;">Reset DB</button></div><div class="table-wrap"><<table id="logTable">
+<thead>
+<tr>
+<th><input type="checkbox" id="checkAllMaster"></th>
+
+<th>REG</th>
+
+<th>Foto</th>
+
+<th>Nama</th>
+
+<th>Perusahaan</th>
+
+<th>Kategori</th>
+
+<th>Status</th>
+
+<th>Aksi</th>
+
+<th>Waktu</th>
+
+<th>Site</th>
+
+<th>PDF</th>
+
+</tr>
+</thead>
+
+<tbody id="logTableBody"></tbody>
+</table></div></div></div></div></div>
 <div id="vmsSiteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:10001;"><div style="background:white; border-radius:28px; padding:28px; width:420px; max-width:90%;"><h3>⚙️ Edit Site Names</h3><div style="margin-bottom:16px;"><label>🏭 SITE A</label><input type="text" id="vmsA" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏢 SITE B</label><input type="text" id="vmsB" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏬 SITE C</label><input type="text" id="vmsC" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="display:flex; gap:12px;"><button id="vmsSaveBtn" onclick="vmsSite_submit()" style="background:#1f4e4a;">💾 Save</button><button onclick="vmsSite_close()" class="btn-outline">Cancel</button></div></div></div>
 
 <script>
@@ -489,13 +518,71 @@ function renderLogTable() {
         filtered.slice(0, 200).forEach(l => {  
             let row = tbody.insertRow();  
             row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${l.reg}">`;  
-            row.insertCell(1).innerText = l.reg;  
-            row.insertCell(2).innerText = l.name;  
-            row.insertCell(3).innerText = l.company;  
-            row.insertCell(4).innerHTML = `<span class="badge badge-${l.category}">${l.category}</span>`;  
-            row.insertCell(5).innerText = l.action;  
-            row.insertCell(6).innerText = new Date(l.time).toLocaleString();  
-            row.insertCell(7).innerText = l.site_name || l.site || "SITE_A";  
+            row.insertCell(1).innerText = l.reg;
+
+// FOTO
+let photoCell = row.insertCell(2);
+
+photoCell.innerHTML = l.photo
+? `<img src="${l.photo}" 
+    style="
+        width:45px;
+        height:45px;
+        border-radius:8px;
+        object-fit:cover;
+        border:2px solid #333;
+    ">`
+: `<div style="
+        width:45px;
+        height:45px;
+        border-radius:8px;
+        background:#444;
+    "></div>`;
+
+// NAMA
+row.insertCell(3).innerText = l.name;
+
+// COMPANY
+row.insertCell(4).innerText = l.company;
+
+// KATEGORI
+row.insertCell(5).innerHTML =
+`
+<span class="badge badge-${l.category}">
+    ${l.category}
+</span>
+`;
+
+// STATUS WARNA
+let statusColor =
+    l.currentStatus === "IN"
+    ? "#16a34a"
+    : "#dc2626";
+
+row.insertCell(6).innerHTML =
+`
+<span style="
+    background:${statusColor};
+    color:white;
+    padding:4px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:bold;
+">
+    ${l.currentStatus || "OUT"}
+</span>
+`;
+
+// AKSI
+row.insertCell(7).innerText = l.action;
+
+// WAKTU
+row.insertCell(8).innerText =
+    new Date(l.time).toLocaleString();
+
+// SITE
+row.insertCell(9).innerText =
+    l.site_name || l.site || "SITE_A";
             let btn = document.createElement("button");  
             btn.innerText = "PDF";  
             btn.classList.add("btn-outline");  
@@ -503,7 +590,7 @@ function renderLogTable() {
             let key = SITE_ID + "_" + l.reg;  
             let v = visitors[key];  
             if (v) btn.onclick = () => showPreview(l.reg, v);  
-            row.insertCell(8).appendChild(btn);  
+            row.insertCell(10).appendChild(btn);  
         });  
     } catch (e) { console.error("renderLogTable error:", e); }  
 }  
