@@ -402,60 +402,79 @@ async function checkoutVisitor(reg) { return await apiCall({ action: "checkout",
 async function generateQRCode(reg) { return await apiCall({ action: "generateqr", reg }); }  
 async function validateQRCode(qrData) { return await apiCall({ action: "validateqr", qrData }); }  
 
-// ================= PULL =================
-async function pullFromSheet() {
+// ================= SINKRONISASI DATA (FUNGSI 1) =================
 function syncVisitorStatus(sheetData) {  
-    console.log("📊 SYNC DATA:", sheetData);
-
     if (!Array.isArray(sheetData) || sheetData.length < 2) return;
 
+    const headers = sheetData[0]; 
+    const idx = {
+        nama: headers.indexOf("Nama"),
+        perusahaan: headers.indexOf("Perusahaan"),
+        reg: headers.indexOf("REG"),
+        status: headers.indexOf("Status"),
+        kategori: headers.indexOf("Kategori"),
+        pic: headers.indexOf("PIC"),
+        dept: headers.indexOf("Dept"),
+        exp: headers.indexOf("Exp"),
+        photo: headers.indexOf("Keterangan") // Kita ambil foto dari sini
+    };
+
+    let adaPerubahan = false;
     for (let i = 1; i < sheetData.length; i++) {
         const row = sheetData[i];
+        const reg = row[idx.reg];
+        if (!reg) continue;
 
-        const reg = row[8];       // REG
-        const nama = row[0];      // Nama
-        const company = row[1];   // Perusahaan
-        const status = row[11];   // Status
+        // Jika data belum ada di HP atau statusnya berubah (misal dari OUT jadi IN)
+        if (!visitors[reg] || visitors[reg].currentStatus !== row[idx.status]) {
+            visitors[reg] = {
+                nama: row[idx.nama],
+                perusahaan: row[idx.perusahaan],
+                kategori: row[idx.kategori],
+                pic: row[idx.pic],
+                dept: row[idx.dept],
+                expDate: row[idx.exp],
+                currentStatus: row[idx.status],
+                foto: row[idx.photo] || "", // Sinkronkan foto juga
+                updatedAt: Date.now()
+            };
+            adaPerubahan = true;
+        }
+    }
 
-        console.log("👤", reg, nama, company, status);
+    if (adaPerubahan) {
+        secureSave();
+        renderDashboard();
+        renderLogTable();
+        console.log("🔄 Database Device Berhasil Diperbarui!");
     }
 }
-if (syncLock) return;
-  if (document.hidden) return;
 
-  syncLock = true;
-
-  try {
-    const response = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      body: new URLSearchParams({
-        action: "pull",
-        site_id: SITE_ID,
-        t: Date.now()
-      })
-    });
-
-    const text = await response.text();
-    console.log("🔥 PULL RAW:", text);
-
-    let result;
+// ================= PENARIK DATA DARI SERVER (FUNGSI 2) =================
+async function pullFromSheet() {
+    if (syncLock || document.hidden) return;
+    syncLock = true;
     try {
-        result = JSON.parse(text);
-    } catch (e) {
-        console.error("❌ PULL JSON ERROR:", text);
-        return;
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            body: new URLSearchParams({ 
+                action: "pull", 
+                site_id: SITE_ID, 
+                t: Date.now() 
+            })
+        });
+        
+        const result = await response.json();
+        if (result.status === "success" && result.data) {
+            syncVisitorStatus(result.data); 
+        }
+    } catch (err) {
+        console.error("Koneksi gagal atau Script Error:", err);
+    } finally {
+        syncLock = false;
     }
-
-    if (result.status === "success" && result.data) {
-      syncVisitorStatus(result.data);
-    }
-
-  } catch (err) {
-    console.error("Pull error:", err);
-  } finally {
-    syncLock = false;
-  }
 }
+
 
 // ================= QUEUE (FIX LOOP) =================
 async function processQueue() {  
