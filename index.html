@@ -686,86 +686,53 @@ function renderDashboard() {
 }  
 
 // ================= RENDER LOG TABLE (FIXED & CLEAN VERSION) =================
-function renderLogTable() {  
-    try {  
-        let search = document.getElementById("searchLog")?.value.toLowerCase() || "";  
-        let tbody = document.getElementById("logTableBody");  
-        if (!tbody) return;  
+function renderLogTable() {
+    try {
+        const tbody = document.getElementById("logTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
 
-        let allLogs = Array.isArray(logs) ? logs : [];
+        // Urutkan logs dari yang terbaru
+        const displayLogs = [...logs].reverse();
 
-        // 1. FILTER DATA
-        let filtered = allLogs.filter(l => {
-            if (!l.nama || l.nama === "undefined" || l.nama.trim() === "") return false;
-            let matchSearch = l.nama.toLowerCase().includes(search) || (l.reg && l.reg.toLowerCase().includes(search));
-            let matchSite = (!l.site_id || l.site_id === SITE_ID);
-            return matchSearch && matchSite;
-        });
-
-        // 2. SORT (Terbaru di atas)
-        filtered.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        
-        tbody.innerHTML = ""; 
-        
-        filtered.slice(0, 100).forEach((l) => {  
-            let row = tbody.insertRow();
-            let v = visitors[l.reg] || {}; // Ambil data visitor pendukung (foto, status asli)
+        displayLogs.forEach((entry, index) => {
+            const row = tbody.insertRow();
             
             // Kolom 0: Checkbox
-            row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${l.reg}">`;  
+            row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${entry.reg}">`;
             
-            // Kolom 1: REG
-            row.insertCell(1).innerText = l.reg;
-
-            // Kolom 2: Foto (Proteksi RAM & HP Oppo)
-            let photoCell = row.insertCell(2);
-            let photoUrl = v.foto || "";
-            photoCell.innerHTML = photoUrl 
-                ? `<img src="${photoUrl}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;">`
-                : `<div style="width:40px; height:40px; border-radius:8px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">NO IMG</div>`;
-
-            // Kolom 3 & 4: Nama & Perusahaan
-            row.insertCell(3).innerText = l.nama || "-";
-            row.insertCell(4).innerText = l.perusahaan || "-";
+            // Kolom 1: Waktu
+            row.insertCell(1).innerText = new Date(entry.timestamp).toLocaleString("id-ID");
             
-            // Kolom 5: Kategori
-            row.insertCell(5).innerHTML = `<span class="badge badge-${(l.kategori || 'umum').toLowerCase()}">${l.kategori || 'Visitor'}</span>`;
-
-            // Kolom 6: STATUS (Logika Warna Tajam Security)
-            let currentStatus = v.currentStatus || "OUT";
-            let statusText = "DAFTAR";
-            let statusColor = "#6b7280"; // Abu-abu default
-
-            if (currentStatus === "IN") {
-                statusText = "DI DALAM";
-                statusColor = "#16a34a"; // Hijau Tajam
-            } else {
-                statusText = "SELESAI";
-                statusColor = "#dc2626"; // Merah
-            }      
-            row.insertCell(6).innerHTML = `<span style="background:${statusColor}; color:white; padding:4px 10px; border-radius:999px; font-size:10px; font-weight:bold;">${statusText}</span>`;
-
-            // Kolom 7: Aksi (Sesuai order kolom di HTML Bapak)
-            let actionCell = row.insertCell(7);
-            actionCell.innerHTML = `<button class="btn-outline" style="padding:4px 8px;" onclick="showPreview('${l.reg}', visitors['${l.reg}'])">🖨️ PDF</button>`;
-
-            // Kolom 8: Waktu
-            let timeDisplay = l.timestamp ? new Date(l.timestamp).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : "-";
+            // Kolom 2: REG ID
+            row.insertCell(2).innerText = entry.reg;
             
-            // Kolom 9: Site
-            row.insertCell(9).innerText = l.site_id || "-";
-        }); 
+            // Kolom 3: Nama
+            const visitor = visitors[entry.reg] || {};
+            row.insertCell(3).innerText = visitor.nama || "Unknown";
+            
+            // Kolom 4: Perusahaan
+            row.insertCell(4).innerText = visitor.perusahaan || "-";
+            
+            // Kolom 5: Aksi (REGISTER/IN/OUT)
+            let badgeClass = entry.action === "CHECK_IN" ? "bg-success" : (entry.action === "CHECK_OUT" ? "bg-danger" : "bg-primary");
+            row.insertCell(5).innerHTML = `<span class="badge ${badgeClass}">${entry.action}</span>`;
+            
+            // Kolom 6: PIC
+            row.insertCell(6).innerText = visitor.pic || "-";
 
-        if (filtered.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#999;">📭 Tidak ada data tamu yang cocok</td></tr>`;
-        }
+            // Kolom 7: Site ID
+            row.insertCell(7).innerText = visitor.site_id || SITE_ID;
 
-    } catch (e) { 
-        console.error("renderLogTable error:", e); 
-    }  
+            // Kolom 8: Keterangan (Opsional/Sisa)
+            row.insertCell(8).innerText = entry.details || "-";
+
+            // JANGAN DITAMBAH insertCell(9) kalau di HTML <thead> cuma ada 9 kolom!
+        });
+    } catch (e) {
+        console.error("renderLogTable error:", e);
+    }
 }
-
-
 
 // ================= QR SCAN PROCESS (FIXED) =================
 async function processScan(qrText) {  
