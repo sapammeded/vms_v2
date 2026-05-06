@@ -135,12 +135,59 @@
 <div id="vmsSiteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:10001;"><div style="background:white; border-radius:28px; padding:28px; width:420px; max-width:90%;"><h3>⚙️ Edit Site Names</h3><div style="margin-bottom:16px;"><label>🏭 SITE A</label><input type="text" id="vmsA" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏢 SITE B</label><input type="text" id="vmsB" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏬 SITE C</label><input type="text" id="vmsC" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="display:flex; gap:12px;"><button id="vmsSaveBtn" onclick="vmsSite_submit()" style="background:#1f4e4a;">💾 Save</button><button onclick="vmsSite_close()" class="btn-outline">Cancel</button></div></div></div>
 
 <script>
-// ================= GLOBAL DATA CORE (PENAWAR ERROR) =================
-// Menyiapkan wadah data utama agar tidak muncul error "vmsData is not defined"
+// ================= GLOBAL DATA CORE & AUTO-SYNC =================
 let vmsData = {
-    logs: [],       // Daftar riwayat tamu
-    visitors: {}    // Detail foto dan data visitor per REG
+    logs: [],       
+    visitors: {}    
 };
+
+let centralData = []; 
+
+async function syncMultiDevice() {
+    if (!navigator.onLine) return;
+    try {
+        // Menggunakan APPS_SCRIPT_URL yang sudah lo definisikan di bawah
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=pull`);
+        const result = await response.json();
+        
+        if (result.status === "success" && result.data) {
+            const headers = result.data[0];
+            const rows = result.data.slice(1);
+            
+            // Konversi array Sheets ke Object agar mudah dibaca (Fix Undefined)
+            centralData = rows.map(row => {
+                let obj = {};
+                headers.forEach((h, i) => {
+                    // Mapping header ke nama yang digunakan di PDF
+                    let key = h.toUpperCase();
+                    obj[key] = row[i];
+                    // Mapping cadangan untuk case sensitive
+                    if(key === "NAMA") obj.nama = row[i];
+                    if(key === "PERUSAHAAN") obj.perusahaan = row[i];
+                    if(key === "REG") obj.reg = row[i];
+                    if(key === "PIC") obj.pic = row[i];
+                });
+                return obj;
+            });
+            
+            // Sinkronkan ke log utama
+            vmsData.logs = centralData;
+            
+            // Update UI Otomatis
+            if (typeof renderLogTable === "function") renderLogTable();
+            if (typeof renderDashboard === "function") renderDashboard();
+            
+            console.log("🔄 Sync Berhasil: " + centralData.length + " data ditarik.");
+        }
+    } catch (err) {
+        console.warn("⚠️ Sync Background Gagal:", err.message);
+    }
+}
+
+// Jalankan sync tiap 60 detik
+setInterval(syncMultiDevice, 60000);
+
+
 
 // ================= FAILSAFE CORE =================
 window.VMS_SAFE = true;
@@ -232,7 +279,7 @@ function updateQueueStatus() {
         : `✅ Sync OK`;  
 }
 
-// FIX POINT 1: Fungsi Antrean Agar Tidak Halu saat Offline
+// Fungsi Antrean Agar Tidak Halu saat Offline
 function addToQueue(action, reg, data = {}) {
     if (!Array.isArray(syncQueue)) syncQueue = [];
     
@@ -974,7 +1021,24 @@ async function ensureJSPDF() {
     });  
 }  
 
-function showPreview(reg, data) { generateQRandShow(reg, data); }  
+// ================= UPGRADE 3: FIX UNDEFINED PDF =================
+function showPreview(reg, data) { 
+    // 1. Cari data di centralData (database pusat) berdasarkan nomor REG
+    // Kita cek versi huruf besar (REG) dan huruf kecil (reg) biar aman
+    const dataUtuh = centralData.find(item => (item.REG || item.reg) == reg) || data;
+    
+    // 2. Mapping data agar Nama & PIC terbaca oleh fungsi PDF
+    if (!dataUtuh.nama) dataUtuh.nama = dataUtuh.NAMA || dataUtuh.Nama || "Visitor";
+    if (!dataUtuh.pic) dataUtuh.pic = dataUtuh.PIC || dataUtuh.Pic || "-";
+    if (!dataUtuh.perusahaan) dataUtuh.perusahaan = dataUtuh.PERUSAHAAN || dataUtuh.Perusahaan || "-";
+    
+    // 3. Ambil foto dari data lokal (karena di Sheets biasanya gak ada foto)
+    if (data.foto) dataUtuh.foto = data.foto;
+
+    // 4. Kirim data yang sudah lengkap ke fungsi QR & PDF
+    generateQRandShow(reg, dataUtuh); 
+}
+
 
 // ================= REPLACE TOTAL DISINI =================
 
@@ -1443,19 +1507,27 @@ document.querySelectorAll(".nav-item, .mobile-nav").forEach(el => { if (el.datas
 document.getElementById("mobileMenuBtn").onclick = () => { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.add("open"); if (overlay) overlay.style.display = "block"; };  
 document.getElementById("overlay").onclick = () => { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.remove("open"); if (overlay) overlay.style.display = "none"; };  
 
-// ================= CORE INITIALIZATION & AUTO-SYNC (POINT 2) =================
+// ================= CORE INITIALIZATION (STARTUP UPGRADE) =================
 if (window._vmsIntervals) { window._vmsIntervals.forEach(clearInterval); }  
 window._vmsIntervals = [];  
 
 async function initVmsSystem() {
-    // 1. Load Data Lokal agar aplikasi tidak kosong saat dibuka
+    // 1. POINT PENTING: Jalankan Sync Multi-Device saat aplikasi pertama dibuka
+    if (navigator.onLine) {
+        console.log("🚀 Startup Sync: Menarik data terbaru dari server...");
+        await syncMultiDevice(); 
+    }
+
+    // 2. Muat data dari penyimpanan internal HP (Oppo A92)
     secureLoad();
     vmsSite_load();   
     setSite(SITE_ID);
+    
+    // 3. Render Dashboard & Tabel agar data langsung muncul di layar
     renderDashboard();  
     renderLogTable();  
 
-    // 2. Inisialisasi Antrean (Queue)
+    // 4. Cek Antrean (Queue) jika ada data yang belum terkirim
     try { 
         const saved = localStorage.getItem("vms_sync_queue"); 
         if (saved) syncQueue = JSON.parse(saved); 
@@ -1464,16 +1536,7 @@ async function initVmsSystem() {
         console.error("initQueue error:", e); 
     }
 
-    // 3. POINT 2: SINKRONISASI INSTAN SAAT START-UP
-    // Begitu aplikasi terbuka, langsung tarik data terbaru dari Google Sheets
-    if (navigator.onLine) {
-        console.log("🔄 Melakukan sinkronisasi awal...");
-        await pullFromSheet(); 
-        renderDashboard(); // Update dashboard setelah tarik data
-        renderLogTable();  // Update tabel setelah tarik data
-    }
-
-    // 4. Setel Interval Sinkronisasi Berkala (Latar Belakang)
+    // 5. Atur Jadwal Sinkronisasi Otomatis (Background)
     let syncInterval = setInterval(() => { 
         if (navigator.onLine) pullFromSheet(); 
     }, SYNC_INTERVAL_MS);  
@@ -1485,10 +1548,10 @@ async function initVmsSystem() {
     window._vmsIntervals.push(syncInterval, queueInterval);
 }
 
-// Jalankan Inisialisasi
+// Jalankan Inisialisasi Sistem
 initVmsSystem();
 
-// Event Listener saat halaman ditutup/pindah
+// Event Listener Cleanup saat halaman ditutup
 window.addEventListener("beforeunload", () => { 
     if (scannerInstance) { 
         try { scannerInstance.stop(); scannerInstance.clear(); } catch (e) {} 
@@ -1497,6 +1560,7 @@ window.addEventListener("beforeunload", () => {
     window._vmsIntervals.forEach(clearInterval); 
     secureSave(); 
 });
+
 
 // ================= SITE MANAGEMENT FUNCTIONS =================
 function vmsSite_load() { 
