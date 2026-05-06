@@ -228,9 +228,31 @@ function generateReg() {
         reg = "REG" + Date.now() + Math.floor(Math.random() * 10000);  
         attempts++;  
         if (attempts > 10) break;  
-    } while (visitors[SITE_ID + "_" + reg]);  
+    } while (visitors[reg]); // CEK GLOBAL REG
     return reg;  
 }  
+
+function addLocalLog(reg, action) {  
+    let v = visitors[reg]; // CARI GLOBAL
+    let name = v?.nama || reg;  
+    let company = v?.perusahaan || "";  
+    let category = v?.kategori || "UMUM";  
+    logs.unshift({
+        reg,
+        name,
+        company,
+        category,
+        photo: v?.foto || "",
+        currentStatus: v?.currentStatus || "OUT",
+        action,
+        time: Date.now(),
+        site: SITE_ID,
+        site_name: getSiteName(SITE_ID)
+    });
+    if (logs.length > 2000) logs = logs.slice(0, 1500);  
+    secureSave();  
+}  
+
 
 // ================= HARDENED STORAGE =================
 function secureSave() {
@@ -285,7 +307,7 @@ setInterval(cleanMemory, 60000);
 
 function addLocalLog(reg, action) {  
     let siteKey = SITE_ID + "_" + reg;  
-    let v = visitors[siteKey];  
+    let v = visitors[reg];  
     let name = v?.nama || reg;  
     let company = v?.perusahaan || "";  
     let category = v?.kategori || "UMUM";  
@@ -599,17 +621,20 @@ row.insertCell(8).innerText =
 // SITE
 row.insertCell(9).innerText =
     l.site_name || l.site || "SITE_A";
+                        
             let btn = document.createElement("button");  
             btn.innerText = "PDF";  
             btn.classList.add("btn-outline");  
             btn.style.padding = "4px 12px";  
-            let key = SITE_ID + "_" + l.reg;  
-            let v = visitors[key];  
+
+            // Global search
+            let v = visitors[l.reg];  
+
             if (v) btn.onclick = () => showPreview(l.reg, v);  
-            row.insertCell(10).appendChild(btn);  
-        });  
+            row.insertCell(10).appendChild(btn); 
+        }); 
     } catch (e) { console.error("renderLogTable error:", e); }  
-}  
+}
 
 // ================= QR SCAN PROCESS (FIXED) =================
 async function processScan(qrText) {  
@@ -627,22 +652,13 @@ async function processScan(qrText) {
     qrText = qrText.trim();  
     const mode = document.getElementById("scanMode").value;  
     
-    // QR bisa berupa REG langsung atau format dengan prefix
     let reg = null;
-    
-    // Cek apakah QR berisi format REGxxxxx
     if (qrText.match(/^REG\d+/i)) {
         reg = qrText;
-    } 
-    // Cek apakah QR berisi format REGxxxxx|VMS2026
-    else if (qrText.includes("|")) {
+    } else if (qrText.includes("|")) {
         const parts = qrText.split("|");
-        if (parts[0].match(/^REG\d+/i)) {
-            reg = parts[0];
-        }
-    }
-    // Coba validasi via backend
-    else {
+        if (parts[0].match(/^REG\d+/i)) reg = parts[0];
+    } else {
         let validation = await validateQRCode(qrText);
         if (validation.status === "success" && validation.data && validation.data.reg) {
             reg = validation.data.reg;
@@ -650,21 +666,19 @@ async function processScan(qrText) {
     }
     
     if (!reg) {
-        toast("QR tidak valid! Format harus REGxxxxx", "error");
+        toast("QR tidak valid!", "error");
         globalScanLock = false;
         return false;
     }
     
     const nowTime = Date.now();  
     if (lastScanTime[reg] && nowTime - lastScanTime[reg] < SCAN_COOLDOWN_MS) { 
-        toast("Scan terlalu cepat", "warning"); 
         globalScanLock = false; 
         return false;
     }  
     lastScanTime[reg] = nowTime;  
     
     if (processingRegs.has(reg)) { 
-        toast("Sedang diproses", "warning"); 
         globalScanLock = false; 
         return false;
     }  
@@ -672,75 +686,36 @@ async function processScan(qrText) {
     actionMutex = true;  
     
     try {  
-        let siteKey = SITE_ID + "_" + reg;  
-        let visitor = visitors[siteKey];  
+        // FIX: Cari secara GLOBAL tanpa SITE_ID
+        let visitor = visitors[reg]; 
+        
         if (!visitor) {  
-            visitor = { 
-                nama: "Unknown", 
-                perusahaan: "", 
-                kategori: "UMUM", 
-                tujuan: "-", 
-                pic: "-", 
-                dept: "-", 
-                startDate: "", 
-                expDate: "", 
-                foto: "", 
-                sessions: [], 
-                currentStatus: "OUT", 
-                updatedAt: Date.now() 
-            };  
-visitor.foto = data?.foto || visitor.foto || "";
-            visitors[siteKey] = visitor;  
+            // Jika data belum ada di local gate ini, biarkan server yang validasi
+            // Data akan ditarik otomatis saat pullFromSheet selanjutnya
+            visitor = { nama: "Visitor", currentStatus: "OUT", sessions: [] };
         }  
         
-        let today = new Date();  
-        let expDate = visitor.expDate ? new Date(visitor.expDate) : null;
-        if (expDate && !isNaN(expDate.getTime())) {
-            expDate.setHours(23, 59, 59, 999);
-            if (expDate < today) { 
-                toast("Visitor sudah expired!", "error"); 
-                return false;
-            }
-        }
-        
         if (mode === "CHECK_IN") {
-            let hasOpen = visitor.sessions?.some(s => !s.checkOut);
-            if (hasOpen) {
-                toast("Sudah dalam keadaan CHECK-IN!", "warning");
-                return false;
-            }
             let result = await checkinVisitor(reg);
             if (result.status === "success") {
-                if (!visitor.sessions) visitor.sessions = [];
-                visitor.sessions.push({ checkIn: Date.now(), checkOut: null });
                 visitor.currentStatus = "IN";
-                visitor.updatedAt = Date.now();
-                visitors[siteKey] = visitor;
+                visitors[reg] = visitor; // SIMPAN GLOBAL
                 addLocalLog(reg, "CHECK_IN");
                 vibrate();
-                toast(`✅ CHECK-IN ${visitor.nama} berhasil`, "success");
-            } else if (result.status === "already_in") {
-                toast("Sudah CHECK-IN!", "warning");
+                toast(`✅ IN: ${visitor.nama}`, "success");
             } else {
-                addToQueue("checkin", reg);
-                toast("⏳ Masuk queue (offline/gagal)", "warning");
+                toast("Gagal Check-in", "error");
             }
         } else {
             let result = await checkoutVisitor(reg);
             if (result.status === "success") {
-                let openSession = visitor.sessions?.find(s => !s.checkOut);
-                if (openSession) openSession.checkOut = Date.now();
                 visitor.currentStatus = "OUT";
-                visitor.updatedAt = Date.now();
-                visitors[siteKey] = visitor;
+                visitors[reg] = visitor; // SIMPAN GLOBAL
                 addLocalLog(reg, "CHECK_OUT");
                 vibrate();
-                toast(`✅ CHECK-OUT ${visitor.nama} berhasil`, "success");
-            } else if (result.status === "not_checked_in") {
-                toast("Belum CHECK-IN!", "warning");
+                toast(`✅ OUT: ${visitor.nama}`, "success");
             } else {
-                addToQueue("checkout", reg);
-                toast("⏳ Masuk queue", "warning");
+                toast("Gagal Check-out", "error");
             }
         }
         renderDashboard();  
@@ -750,7 +725,6 @@ visitor.foto = data?.foto || visitor.foto || "";
         return true;  
     } catch (e) {  
         console.error("processScan error:", e);  
-        toast("Error proses scan", "error");
         return false;  
     } finally {  
         actionMutex = false;  
@@ -758,6 +732,7 @@ visitor.foto = data?.foto || visitor.foto || "";
         setTimeout(() => processingRegs.delete(reg), 1000);  
     }  
 }  
+
 
 async function generateQRandShow(reg, data) {  
     try {
@@ -1016,9 +991,9 @@ document.getElementById("generateQRBtn").onclick = async () => {
         let startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);  
         let expDate = document.getElementById("regExpDate").value;  
         if (!nama || !perusahaan || !pic || !dept || !expDate) { toast("Lengkapi semua field wajib", "error"); return; }  
+      
         let reg = generateReg();  
-        let siteKey = SITE_ID + "_" + reg;  
-        if (visitors[siteKey]) { toast("REG sudah ada di local!", "warning"); return; }  
+        if (visitors[reg]) { toast("REG sudah ada!", "warning"); return; }  
         let foto = "";  
         let file = document.getElementById("regPhotoFile").files[0];  
         if (file) {  
@@ -1038,11 +1013,20 @@ document.getElementById("generateQRBtn").onclick = async () => {
             } catch (e) { console.warn("Photo processing error:", e); }  
         }  
         let data = { nama, perusahaan, kategori, tujuan, pic, dept, startDate, expDate, foto, sessions: [], currentStatus: "OUT", updatedAt: Date.now() };  
-        visitors[siteKey] = data;  
+        
+        // Simpan global menggunakan REG sebagai key
+        visitors[reg] = data;  
         addLocalLog(reg, "REGISTER");  
+
         let result = await registerVisitor(reg, data);  
         if (!result || typeof result !== "object") { addToQueue("register", reg, data); toast(`⚠️ ${nama} ditambahkan ke antrian`, "warning"); renderDashboard(); renderLogTable(); secureSave(); return; }  
-        if (result.status === "duplicate") { toast("REG sudah terdaftar di server!", "warning"); delete visitors[siteKey]; secureSave(); return; }  
+                if (result.status === "duplicate") { 
+            toast("REG sudah terdaftar di server!", "warning"); 
+            delete visitors[reg]; // <--- SEKARANG PAKAI REG
+            secureSave(); 
+            return; 
+        }
+
         if (result.status !== "success") addToQueue("register", reg, data);  
         toast(`✅ ${nama} terdaftar (${reg})`, "success");  
         vibrate();
@@ -1077,10 +1061,10 @@ document.getElementById("walkinBtn").onclick = async () => {
         exp.setDate(exp.getDate() + 1);  
         let walkData = { nama: `WALK-IN ${now.toLocaleString()}`, perusahaan: "Guest Visitor", kategori: "UMUM", tujuan: "Immediate Visit", pic: "Reception", dept: "Umum", startDate: now.toISOString().slice(0, 10), expDate: exp.toISOString().slice(0, 10), foto: "", sessions: [], currentStatus: "OUT", updatedAt: Date.now() };  
         let siteKey = SITE_ID + "_" + reg;  
-        visitors[siteKey] = walkData;  
+        visitors[reg] = walkData;  
         addLocalLog(reg, "WALK-IN");  
         let result = await walkinVisitor(reg, walkData);  
-        if (result.status === "duplicate") { toast("REG sudah terdaftar!", "warning"); delete visitors[siteKey]; secureSave(); return; }  
+        if (result.status === "duplicate") { toast("REG sudah terdaftar!", "warning"); delete visitors[reg]; secureSave(); return; }  
         if (result.status !== "success") addToQueue("walkin", reg, walkData);  
         toast(`Walk-in registered ${reg}`, "success");  
         vibrate();
@@ -1154,21 +1138,21 @@ document.getElementById("manualProcess").onclick = async () => {
     actionMutex = true;  
     lockUI(true);
     try {  
-        let reg = document.getElementById("manualReg").value.trim();  
+        
+ let reg = document.getElementById("manualReg").value.trim();  
         const mode = document.getElementById("scanMode").value;  
         
         if (!reg || !reg.match(/^REG\d+/i)) {
-            toast("Format REG salah (contoh: REG20260504001)", "error");
+            toast("Format REG salah!", "error");
             return;
         }
         
-        let siteKey = SITE_ID + "_" + reg;  
-        let visitor = visitors[siteKey];  
+        let visitor = visitors[reg]; // Mencari langsung berdasarkan REG
         if (!visitor) { 
-            toast("REG tidak ditemukan", "error"); 
+            toast("REG tidak ditemukan!", "error"); 
             return; 
         }  
-        
+  
         let expDate = visitor.expDate ? new Date(visitor.expDate) : null;
         if (expDate && !isNaN(expDate.getTime())) {
             expDate.setHours(23, 59, 59, 999);
@@ -1190,7 +1174,7 @@ document.getElementById("manualProcess").onclick = async () => {
                 visitor.sessions.push({ checkIn: Date.now(), checkOut: null });
                 visitor.currentStatus = "IN";
                 visitor.updatedAt = Date.now();
-                visitors[siteKey] = visitor;
+                visitors[reg] = visitor;
                 addLocalLog(reg, "CHECK_IN");
                 vibrate();
                 toast(`Check-in ${visitor.nama} success`, "success");
@@ -1211,7 +1195,7 @@ document.getElementById("manualProcess").onclick = async () => {
                 openSession.checkOut = Date.now();
                 visitor.currentStatus = "OUT";
                 visitor.updatedAt = Date.now();
-                visitors[siteKey] = visitor;
+                visitors[reg] = visitor;
                 addLocalLog(reg, "CHECK_OUT");
                 vibrate();
                 toast(`Check-out ${visitor.nama} success`, "success");
@@ -1238,15 +1222,19 @@ document.getElementById("manualProcess").onclick = async () => {
 document.getElementById("refreshLogsBtn").onclick = () => { pullFromSheet(); renderLogTable(); };  
 document.getElementById("selectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = true);  
 document.getElementById("deselectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = false);  
+
 document.getElementById("deleteSelectedBtn").onclick = () => {  
     let regs = [...new Set([...document.querySelectorAll(".logCheckItem:checked")].map(c => c.dataset.reg))];  
-    regs.forEach(r => delete visitors[SITE_ID + "_" + r]);  
+    // Hapus dari data visitor secara global
+    regs.forEach(r => delete visitors[r]);  
+    // Hapus dari tampilan logs
     logs = logs.filter(l => !regs.includes(l.reg));  
     secureSave();  
     renderDashboard();  
     renderLogTable();  
-    toast(`Deleted ${regs.length} records`, "success");  
+    toast(`Berhasil menghapus ${regs.length} data`, "success");  
 };  
+
 document.getElementById("deleteAllBtn").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("All data cleared", "info"); };  
 document.getElementById("backupAction").onclick = () => { try { let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify({ visitors, logs })], { type: "application/json" })); a.download = `vms_backup_${Date.now()}.json`; a.click(); toast("Backup ready", "success"); } catch (e) { toast("Backup gagal", "error"); console.error("backup error:", e); } };  
 document.getElementById("resetDatabaseAction").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("Database reset", "info"); };  
@@ -1255,23 +1243,31 @@ document.getElementById("submitLicenseBtn").onclick = () => { let input = docume
 document.getElementById("siteSelector").onchange = (e) => setSite(e.target.value);  
 document.getElementById("siteSelectorTop").onchange = (e) => setSite(e.target.value);  
 
+
 function exportToExcel() {  
     try {  
         if (!window.XLSX) { toast("Excel engine belum siap", "error"); return; }  
         let dataForExcel = [];  
-        Object.entries(visitors).forEach(([siteKey, visitor]) => {  
-            if (!siteKey.startsWith(SITE_ID + "_")) return;  
-            let reg = siteKey.replace(SITE_ID + "_", "");  
+        Object.entries(visitors).forEach(([reg, visitor]) => {  
             let jamMasuk = "-", jamKeluar = "-", durasi = "-", keterangan = "";  
             if (visitor.sessions && visitor.sessions.length > 0) {  
                 let last = visitor.sessions[visitor.sessions.length - 1];  
                 if (last.checkIn) jamMasuk = new Date(last.checkIn).toLocaleString("id-ID");  
                 if (last.checkOut) jamKeluar = new Date(last.checkOut).toLocaleString("id-ID");  
                 if (last.checkIn && last.checkOut) durasi = Math.floor((last.checkOut - last.checkIn) / 60000) + " menit";  
-                keterangan = visitor.currentStatus === "IN" ? "Sedang di dalam" : (last.checkOut ? "Sudah check-out" : "Belum check-in");  
-            } else keterangan = "Belum pernah check-in";  
-            if (visitor.expDate && new Date(visitor.expDate) < new Date()) keterangan = "❌ EXPIRED - " + keterangan;  
-            dataForExcel.push({ "Nama": visitor.nama || "-", "Perusahaan": visitor.perusahaan || "-", "Tujuan": visitor.tujuan || "-", "PIC": visitor.pic || "-", "Start Date": visitor.startDate || "-", "Expired Date": visitor.expDate || "-", "Jam Masuk": jamMasuk, "Jam Keluar": jamKeluar, "Durasi": durasi, "Nomor Registrasi": reg, "Keterangan": keterangan });  
+                keterangan = visitor.currentStatus === "IN" ? "Di Dalam" : (last.checkOut ? "Sudah Keluar" : "Belum Check-in");  
+            } else keterangan = "Data Terdaftar";  
+            
+            dataForExcel.push({ 
+                "Nama": visitor.nama || "-", 
+                "Perusahaan": visitor.perusahaan || "-", 
+                "Kategori": visitor.kategori || "-",
+                "PIC": visitor.pic || "-", 
+                "Jam Masuk": jamMasuk, 
+                "Jam Keluar": jamKeluar, 
+                "REG": reg, 
+                "Keterangan": keterangan 
+            });  
         });  
         if (dataForExcel.length === 0) { toast("Tidak ada data", "warning"); return; }  
         let ws = XLSX.utils.json_to_sheet(dataForExcel);  
