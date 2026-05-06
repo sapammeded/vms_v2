@@ -146,13 +146,11 @@ let centralData = [];
 async function syncMultiDevice() {
     if (!navigator.onLine) return;
     try {
-        // MODIFIKASI DISINI: Tambahkan timestamp (?t=...) agar browser selalu ambil data FRESH
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=pull&t=${new Date().getTime()}`, {
+        // Tambahkan timestamp agar browser tidak ambil data lama (Cache)
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=pull&t=${Date.now()}`, {
             method: 'GET',
             redirect: 'follow' 
         });
-        
-        if (!response.ok) throw new Error('Network response was not ok');
         
         const result = await response.json();
         
@@ -160,29 +158,37 @@ async function syncMultiDevice() {
             const headers = result.data[0];
             const rows = result.data.slice(1);
             
-            // Konversi data Sheet ke Object (PENTING: Semua Key jadi UPPERCASE)
+            // Mapping data agar key-nya sesuai dengan yang dipahami renderLogTable
             centralData = rows.map(row => {
                 let obj = {};
                 headers.forEach((h, i) => {
-                    let key = h.toString().toUpperCase().trim();
+                    // Paksa semua key jadi lowercase agar sinkron dengan logika visitors[reg]
+                    let key = h.toString().toLowerCase().trim();
                     obj[key] = row[i];
                 });
                 return obj;
             });
             
-            // Update log utama dengan data terbaru dari server
-            vmsData.logs = centralData;
+            // Update logs utama
+            logs = centralData.map(item => ({
+                reg: item.reg,
+                nama: item.nama,
+                perusahaan: item.perusahaan,
+                kategori: item.kategori,
+                timestamp: new Date(item.logtime).getTime(),
+                status: item.status,
+                site_id: item.site
+            }));
             
-            // Refresh tampilan tabel dan dashboard detik itu juga
             renderLogTable();
             renderDashboard();
-            
-            console.log("✅ Sync Multi-Device Berhasil! Total: " + centralData.length + " data.");
+            console.log("✅ Data Terupdate Detik Ini!");
         }
     } catch (err) {
-        console.warn("⚠️ Sync Gagal (Mungkin CORS atau URL salah):", err.message);
+        console.warn("⚠️ Sync Gagal:", err.message);
     }
 }
+
 
 // Jalankan sync otomatis tiap 60 detik (bisa lo perpendek jadi 30000 kalau mau lebih cepat)
 setInterval(syncMultiDevice, 60000);
@@ -245,7 +251,7 @@ var vmsSiteData = {
 };
 
 // ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA ⚠️
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnPclWGF7Dv3aaXN-9014V1RfkOhW-K7ITy1KFxAnaTwW9BWYRtnFyO7JBtgVSTlCT/exec";  
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz3kDhwwU6_in5Vc7B8jgJtr5x2Ilep8S9x93NzeDrm-TDLdY9xhdGzFo7JRtw7rtY/exec";  
 const SYNC_INTERVAL_MS = 10000;  
 // ================= CORE VARIABLES & QUEUE ENGINE =================
 let visitors = {};  
@@ -442,6 +448,7 @@ async function apiCall(params) {
 }
 
 // Integrasi Action dengan Mapping Data yang Benar (Sesuai Kolom Sheets Bapak)
+// Fungsi Kirim ke API (Ganti yang lama dengan ini)
 async function registerVisitor(reg, data) {  
     return await apiCall({ 
         action: "register", 
@@ -454,9 +461,8 @@ async function registerVisitor(reg, data) {
         startDate: data.startDate,
         expDate: data.expDate,
         kategori: data.kategori, 
-        site_id: SITE_ID, 
-        site_name: (getSiteName(SITE_ID) || SITE_ID).trim(), 
-        photo: "" 
+        photoBase64: data.foto, // GS akan proses ini jadi link Drive
+        site_id: SITE_ID 
     });  
 }  
 
@@ -472,11 +478,11 @@ async function walkinVisitor(reg, data) {
         startDate: data.startDate,
         expDate: data.expDate,
         kategori: data.kategori, 
-        site_id: SITE_ID, 
-        site_name: (getSiteName(SITE_ID) || SITE_ID).trim(), 
-        photo: "" 
+        photoBase64: "", 
+        site_id: SITE_ID 
     });  
-}  
+}
+
 
 async function checkinVisitor(reg) { 
     return await apiCall({ action: "checkin", reg: reg, site_id: SITE_ID }); 
@@ -745,7 +751,6 @@ function renderLogTable() {
 
             // Kolom 8: Waktu
             let timeDisplay = l.timestamp ? new Date(l.timestamp).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : "-";
-            row.insertCell(8).innerText = timeDisplay;
             
             // Kolom 9: Site
             row.insertCell(9).innerText = l.site_id || "-";
@@ -1147,7 +1152,8 @@ function setSite(site) {
 document.getElementById("generateQRBtn").onclick = async () => {  
     if (actionMutex) return;  
     actionMutex = true;  
-    lockUI(true);
+    lockUI(true); // Layar dikunci biar gak double klik
+
     try {  
         let nama = document.getElementById("regName").value.trim();  
         let perusahaan = document.getElementById("regCompany").value.trim();  
@@ -1160,11 +1166,99 @@ document.getElementById("generateQRBtn").onclick = async () => {
         let startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);  
         let expDate = document.getElementById("regExpDate").value;  
 
-        // Validasi ketat sebelum proses
+        // [FIX] Validasi harus buka kunci UI kalau gagal
         if (!nama || !perusahaan || !pic || !dept || !expDate) { 
-            toast("Lengkapi semua field wajib", "error"); 
+            toast("Lengkapi semua field wajib, Komandan!", "error"); 
+            actionMutex = false; // Buka kunci mutex
+            lockUI(false);      // Buka kunci layar
             return; 
         }  
+      
+        let reg = generateReg();  
+        
+        let foto = "";  
+        let file = document.getElementById("regPhotoFile").files[0];  
+        if (file) {  
+            try {  
+                let reader = await new Promise(resolve => { 
+                    let fr = new FileReader(); 
+                    fr.onload = () => resolve(fr.result); 
+                    fr.readAsDataURL(file); 
+                });  
+                let img = new Image();  
+                img.src = reader;  
+                await new Promise(r => img.onload = r);  
+                let canvas = document.createElement("canvas");  
+                let maxWidth = 400;  
+                let scale = maxWidth / img.width;  
+                canvas.width = maxWidth;  
+                canvas.height = img.height * scale;  
+                let ctx = canvas.getContext("2d");  
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);  
+                foto = canvas.toDataURL("image/jpeg", 0.5);  
+            } catch (e) { console.warn("Gagal proses foto, lanjut tanpa foto."); }  
+        }  
+
+        // Simpan Data Lokal (Full data termasuk foto untuk PDF)
+        let dataLocal = { 
+            nama, perusahaan, kategori, tujuan, pic, dept, 
+            startDate, expDate, foto, sessions: [], 
+            currentStatus: "OUT", updatedAt: Date.now() 
+        };  
+        
+        visitors[reg] = dataLocal;  
+        addLocalLog(reg, "REGISTER");  
+        secureSave();
+
+        // [PENTING] Payload yang dikirim ke GS harus pas dengan p.action, p.reg, dll
+        let payload = { 
+            action: "register", 
+            reg: reg, 
+            nama: nama,
+            perusahaan: perusahaan, 
+            tujuan: tujuan,
+            pic: pic, 
+            dept: dept, 
+            startDate: startDate, 
+            expDate: expDate,
+            kategori: kategori, 
+            photoBase64: foto, // Masuk ke p.photoBase64 di GS
+            site_id: SITE_ID 
+        };
+
+        // Kirim ke Cloud
+        let result = await apiCall(payload);  
+        
+        if (!result || result.status !== "success") {
+            addToQueue("register", reg, payload); // Masuk antrean kalau lemot/offline
+            toast(`⚠️ Tersimpan di HP (Antrean Cloud)`, "warning"); 
+        } else {
+            toast(`✅ Berhasil Sync ke Cloud!`, "success");
+        }
+
+        toast(`✅ Terdaftar: ${nama} (${reg})`, "success");  
+        vibrate();
+        generateQRandShow(reg, dataLocal); // Tampilkan QR
+        
+        // Reset Form
+        ["regName", "regCompany", "regPic", "regDept", "regPhotoFile", "regCustomPurpose"].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = "";
+        });
+        document.getElementById("previewPhotoThumb").src = "";  
+        
+        renderDashboard();  
+        renderLogTable();  
+        
+    } catch (e) {  
+        console.error("Critical Error:", e);  
+        toast("Sistem Error!", "error");  
+    } finally {  
+        actionMutex = false;  
+        lockUI(false); // Pastikan layar kebuka lagi apa pun yang terjadi
+    }  
+};
+
       
         let reg = generateReg();  
         if (visitors[reg]) { toast("REG sudah ada!", "warning"); return; }  
@@ -1613,21 +1707,31 @@ function vmsSite_close() {
     if (modal) modal.style.display = "none"; 
 }  
 
-function vmsSite_submit() {  
-    let vmsA = document.getElementById("vmsA");  
-    let vmsB = document.getElementById("vmsB");  
-    let vmsC = document.getElementById("vmsC");  
-    let newNames = { ...vmsSiteData.names };  
-    if (vmsA) newNames.SITE_A = vmsA.value.trim() || "SITE A";  
-    if (vmsB) newNames.SITE_B = vmsB.value.trim() || "SITE B";  
-    if (vmsC) newNames.SITE_C = vmsC.value.trim() || "SITE C";  
-    vmsSiteData.names = newNames;  
+async function vmsSite_submit() {  
+    let vmsA = document.getElementById("vmsA").value.trim();
+    // Kita ambil site yang aktif saja untuk diupdate ke Sheets
+    let activeName = (SITE_ID === "SITE_A") ? vmsA : document.getElementById("vmsB").value.trim();
+
+    try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            body: new URLSearchParams({ action: "rename", newName: activeName })
+        });
+        const result = await res.json();
+        if(result.status === "success") {
+            toast("✅ Nama Site di Cloud Terupdate!", "success");
+        }
+    } catch(e) {
+        console.error("Gagal update cloud site name");
+    }
+
+    // Update lokal tetap jalan
+    vmsSiteData.names.SITE_A = vmsA;  
     vmsSite_save();  
     vmsSite_applyToUI();  
-    if (typeof toast === "function") toast("✅ Site names saved!", "success");  
     vmsSite_close();  
 }
-vmsSite_load(); 
+
 
 </script>
 </body>
