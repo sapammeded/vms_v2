@@ -134,8 +134,79 @@ let processingRegs = new Set();
 let lastScanTime = {};
 let scanCounter = 0;
 const SCAN_COOLDOWN_MS = 3000;
+const MAX_VISITORS = 800;
+const MAX_LOGS = 300;
+
+let syncTimer = null;
+let runtimeListenersBound = false;
+let lastPullAt = 0;
+let localMutationAt = 0;
+let activePreviewModal = null;
+
+function sleep(ms) { return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
+
+function normalizeQueueItem(item) {
+    if (!item || !item.type || !item.reg) return null;
+    return { type: item.type, reg: item.reg, payload: item.payload || null, ts: item.ts || Date.now(), attempts: item.attempts || 0 };
+}
+
+function enqueueSync(type, reg, payload) {
+    var item = normalizeQueueItem({ type: type, reg: reg, payload: payload, ts: Date.now(), attempts: 0 });
+    if (!item) return;
+    var dedupKey = item.type + "::" + item.reg;
+    for (var i = syncQueue.length - 1; i >= 0; i--) {
+        var q = normalizeQueueItem(syncQueue[i]);
+        if (q && (q.type + "::" + q.reg) === dedupKey) { syncQueue.splice(i, 1); break; }
+    }
+    syncQueue.push(item);
+    if (syncQueue.length > 1000) syncQueue = syncQueue.slice(syncQueue.length - 1000);
+    secureSave();
+}
+
+async function processSyncQueue() {
+    if (isProcessingQueue || !navigator.onLine || !syncQueue.length) return;
+    isProcessingQueue = true;
+    try {
+        var nextQueue = [];
+        for (var i = 0; i < syncQueue.length; i++) {
+            var item = normalizeQueueItem(syncQueue[i]);
+            if (!item) continue;
+            var ok = false;
+            if (item.type === "REGISTER" && item.payload) {
+                var r1 = await registerVisitor(item.reg, item.payload);
+                ok = r1 && r1.status === "success";
+            } else if (item.type === "CHECK_IN") {
+                var r2 = await checkinVisitor(item.reg);
+                ok = r2 && r2.status === "success";
+            } else if (item.type === "CHECK_OUT") {
+                var r3 = await checkoutVisitor(item.reg);
+                ok = r3 && r3.status === "success";
+            }
+            if (!ok) {
+                item.attempts = (item.attempts || 0) + 1;
+                if (item.attempts < 5) nextQueue.push(item);
+            }
+        }
+        syncQueue = nextQueue;
+        secureSave();
+    } finally {
+        isProcessingQueue = false;
+    }
+}
+
+function updateLicenseBadge() {
+    var badge = document.getElementById("licenseStatusBadge");
+    if (!badge) return;
+    var key = localStorage.getItem("vms_license_key") || "";
+    var valid = /^VMS-[A-Z0-9]{8,}$/i.test(key.trim());
+    badge.textContent = valid ? "ACTIVE" : "TRIAL";
+    badge.style.background = valid ? "#22c55e" : "#fbbf24";
+    badge.style.color = valid ? "#14532d" : "#92400e";
+}
 
 let vmsSiteData = { names: { SITE_A: "SITE A", SITE_B: "SITE B", SITE_C: "SITE C" } };
+
+function markLocalMutation() { localMutationAt = Date.now(); }
 
 function toast(msg, type) {
     type = type || "info";
@@ -178,7 +249,15 @@ function secureSave() {
             keys.sort(function(a, b) { return (visitors[a].updatedAt || 0) - (visitors[b].updatedAt || 0); });
             keys.slice(0, keys.length - 500).forEach(function(k) { delete visitors[k]; });
         }
-        if (logs.length > 500) logs = logs.slice(0, 400);
+        if (logs.length > MAX_LOGS) logs = logs.slice(0, MAX_LOGS);
+        var visitorKeys = Object.keys(visitors);
+        if (visitorKeys.length > MAX_VISITORS) {
+            visitorKeys.sort(function(a,b){ return (visitors[b].updatedAt||0) - (visitors[a].updatedAt||0); });
+            var keep = {};
+            visitorKeys.slice(0, MAX_VISITORS).forEach(function(k){ keep[k]=visitors[k]; });
+            visitors = keep;
+        }
+        if (syncQueue.length > 1000) syncQueue = syncQueue.slice(-500);
         localStorage.setItem("vms_visitors", JSON.stringify(visitors));
         localStorage.setItem("vms_logs", JSON.stringify(logs));
         localStorage.setItem("vms_sync_queue", JSON.stringify(syncQueue));
@@ -194,11 +273,26 @@ function secureSave() {
 
 function secureLoad() {
     try {
-        visitors = JSON.parse(localStorage.getItem("vms_visitors")) || {};
+        var rawVisitors = localStorage.getItem("vms_visitors") || "{}";
+        visitors = JSON.parse(rawVisitors) || {};
+    } catch(e1) { visitors = {}; localStorage.removeItem("vms_visitors"); console.error("secureLoad visitors error:", e1); }
+    try {
         logs = JSON.parse(localStorage.getItem("vms_logs")) || [];
-        syncQueue = JSON.parse(localStorage.getItem("vms_sync_queue")) || [];
-        console.log("✅ Loaded visitors:", Object.keys(visitors).length);
-    } catch(e) { console.error("secureLoad error:", e); }
+    } catch(e2) { logs = []; localStorage.removeItem("vms_logs"); console.error("secureLoad logs error:", e2); }
+    try {
+        syncQueue = (JSON.parse(localStorage.getItem("vms_sync_queue")) || []).map(normalizeQueueItem).filter(Boolean).slice(-500);
+    } catch(e3) { syncQueue = []; localStorage.removeItem("vms_sync_queue"); console.error("secureLoad queue error:", e3); }
+    Object.keys(visitors).forEach(function(reg){
+        var v = visitors[reg];
+        if (!v || typeof v !== "object") { delete visitors[reg]; return; }
+        v.nama = typeof v.nama === "string" ? v.nama : "Unknown";
+        v.perusahaan = typeof v.perusahaan === "string" ? v.perusahaan : "-";
+        v.kategori = ["UMUM","VIP","VVIP"].indexOf(v.kategori) !== -1 ? v.kategori : "UMUM";
+        v.currentStatus = v.currentStatus === "IN" ? "IN" : "OUT";
+        visitors[reg] = v;
+    });
+    logs = Array.isArray(logs) ? logs.filter(function(l){ return l && typeof l === "object" && l.reg; }).slice(0,500) : [];
+    console.log("✅ Loaded visitors:", Object.keys(visitors).length);
 }
 
 function addLocalLog(reg, action) {
@@ -212,31 +306,52 @@ function addLocalLog(reg, action) {
         timestamp: Date.now(),
         site_id: SITE_ID
     });
-    if (logs.length > 500) logs = logs.slice(0, 400);
+    if (logs.length > MAX_LOGS) logs = logs.slice(0, MAX_LOGS);
+        var visitorKeys = Object.keys(visitors);
+        if (visitorKeys.length > MAX_VISITORS) {
+            visitorKeys.sort(function(a,b){ return (visitors[b].updatedAt||0) - (visitors[a].updatedAt||0); });
+            var keep = {};
+            visitorKeys.slice(0, MAX_VISITORS).forEach(function(k){ keep[k]=visitors[k]; });
+            visitors = keep;
+        }
+        if (syncQueue.length > 1000) syncQueue = syncQueue.slice(-500);
     secureSave();
 }
 
 // ================= API CALLS =================
 async function apiCall(params) {
     if (!navigator.onLine) return { status: "offline" };
-    try {
-        var formBody = [];
-        for (var key in params) {
-            if (params.hasOwnProperty(key)) {
-                formBody.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key]));
-            }
+    var formBody = [];
+    for (var key in params) {
+        if (params.hasOwnProperty(key)) {
+            formBody.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key]));
         }
-        var res = await fetch(APPS_SCRIPT_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: formBody.join("&")
-        });
-        if (!res.ok) throw new Error("Server Response Error");
-        return await res.json();
-    } catch (e) {
-        console.warn("API Call Fail:", e.message);
-        return { status: "error_network" };
     }
+    for (var attempt = 0; attempt < 3; attempt++) {
+        try {
+            var res = await fetch(APPS_SCRIPT_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formBody.join("&")
+            });
+            if (!res.ok) throw new Error("Server Response Error");
+            var ct = res.headers.get("content-type") || "";
+            if (ct.indexOf("application/json") === -1) {
+                var txt = await res.text();
+                throw new Error(txt && txt.indexOf("Service invoked too many times") !== -1 ? "Apps Script quota exceeded" : "Non-JSON response");
+            }
+            var payload = await res.json();
+            if (!payload || typeof payload !== "object") throw new Error("Malformed API payload");
+            return payload;
+        } catch (e) {
+            if (attempt >= 2) {
+                console.warn("API Call Fail:", e.message);
+                return { status: "error_network" };
+            }
+            await sleep(250 * (attempt + 1));
+        }
+    }
+    return { status: "error_network" };
 }
 
 async function registerVisitor(reg, data) {
@@ -268,19 +383,24 @@ async function checkoutVisitor(reg) {
 // ================= SYNC =================
 async function pullFromSheet() {
     if (syncLock || !navigator.onLine) return;
+    if (Date.now() - localMutationAt < 600) return;
     syncLock = true;
     try {
         var res = await fetch(APPS_SCRIPT_URL + "?action=pull&site_id=" + encodeURIComponent(SITE_ID));
+        if (!res.ok) throw new Error("Pull HTTP " + res.status);
         var result = await res.json();
+        if (!result || typeof result !== "object" || !Array.isArray(result.data)) throw new Error("Malformed pull payload");
         
         if (result.status === "success" && result.data && result.data.length > 0) {
-            var headers = result.data[0];
+            var headers = result.data[0] || [];
             var rows = result.data.slice(1);
+            if (!Array.isArray(headers)) headers = [];
             var updated = 0;
             
             for (var i = 0; i < rows.length; i++) {
                 var row = rows[i];
-                var reg = row[8];
+                if (!Array.isArray(row)) continue;
+                var reg = (row[8] || "").toString().trim();
                 if (!reg) continue;
                 
                 // Foto: PRIORITAS BASE64 dari kolom 20, baru URL dari kolom 19
@@ -300,9 +420,9 @@ async function pullFromSheet() {
                     pic: row[3] || (visitors[reg] ? visitors[reg].pic : "-"),
                     startDate: row[4] || (visitors[reg] ? visitors[reg].startDate : "-"),
                     expDate: row[5] || (visitors[reg] ? visitors[reg].expDate : "-"),
-                    kategori: row[14] || (visitors[reg] ? visitors[reg].kategori : "UMUM"),
+                    kategori: (["UMUM","VIP","VVIP"].indexOf((row[14] || "").toString().toUpperCase()) !== -1 ? (row[14] || "").toString().toUpperCase() : (visitors[reg] ? visitors[reg].kategori : "UMUM")),
                     dept: row[15] || (visitors[reg] ? visitors[reg].dept : "-"),
-                    currentStatus: row[11] || (visitors[reg] ? visitors[reg].currentStatus : "OUT"),
+                    currentStatus: ((row[11] || "").toString().toUpperCase() === "IN" ? "IN" : (visitors[reg] ? visitors[reg].currentStatus : "OUT")),
                     site: row[12] || (visitors[reg] ? visitors[reg].site : SITE_ID),
                     foto: photoData,
                     updatedAt: Date.now()
@@ -311,9 +431,13 @@ async function pullFromSheet() {
             }
             
             if (updated > 0) {
+                // stale visitor cleanup for long sessions
+                var nowTs = Date.now();
+                Object.keys(visitors).forEach(function(k){ if ((visitors[k].updatedAt || 0) < nowTs - (90 * 24 * 60 * 60 * 1000)) delete visitors[k]; });
                 secureSave();
                 renderDashboard();
                 renderLogTable();
+                lastPullAt = Date.now();
                 console.log("✅ Sync: " + updated + " data diperbarui");
             }
         }
@@ -327,7 +451,9 @@ async function pullFromSheet() {
 // ================= RENDER =================
 function renderDashboard() {
     try {
-        var v = Object.values(visitors);
+        var keys = Object.keys(visitors);
+        var v = [];
+        for (var ki = 0; ki < keys.length; ki++) v.push(visitors[keys[ki]]);
         var active = 0;
         for (var i = 0; i < v.length; i++) {
             if (v[i].currentStatus === "IN") active++;
@@ -354,10 +480,11 @@ function renderLogTable() {
         }
         filtered.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
         tbody.innerHTML = "";
+        var frag = document.createDocumentFragment();
         var sliceLen = filtered.length > 100 ? 100 : filtered.length;
         for (var j = 0; j < sliceLen; j++) {
             var l = filtered[j];
-            var row = tbody.insertRow();
+            var row = document.createElement("tr");
             var v = visitors[l.reg] || {};
             row.insertCell(0).innerHTML = '<input type="checkbox" class="logCheckItem" data-reg="' + l.reg + '">';
             row.insertCell(1).innerText = l.reg;
@@ -378,7 +505,7 @@ function renderLogTable() {
             
             row.insertCell(3).innerText = v.nama || l.nama || "-";
             row.insertCell(4).innerText = v.perusahaan || l.perusahaan || "-";
-            row.insertCell(5).innerHTML = '<span class="badge badge-' + (v.kategori || 'umum').toLowerCase() + '">' + (v.kategori || 'Visitor') + '</span>';
+            row.insertCell(5).innerHTML = '<span class="badge badge-' + (v.kategori || 'UMUM') + '">' + (v.kategori || 'UMUM') + '</span>';
             var currentStatus = v.currentStatus || "OUT";
             var statusText = currentStatus === "IN" ? "DI DALAM" : "SELESAI";
             var statusColor = currentStatus === "IN" ? "#16a34a" : "#dc2626";
@@ -388,7 +515,9 @@ function renderLogTable() {
             var timeDisplay = l.timestamp ? new Date(l.timestamp).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : "-";
             row.insertCell(8).innerText = timeDisplay;
             row.insertCell(9).innerText = l.site_id || "-";
+            frag.appendChild(row);
         }
+        tbody.appendChild(frag);
     } catch(e) { console.error("renderLogTable error:", e); }
 }
 
@@ -515,6 +644,7 @@ async function generateQRandShow(reg, data) {
 
 function showPreviewWithQR(reg, data, qrImage) {
     if (!qrImage) { toast("QR gagal dibuat!", "error"); return; }
+    if (activePreviewModal) { activePreviewModal.remove(); activePreviewModal = null; }
     var modal = document.createElement("div");
     modal.className = "modal-overlay";
     var fotoDisplay = (data && data.foto && data.foto.startsWith("data:image")) ? 
@@ -527,6 +657,7 @@ function showPreviewWithQR(reg, data, qrImage) {
         '<div style="text-align:center;"><img src="' + qrImage + '" style="width:140px;"><p>' + reg + '</p></div>' +
         '<div class="flex-btns"><button id="previewDownloadBtn">Download PDF</button><button id="previewCloseBtn" class="btn-outline">Close</button></div></div>';
     document.body.appendChild(modal);
+    activePreviewModal = modal;
     setTimeout(function() { modal.classList.add("active"); }, 10);
     var downloadBtn = modal.querySelector("#previewDownloadBtn");
     var closeBtn = modal.querySelector("#previewCloseBtn");
@@ -534,10 +665,10 @@ function showPreviewWithQR(reg, data, qrImage) {
         downloadBtn.onclick = async function() {
             data.qrImage = qrImage;
             await downloadPDF(reg, data);
-            modal.remove();
+            modal.remove(); activePreviewModal = null;
         };
     }
-    if (closeBtn) closeBtn.onclick = function() { modal.remove(); };
+    if (closeBtn) closeBtn.onclick = function() { modal.remove(); activePreviewModal = null; };
 }
 
 function showPreview(reg, data) { generateQRandShow(reg, data); }
@@ -567,7 +698,7 @@ async function getAvailableCameras() {
 }
 
 async function startScanner() {
-    if (isScanning) return;
+    if (isScanning || actionMutex) return;
     var selectedCamId = document.getElementById("cameraSelection").value;
     if (!selectedCamId) { toast("Pilih kamera dulu!", "warning"); return; }
     if (!scannerInstance) scannerInstance = new Html5Qrcode("cameraPreview");
@@ -578,7 +709,14 @@ async function startScanner() {
         );
         isScanning = true;
         toast("Scanner Aktif", "success");
-    } catch(err) { toast("Gagal: " + err.message, "error"); isScanning = false; }
+    } catch(err) {
+        var msg = (err && err.message ? err.message : "Unknown");
+        toast("Gagal: " + msg, "error");
+        isScanning = false;
+        try { if (scannerInstance) await scannerInstance.clear(); } catch(e2) {}
+        scannerInstance = null;
+        if (msg.toLowerCase().indexOf("permission") !== -1) toast("Izinkan akses kamera lalu coba lagi", "warning");
+    }
 }
 
 async function stopScanner() {
@@ -586,43 +724,45 @@ async function stopScanner() {
         try { await scannerInstance.stop(); await scannerInstance.clear(); } catch(err) {}
     }
     isScanning = false;
+    scannerInstance = null;
 }
 
 async function processScan(qrText) {
     if (actionMutex) return false;
     actionMutex = true;
-    var reg = qrText.trim();
-    if (!reg.match(/^REG\d+/i)) { toast("QR tidak valid!", "error"); actionMutex = false; return false; }
-    
-    var mode = document.getElementById("scanMode").value;
-    var visitor = visitors[reg];
-    if (!visitor) { toast("Data tidak ditemukan, sync...", "info"); await pullFromSheet(); visitor = visitors[reg]; }
-    if (!visitor) { toast("REG tidak terdaftar!", "error"); actionMutex = false; return false; }
-    
-    if (mode === "CHECK_IN") {
-        var result = await checkinVisitor(reg);
-        if (result.status === "success") {
-            visitor.currentStatus = "IN";
-            visitors[reg] = visitor;
-            addLocalLog(reg, "CHECK_IN");
-            vibrate();
-            toast("✅ IN: " + visitor.nama, "success");
+    try {
+        var reg = (qrText || "").trim();
+        if (!reg.match(/^REG\d+/i)) { toast("QR tidak valid!", "error"); return false; }
+
+        var mode = document.getElementById("scanMode").value;
+        var visitor = visitors[reg];
+        if (!visitor) { toast("Data tidak ditemukan, sync...", "info"); await pullFromSheet(); visitor = visitors[reg]; }
+        if (!visitor) { toast("REG tidak terdaftar!", "error"); return false; }
+
+        var result = mode === "CHECK_IN" ? await checkinVisitor(reg) : await checkoutVisitor(reg);
+        if (result.status !== "success") {
+            toast("⚠️ Gagal sinkron ke server, masuk antrean sync", "warning");
+            enqueueSync(mode, reg, null);
+            return false;
         }
-    } else {
-        var result2 = await checkoutVisitor(reg);
-        if (result2.status === "success") {
-            visitor.currentStatus = "OUT";
-            visitors[reg] = visitor;
-            addLocalLog(reg, "CHECK_OUT");
-            vibrate();
-            toast("✅ OUT: " + visitor.nama, "success");
-        }
+
+        visitor.currentStatus = mode === "CHECK_IN" ? "IN" : "OUT";
+        visitors[reg] = visitor;
+        markLocalMutation();
+        addLocalLog(reg, mode);
+        vibrate();
+        toast((mode === "CHECK_IN" ? "✅ IN: " : "✅ OUT: ") + visitor.nama, "success");
+        renderDashboard();
+        renderLogTable();
+        secureSave();
+        return true;
+    } catch (e) {
+        console.error("processScan error:", e);
+        toast("Terjadi error scanner", "error");
+        return false;
+    } finally {
+        actionMutex = false;
     }
-    renderDashboard();
-    renderLogTable();
-    secureSave();
-    actionMutex = false;
-    return true;
 }
 
 // ================= SITE MANAGEMENT =================
@@ -715,6 +855,7 @@ document.getElementById("generateQRBtn").onclick = async function() {
         
         var data = { nama: nama, perusahaan: perusahaan, kategori: kategori, tujuan: tujuan, pic: pic, dept: dept, startDate: startDate, expDate: expDate, foto: fotoBase64, sessions: [], currentStatus: "OUT", updatedAt: Date.now() };
         visitors[reg] = data;
+        markLocalMutation();
         addLocalLog(reg, "REGISTER");
         secureSave();
         
@@ -726,6 +867,7 @@ document.getElementById("generateQRBtn").onclick = async function() {
         } else {
             console.log("Server response:", result);
             toast("⚠️ " + nama + " terdaftar OFFLINE", "warning");
+            enqueueSync("REGISTER", reg, data);
         }
         
         vibrate();
@@ -754,6 +896,7 @@ document.getElementById("walkinBtn").onclick = async function() {
     exp.setDate(exp.getDate() + 1);
     var walkData = { nama: "WALK-IN", perusahaan: "Guest", kategori: "UMUM", tujuan: "Visit", pic: "Reception", dept: "Umum", startDate: now.toISOString().slice(0, 10), expDate: exp.toISOString().slice(0, 10), foto: "", sessions: [], currentStatus: "OUT", updatedAt: Date.now() };
     visitors[reg] = walkData;
+    markLocalMutation();
     addLocalLog(reg, "WALK-IN");
     secureSave();
     toast("✅ Walk-in " + reg, "success");
@@ -770,18 +913,17 @@ document.getElementById("uploadQrBtn").onclick = function() { document.getElemen
 document.getElementById("uploadQrFile").onchange = async function(e) {
     var file = e.target.files[0];
     if (!file) return;
-    var url = URL.createObjectURL(file);
-    var img = new Image();
-    img.src = url;
-    await img.decode();
-    var canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    canvas.getContext("2d").drawImage(img, 0, 0);
     var scanner = new Html5Qrcode("temp-reader");
-    var decoded = await scanner.scanImage(canvas);
-    await processScan(decoded);
-    await scanner.clear();
+    try {
+        var decoded = await scanner.scanFile(file, true);
+        await processScan(decoded);
+    } catch (err) {
+        console.error("Upload QR error:", err);
+        toast("QR dari gambar tidak terbaca", "error");
+    } finally {
+        try { await scanner.clear(); } catch (e2) {}
+        e.target.value = "";
+    }
 };
 
 document.getElementById("manualProcess").onclick = async function() {
@@ -791,17 +933,20 @@ document.getElementById("manualProcess").onclick = async function() {
     var visitor = visitors[reg];
     if (!visitor) { toast("REG tidak ditemukan!", "error"); return; }
     if (mode === "CHECK_IN") {
-        await checkinVisitor(reg);
+        var inResult = await checkinVisitor(reg);
+        if (inResult.status !== "success") { enqueueSync("CHECK_IN", reg, null); toast("Check-in pending sync", "warning"); return; }
         visitor.currentStatus = "IN";
         addLocalLog(reg, "CHECK_IN");
         toast("Check-in " + visitor.nama, "success");
     } else {
-        await checkoutVisitor(reg);
+        var outResult = await checkoutVisitor(reg);
+        if (outResult.status !== "success") { enqueueSync("CHECK_OUT", reg, null); toast("Check-out pending sync", "warning"); return; }
         visitor.currentStatus = "OUT";
         addLocalLog(reg, "CHECK_OUT");
         toast("Check-out " + visitor.nama, "success");
     }
     visitors[reg] = visitor;
+    markLocalMutation();
     secureSave();
     renderDashboard();
     renderLogTable();
@@ -826,8 +971,13 @@ document.getElementById("resetDatabaseAction").onclick = function() { visitors =
 document.getElementById("regPhotoFile").onchange = function(e) { if (e.target.files[0]) { var r = new FileReader(); r.onload = function(ev) { var preview = document.getElementById("previewPhotoThumb"); if (preview) preview.src = ev.target.result; }; r.readAsDataURL(e.target.files[0]); } };
 document.getElementById("submitLicenseBtn").onclick = function() { 
     var input = document.getElementById("licenseInput"); 
-    if (input && input.value) { localStorage.setItem("vms_license_key", input.value); toast("✅ License activated!", "success"); input.value = ""; }
-    else { toast("Masukkan license key", "warning"); }
+    var raw = input && input.value ? input.value.trim() : "";
+    if (!raw) { toast("Masukkan license key", "warning"); return; }
+    if (!/^VMS-[A-Z0-9]{8,}$/i.test(raw)) { toast("Format license tidak valid", "error"); return; }
+    localStorage.setItem("vms_license_key", raw.toUpperCase());
+    updateLicenseBadge();
+    toast("✅ License activated!", "success");
+    input.value = "";
 };
 document.getElementById("siteSelector").onchange = function(e) { setSite(e.target.value); };
 document.getElementById("siteSelectorTop").onchange = function(e) { setSite(e.target.value); };
@@ -855,6 +1005,7 @@ function switchTab(tabId) {
     document.getElementById("scannerPane").classList.remove("active-pane");
     document.getElementById("logsPane").classList.remove("active-pane");
     document.getElementById(tabId + "Pane").classList.add("active-pane");
+    if (tabId !== "scanner" && isScanning) stopScanner();
     document.querySelectorAll(".nav-item").forEach(function(nav) { nav.classList.remove("active"); });
     document.querySelector('.nav-item[data-tab="' + tabId + '"]').classList.add("active");
 }
@@ -867,12 +1018,28 @@ document.getElementById("overlay").onclick = function() { document.getElementByI
 async function init() {
     secureLoad();
     vmsSite_load();
+    updateLicenseBadge();
     setSite(SITE_ID);
     renderDashboard();
     renderLogTable();
     getAvailableCameras();
-    if (navigator.onLine) await pullFromSheet();
-    setInterval(function() { if (navigator.onLine) pullFromSheet(); }, SYNC_INTERVAL_MS);
+    if (navigator.onLine) {
+        await processSyncQueue();
+        await pullFromSheet();
+    }
+    if (syncTimer) clearInterval(syncTimer);
+    syncTimer = setInterval(async function() { 
+        if (navigator.onLine) {
+            await processSyncQueue();
+            await pullFromSheet();
+            if (logs.length > MAX_LOGS) { logs = logs.slice(0, MAX_LOGS); secureSave(); }
+        }
+    }, SYNC_INTERVAL_MS);
+    if (!runtimeListenersBound) {
+        window.addEventListener("online", function() { processSyncQueue(); pullFromSheet(); });
+        window.addEventListener("beforeunload", function() { try { stopScanner(); } catch(e) {} });
+        runtimeListenersBound = true;
+    }
 }
 init();
 </script>
