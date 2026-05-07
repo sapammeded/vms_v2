@@ -108,6 +108,9 @@
         .text-danger { color: var(--danger); }
         .text-warning { color: var(--warning); }
         .text-success { color: var(--accent); }
+        .sync-error { background: #ef444420 !important; border: 1px solid #ef4444 !important; }
+        .sync-error .stat-number { color: #ef4444 !important; }
+        .sync-warning { background: #f59e0b20 !important; border: 1px solid #f59e0b !important; }
     </style>
 </head>
 <body>
@@ -170,13 +173,13 @@
 
         <div id="companiesTab" class="tab-pane"><div class="card"><div class="card-header"><h3>🏢 Registered Companies</h3><div><input type="text" id="companySearch" placeholder="Search company..." style="width: 200px;"><button class="btn btn-info btn-sm" id="exportCompaniesExcelBtn">📊 Export Excel</button><button class="btn btn-primary btn-sm" id="exportCompaniesPdfBtn">📄 Export PDF</button><button class="btn btn-outline btn-sm" id="refreshCompaniesBtn">🔄 Refresh</button></div></div><div class="table-wrapper"><table id="companiesTable"><thead><tr><th>Company</th><th>PIC</th><th>Phone</th><th>Email</th><th>Package</th><th>License Key</th><th>Expiry</th><th>Status</th></tr></thead><tbody id="companiesTableBody"></tbody></table></div></div></div>
 
-        <div id="devicesTab" class="tab-pane"><div class="card"><div class="card-header"><h3>📱 All Devices (Visitor Check-in)</h3><div><input type="text" id="deviceSearch" placeholder="Search device/company..." style="width: 220px;"><select id="deviceStatusFilter" style="width: 140px;"><option value="">All Status</option><option value="IN">IN</option><option value="OUT">OUT</option></select><button class="btn btn-info btn-sm" id="exportDevicesExcelBtn">📊 Export</button><button class="btn btn-primary btn-sm" id="exportDevicesPdfBtn">📄 PDF</button></div></div><div class="table-wrapper"><table id="devicesTable"><thead><tr><th>Device Name</th><th>Company</th><th>PIC</th><th>Check-in</th><th>Checkout</th><th>Status</th><th>Alert</th></tr></thead><tbody></tbody></td></div></div></div>
+        <div id="devicesTab" class="tab-pane"><div class="card"><div class="card-header"><h3>📱 All Devices (Visitor Check-in)</h3><div><input type="text" id="deviceSearch" placeholder="Search device/company..." style="width: 220px;"><select id="deviceStatusFilter" style="width: 140px;"><option value="">All Status</option><option value="IN">IN</option><option value="OUT">OUT</option></select><button class="btn btn-info btn-sm" id="exportDevicesExcelBtn">📊 Export</button><button class="btn btn-primary btn-sm" id="exportDevicesPdfBtn">📄 PDF</button></div></div><div class="table-wrapper"><table id="devicesTable"><thead><tr><th>Device Name</th><th>Company</th><th>PIC</th><th>Check-in</th><th>Checkout</th><th>Status</th><th>Alert</th></tr></thead><tbody></tbody></table></div></div></div>
 
         <div id="violationsTab" class="tab-pane"><div class="card"><div class="card-header"><h3>⚠️ Overstay Violations</h3><div><input type="text" id="violationSearch" placeholder="Search..."><button class="btn btn-danger btn-sm" id="clearViolationsBtn">🗑️ Clear All</button></div></div><div class="table-wrapper"><table id="violationsTable"><thead><tr><th>Company</th><th>Device</th><th>Violation Type</th><th>Details</th><th>Time</th></tr></thead><tbody></tbody></table></div></div></div>
 
         <div id="requestsTab" class="tab-pane"><div class="card"><div class="card-header"><h3>📝 Pending Approvals</h3><span id="pendingCount" class="badge badge-warning">0</span></div><div class="table-wrapper"><table id="requestsTable"><thead><tr><th>Company</th><th>Device ID</th><th>Device Name</th><th>Requested At</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></div>
 
-        <div id="licenseTab" class="tab-pane"><div class="card"><div class="card-header"><h3>🔑 Generate License</h3></div><div class="grid-2"><div class="form-group"><label>Company Name</label><input type="text" id="genCompanyName" placeholder="PT. Contoh"></div><div class="form-group"><label>PIC Name</label><input type="text" id="genPic" placeholder="Nama"></div><div class="form-group"><label>Phone</label><input type="text" id="genPhone" placeholder="0812"></div><div class="form-group"><label>Email</label><input type="email" id="genEmail" placeholder="email"></div><div class="form-group"><label>Package</label><select id="genPackage"><option value="DEMO">DEMO (1 month)</option><option value="BASIC">BASIC (12 months)</option><option value="PRO">PRO (24 months)</option></select></div></div><button class="btn btn-primary" id="generateLicenseBtn">🚀 Generate License</button></div><div class="card"><div class="card-header"><h3>📋 Registered Licenses</h3><button class="btn btn-outline btn-sm" id="refreshLicensesBtn">🔄 Refresh</button></div><div class="table-wrapper"><table><thead><tr><th>Company</th><th>Package</th><th>License Key</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead><tbody id="recentLicensesBody"></tbody></table></div></div></div>
+        <div id="licenseTab" class="tab-pane"><div class="card"><div class="card-header"><h3>🔑 Generate License</h3></div><div class="grid-2"><div class="form-group"><label>Company Name</label><input type="text" id="genCompanyName" placeholder="PT. Contoh"></div><div class="form-group"><label>PIC Name</label><input type="text" id="genPic" placeholder="Nama"></div><div class="form-group"><label>Phone</label><input type="text" id="genPhone" placeholder="0812"></div><div class="form-group"><label>Email</label><input type="email" id="genEmail" placeholder="email"></div><div class="form-group"><label>Package</label><select id="genPackage"><option value="DEMO">DEMO (1 month)</option><option value="BASIC">BASIC (12 months)</option><option value="PRO">PRO (24 months)</option></select></div></div><button class="btn btn-primary" id="generateLicenseBtn">🚀 Generate License</button></div><div class="card"><div class="card-header"><h3>📋 Registered Licenses</h3><button class="btn btn-outline btn-sm" id="refreshLicensesBtn">🔄 Refresh</button></div><div class="table-wrapper"><table id="recentLicensesTable"><thead><tr><th>Company</th><th>Package</th><th>License Key</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead><tbody id="recentLicensesBody"></tbody></table></div></div></div>
 
         <div id="devicerequestsTab" class="tab-pane"><div class="card"><div class="card-header"><h3>💸 Device Requests</h3><button class="btn btn-info btn-sm" id="refreshDeviceRequestsBtn">🔄 Refresh</button></div><div class="table-wrapper"><table id="deviceRequestsTable"><thead><tr><th>Company</th><th>Device Name</th><th>Fee</th><th>Status</th><th>Requested</th></tr></thead><tbody><tr><td colspan="5" class="text-muted">No device requests</td></tr></tbody></table></div></div></div>
 
@@ -196,13 +199,12 @@
 
 <script>
 // ================= CONFIG =================
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPkAjkHCVoIggXStBX_wpuNacrOeb56V1GKt-uNvwUvYX91sNYyS2i-qHw8_GXVUM2Jw/exec";
-const SECRET = "OMNIGUARD_SECRET_2026";
+// ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT COMMAND CENTER ANDA ⚠️
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0k6ozW5ITLtCgAYOu7FRDqB6sE-HJm2p4Zc5-3xQ/dev";
 const SESSION_TIMEOUT_MS = 43200000;
 
 // ================= GLOBAL STATE =================
 let currentUser = null;
-let currentToken = null;
 let currentRole = null;
 let syncLock = false;
 let devicesData = [];
@@ -210,70 +212,9 @@ let licensesData = [];
 let packageChart = null;
 let refreshInterval = null;
 
-// ================= HELPER: SHA256 (untuk signature) =================
-async function sha256(str) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(str);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(hashBuffer))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-}
-
-// ================= SAFE FETCH dengan RETRY + SIGNATURE =================
-async function safeFetch(paramsObj, retryCount = 0) {
-    const MAX_RETRY = 2;
-
-    try {
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: new URLSearchParams(paramsObj).toString()
-        });
-
-        const text = await response.text();
-        console.log("SAFE RAW:", text);
-
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            console.error("❌ JSON PARSE ERROR:", text);
-            throw new Error("Invalid JSON response");
-        }
-
-        console.log("SAFE PARSED:", data);
-
-        return data;
-
-    } catch (err) {
-        console.error("SAFE FETCH ERROR:", err);
-
-        if (retryCount < MAX_RETRY) {
-            await new Promise(r => setTimeout(r, 1000));
-            return safeFetch(paramsObj, retryCount + 1);
-        }
-
-        return {
-            status: "error",
-            message: err.message
-        };
-    }
-}
-
-function isSessionValid() {
-    const sessionTime = localStorage.getItem("vms_session");
-    if (!sessionTime) return false;
-    return (Date.now() - parseInt(sessionTime)) < SESSION_TIMEOUT_MS;
-}
-
-function extendSession() {
-    localStorage.setItem("vms_session", Date.now().toString());
-}
-
-function showToast(message, type = "info") {
+// ================= HELPER FUNCTIONS =================
+function showToast(message, type) {
+    type = type || "info";
     const container = document.getElementById("toastContainer");
     if (!container) return;
     const toast = document.createElement("div");
@@ -287,56 +228,60 @@ function showToast(message, type = "info") {
 
 function escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    return String(str).replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
 function closeModal(modalId) {
     document.getElementById(modalId)?.classList.remove("active");
 }
 
+function isSessionValid() {
+    const sessionTime = localStorage.getItem("vms_session");
+    if (!sessionTime) return false;
+    return (Date.now() - parseInt(sessionTime)) < SESSION_TIMEOUT_MS;
+}
+
+function extendSession() {
+    localStorage.setItem("vms_session", Date.now().toString());
+}
+
 // ================= AUTH =================
-async function doLogin() {
+function doLogin() {
     const username = document.getElementById("loginUser").value.trim();
     const password = document.getElementById("loginPass").value.trim();
     if (!username || !password) {
         showToast("Isi username & password", "error");
         return;
     }
-    showToast("Logging in...", "info");
     
-    try {
-        // const data = await safeFetch({ action: "admin_login", u: username, p: password });
-
-const data = { status: "success" }; // bypass sementara
-        
-        if (data.status === "success") {
-            currentUser = username;
-            currentToken = data.token;
-            currentRole = data.role;
-            localStorage.setItem("vms_admin_user", username);
-            localStorage.setItem("vms_admin_token", currentToken);
-            localStorage.setItem("vms_admin_role", currentRole);
-            extendSession();
-            document.getElementById("loginOverlay").style.display = "none";
-            document.getElementById("topUsername").innerText = username;
-            document.getElementById("sidebarUsername").innerText = username;
-            document.getElementById("topRole").innerText = currentRole;
-            document.getElementById("sidebarRole").innerText = currentRole;
-            showToast("Login berhasil", "success");
-            await loadAllData();
-            await loadLicenses();
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(async () => {
-                if (syncLock) return;
-                await loadAllData();
-                await loadLicenses();
-            }, 30000);
-        } else {
-            showToast(data.message || "Login gagal", "error");
-        }
-    } catch (err) {
-        console.error("LOGIN ERROR:", err);
-        showToast("Server error", "error");
+    // Demo login bypass
+    if (username === "admin" && password === "admin123") {
+        currentUser = username;
+        currentRole = "SUPER_ADMIN";
+        localStorage.setItem("vms_admin_user", username);
+        localStorage.setItem("vms_admin_role", currentRole);
+        extendSession();
+        document.getElementById("loginOverlay").style.display = "none";
+        document.getElementById("topUsername").innerText = username;
+        document.getElementById("sidebarUsername").innerText = username;
+        document.getElementById("topRole").innerText = currentRole;
+        document.getElementById("sidebarRole").innerText = currentRole;
+        showToast("Login berhasil", "success");
+        loadAllData();
+        loadLicenses();
+        if (refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(function() {
+            if (syncLock) return;
+            loadAllData();
+            loadLicenses();
+        }, 30000);
+    } else {
+        showToast("Login gagal: username/password salah", "error");
     }
 }
 
@@ -344,9 +289,6 @@ function logout() {
     if (refreshInterval) clearInterval(refreshInterval);
     localStorage.clear();
     sessionStorage.clear();
-    currentUser = null;
-    currentToken = null;
-    currentRole = null;
     location.reload();
 }
 
@@ -355,99 +297,131 @@ async function loadAllData() {
     if (syncLock) return;
     syncLock = true;
 
+    const statsGrid = document.getElementById("statsGrid");
+    if (statsGrid) statsGrid.style.opacity = "0.6";
+
     try {
         const res = await fetch(APPS_SCRIPT_URL + "?action=pull");
         const text = await res.text();
-        console.log("RAW:", text);
-
+        
         let data;
         try {
             data = JSON.parse(text);
         } catch (e) {
             console.error("❌ NOT JSON:", text);
-            throw new Error("Invalid JSON");
+            showToast("Gagal sync: server error", "error");
+            document.querySelectorAll(".stat-card").forEach(function(card) {
+                card.classList.add("sync-error");
+            });
+            if (statsGrid) statsGrid.style.opacity = "1";
+            return;
         }
 
-        console.log("PARSED:", data);
+        document.querySelectorAll(".stat-card").forEach(function(card) {
+            card.classList.remove("sync-error", "sync-warning");
+        });
 
-        // 👉 JANGAN throw dulu, kita lihat statusnya
         if (!data || data.status !== "success") {
             console.error("❌ RESPONSE SALAH:", data);
-            showToast("Sync gagal", "error");
+            showToast("Sync gagal: " + (data?.message || "unknown error"), "error");
+            document.querySelectorAll(".stat-card").forEach(function(card) {
+                card.classList.add("sync-warning");
+            });
+            if (statsGrid) statsGrid.style.opacity = "1";
             return;
         }
 
         const rows = data.data || [];
-
-        devicesData = rows.slice(1).map(row => {
-            const expRaw = row[8];
-            let isExpired = false;
-
+        devicesData = [];
+        for (var i = 1; i < rows.length; i++) {
+            var row = rows[i];
+            var expRaw = row[5];
+            var isExpired = false;
             if (expRaw) {
-                const d = new Date(expRaw);
+                var d = new Date(expRaw);
                 isExpired = !isNaN(d) && d < new Date();
             }
-
-            return {
-                reg: row[1] || "",
-                name: row[2] || "",
-                company: row[3] || "",
-                purpose: row[4] || "",
-                pic: row[5] || "",
-                dept: row[6] || "",
-                start: row[7] || "",
-                exp: row[8] || "",
-                status: row[10] || "OUT",
-                checkin: row[11] || "",
-                checkout: row[12] || "",
-                site: row[13] || "",
+            devicesData.push({
+                reg: row[8] || "",
+                name: row[0] || "",
+                company: row[1] || "",
+                purpose: row[2] || "",
+                pic: row[3] || "",
+                dept: row[15] || "",
+                start: row[4] || "",
+                exp: expRaw || "",
+                status: row[11] || "OUT",
+                checkin: row[6] || "",
+                checkout: row[7] || "",
+                site: row[12] || "",
                 isExpired: isExpired,
                 alert: isExpired ? "⚠️ EXPIRED" : ""
-            };
-        });
+            });
+        }
 
         console.log("✅ DATA SIAP:", devicesData.length);
-
         updateDashboard();
         renderDevicesTable();
         renderRecentViolations();
         updateCharts();
 
+        if (statsGrid) statsGrid.style.opacity = "1";
+
     } catch (err) {
         console.error("LOAD ALL DATA ERROR:", err);
-        showToast("Sync gagal", "error");
+        showToast("Sync gagal: " + err.message, "error");
+        document.querySelectorAll(".stat-card").forEach(function(card) {
+            card.classList.add("sync-error");
+        });
+        if (statsGrid) statsGrid.style.opacity = "1";
     } finally {
         syncLock = false;
     }
 }
 
 async function loadLicenses() {
-    if (!currentToken) return;
     try {
-        const data = await safeFetch({ action: "pull" });
+        const res = await fetch(APPS_SCRIPT_URL + "?action=pull_licenses");
+        const data = await res.json();
         
         if (data.status === "success") {
-            licensesData = data.data || [];
+            const rows = data.data || [];
+            licensesData = [];
+            for (var i = 1; i < rows.length; i++) {
+                var row = rows[i];
+                licensesData.push({
+                    company: row[0] || "-",
+                    pic: row[1] || "-",
+                    phone: row[2] || "-",
+                    email: row[3] || "-",
+                    package: row[4] || "DEMO",
+                    license_key: row[5] || "-",
+                    expiry: row[6] || "-",
+                    status: row[7] || "ACTIVE",
+                    createdAt: row[8] || "-"
+                });
+            }
             renderLicensesTable();
             renderCompaniesTable();
-        } else if (data.status === "forbidden") {
-            console.warn("Invalid secret, check kode.gs deployment");
-            showToast("License system error", "error");
         }
     } catch (err) {
         console.error("LOAD LICENSES ERROR:", err);
+        showToast("Gagal load licenses", "error");
     }
 }
 
 // ================= LICENSE OPERATIONS =================
 async function generateLicense(company, pic, phone, email, pkg) {
     try {
-        const data = await safeFetch({
-            action: "generate_license",
-            company, pic, phone, email, package: pkg
+        const formBody = "action=generate_license&company=" + encodeURIComponent(company) + "&pic=" + encodeURIComponent(pic) + "&phone=" + encodeURIComponent(phone) + "&email=" + encodeURIComponent(email) + "&package=" + encodeURIComponent(pkg);
+        const res = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formBody
         });
+        const data = await res.json();
         if (data.status === "success") {
-            showToast(`License dibuat: ${data.license_key}`, "success");
+            showToast("License dibuat: " + data.license_key, "success");
             await loadLicenses();
             return true;
         } else {
@@ -461,107 +435,60 @@ async function generateLicense(company, pic, phone, email, pkg) {
     }
 }
 
-async function addAdminUser(username, password, role) {
+async function renewLicense(company, months) {
     try {
-        const data = await safeFetch({
-            // action: "add_admin"
-            username, password, role
+        const formBody = "action=renew_license&company=" + encodeURIComponent(company) + "&months=" + encodeURIComponent(months);
+        const res = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formBody
         });
-        if (data.status === "success") {
-            showToast("Admin ditambahkan", "success");
-            return true;
-        } else {
-            showToast(data.message || "Gagal", "error");
-            return false;
-        }
-    } catch (err) {
-        console.error("ADD ADMIN ERROR:", err);
-        showToast("Gagal tambah admin", "error");
-        return false;
-    }
-}
-
-async function clearViolations() {
-    try {
-        const data = await safeFetch({ action: "clear_violations" });
-        if (data.status === "success") {
-            showToast("Violations dibersihkan", "success");
-            await loadAllData();
-            return true;
-        } else {
-            showToast(data.message || "Gagal", "error");
-            return false;
-        }
-    } catch (err) {
-        console.error("CLEAR VIOLATIONS ERROR:", err);
-        showToast("Gagal bersihkan violations", "error");
-        return false;
-    }
-}
-
-async function changePassword(oldPass, newPass) {
-    try {
-        const data = await safeFetch({
-            action: "change_password",
-            username: currentUser,
-            old_password: oldPass,
-            new_password: newPass
-        });
-        return data.status === "success";
-    } catch (err) {
-        console.error("CHANGE PASSWORD ERROR:", err);
-        return false;
-    }
-}
-
-async function confirmRenew() {
-    const company = document.getElementById("renewCompanyName").value;
-    const months = document.getElementById("renewMonths").value;
-    try {
-        const data = await safeFetch({
-            action: "renew_license",
-            company, months
-        });
+        const data = await res.json();
         if (data.status === "success") {
             showToast("License renewed", "success");
-            closeModal("renewModal");
             await loadLicenses();
+            return true;
         } else {
             showToast(data.message || "Failed", "error");
+            return false;
         }
     } catch (err) {
         console.error("RENEW LICENSE ERROR:", err);
         showToast("Error renew license", "error");
+        return false;
     }
 }
 
-async function confirmUpgrade() {
-    const company = document.getElementById("upgradeCompanyName").value;
-    const newPackage = document.getElementById("upgradePackage").value;
+async function upgradeLicense(company, newPackage) {
     try {
-        const data = await safeFetch({
-            action: "upgrade_license",
-            company, new_package: newPackage
+        const formBody = "action=upgrade_license&company=" + encodeURIComponent(company) + "&new_package=" + encodeURIComponent(newPackage);
+        const res = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formBody
         });
+        const data = await res.json();
         if (data.status === "success") {
-            showToast(`Upgraded to ${newPackage}`, "success");
-            closeModal("upgradeModal");
+            showToast("Upgraded to " + newPackage, "success");
             await loadLicenses();
+            return true;
         } else {
             showToast(data.message || "Failed", "error");
+            return false;
         }
     } catch (err) {
         console.error("UPGRADE LICENSE ERROR:", err);
         showToast("Error upgrade license", "error");
+        return false;
     }
 }
 
 // ================= RENDER FUNCTIONS =================
 function updateDashboard() {
     document.getElementById("statTotalDevices").innerText = devicesData.length;
-    document.getElementById("statActiveDevices").innerText = devicesData.filter(d => d.status === "IN").length;
-    document.getElementById("statPendingDevices").innerText = devicesData.filter(d => d.status === "OUT").length;
-    document.getElementById("statTotalViolations").innerText = devicesData.filter(d => d.isExpired).length;
+    document.getElementById("statActiveDevices").innerText = devicesData.filter(function(d) { return d.status === "IN"; }).length;
+    document.getElementById("statPendingDevices").innerText = devicesData.filter(function(d) { return d.status === "OUT"; }).length;
+    document.getElementById("statTotalViolations").innerText = devicesData.filter(function(d) { return d.isExpired; }).length;
 }
 
 function renderDevicesTable() {
@@ -569,98 +496,104 @@ function renderDevicesTable() {
     if (!tbody) return;
     const search = document.getElementById("deviceSearch")?.value.toLowerCase() || "";
     const statusFilter = document.getElementById("deviceStatusFilter")?.value || "";
-    let filtered = devicesData.filter(d => {
-        const nameMatch = (d.name || "").toLowerCase().includes(search);
-        const companyMatch = (d.company || "").toLowerCase().includes(search);
+    let filtered = devicesData.filter(function(d) {
+        const nameMatch = (d.name || "").toLowerCase().indexOf(search) !== -1;
+        const companyMatch = (d.company || "").toLowerCase().indexOf(search) !== -1;
         return nameMatch || companyMatch;
     });
-    if (statusFilter) filtered = filtered.filter(d => d.status === statusFilter);
-    tbody.innerHTML = filtered.map(d => `
-        <tr>
-            <td><strong>${escapeHtml(d.name)}</strong></td>
-            <td>${escapeHtml(d.company)}</td>
-            <td>${escapeHtml(d.pic)}</td>
-            <td>${escapeHtml(d.checkin)}</td>
-            <td class="${d.isExpired ? 'text-danger' : ''}">${escapeHtml(d.checkout)}</td>
-            <td><span class="badge ${d.status === 'IN' ? 'badge-active' : 'badge-pending'}">${escapeHtml(d.status)}</span></td>
-            <td class="text-danger">${escapeHtml(d.alert || '-')}</td>
-        </tr>
-    `).join('');
+    if (statusFilter) filtered = filtered.filter(function(d) { return d.status === statusFilter; });
+    tbody.innerHTML = "";
+    for (var i = 0; i < filtered.length; i++) {
+        var d = filtered[i];
+        var row = tbody.insertRow();
+        row.insertCell(0).innerHTML = "<strong>" + escapeHtml(d.name) + "</strong>";
+        row.insertCell(1).innerHTML = escapeHtml(d.company);
+        row.insertCell(2).innerHTML = escapeHtml(d.pic);
+        row.insertCell(3).innerHTML = escapeHtml(d.checkin);
+        row.insertCell(4).innerHTML = d.isExpired ? '<span class="text-danger">' + escapeHtml(d.checkout) + '</span>' : escapeHtml(d.checkout);
+        row.insertCell(5).innerHTML = '<span class="badge ' + (d.status === "IN" ? "badge-active" : "badge-pending") + '">' + escapeHtml(d.status) + '</span>';
+        row.insertCell(6).innerHTML = d.alert ? '<span class="text-danger">' + escapeHtml(d.alert) + '</span>' : "-";
+    }
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-muted">No devices found</td></tr>';
+    }
 }
 
 function renderCompaniesTable() {
     const tbody = document.getElementById("companiesTableBody");
     if (!tbody) return;
     const search = document.getElementById("companySearch")?.value.toLowerCase() || "";
-    let filtered = licensesData.filter(l => (l.company || "").toLowerCase().includes(search));
+    let filtered = licensesData.filter(function(l) { return (l.company || "").toLowerCase().indexOf(search) !== -1; });
     
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-muted">No registered companies. Generate license first.</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="8" class="text-muted">No registered companies. Generate license first.</td></tr>';
         return;
     }
     
-    tbody.innerHTML = filtered.map(l => {
-        let isExpired = false;
+    tbody.innerHTML = "";
+    for (var i = 0; i < filtered.length; i++) {
+        var l = filtered[i];
+        var isExpired = false;
         try {
             isExpired = new Date(l.expiry) < new Date();
         } catch(e) {}
-        return `
-            <tr>
-                <td><strong>${escapeHtml(l.company)}</strong></td>
-                <td>${escapeHtml(l.pic)}</td>
-                <td>${escapeHtml(l.phone || '-')}</td>
-                <td>${escapeHtml(l.email || '-')}</td>
-                <td><span class="badge ${l.package === 'PRO' ? 'badge-pro' : (l.package === 'BASIC' ? 'badge-basic' : 'badge-demo')}">${escapeHtml(l.package)}</span></td>
-                <td><code>${escapeHtml(l.license_key)}</code></td>
-                <td class="${isExpired ? 'text-danger' : ''}">${escapeHtml(l.expiry)}</td>
-                <td><span class="badge ${l.status === 'ACTIVE' ? 'badge-active' : 'badge-expired'}">${escapeHtml(l.status)}</span></td>
-            </tr>
-        `;
-    }).join('');
+        var row = tbody.insertRow();
+        row.insertCell(0).innerHTML = "<strong>" + escapeHtml(l.company) + "</strong>";
+        row.insertCell(1).innerHTML = escapeHtml(l.pic);
+        row.insertCell(2).innerHTML = escapeHtml(l.phone || '-');
+        row.insertCell(3).innerHTML = escapeHtml(l.email || '-');
+        row.insertCell(4).innerHTML = '<span class="badge ' + (l.package === "PRO" ? "badge-pro" : (l.package === "BASIC" ? "badge-basic" : "badge-demo")) + '">' + escapeHtml(l.package) + '</span>';
+        row.insertCell(5).innerHTML = "<code>" + escapeHtml(l.license_key) + "</code>";
+        row.insertCell(6).innerHTML = isExpired ? '<span class="text-danger">' + escapeHtml(l.expiry) + '</span>' : escapeHtml(l.expiry);
+        row.insertCell(7).innerHTML = '<span class="badge ' + (l.status === "ACTIVE" ? "badge-active" : "badge-expired") + '">' + escapeHtml(l.status) + '</span>';
+    }
 }
 
 function renderRecentViolations() {
     const tbody = document.querySelector("#recentViolationsTable tbody");
     if (!tbody) return;
-    const violations = devicesData.filter(d => d.isExpired).slice(0, 10);
-    tbody.innerHTML = violations.map(d => `
-        <tr>
-            <td>${escapeHtml(d.company)}</td>
-            <td>${escapeHtml(d.name)}</td>
-            <td><span class="badge badge-danger">EXPIRED</span></td>
-            <td>${escapeHtml(d.exp)}</td>
-            <td><span class="badge badge-warning">Overstay</span></td>
-        </tr>
-    `).join('');
+    const violations = devicesData.filter(function(d) { return d.isExpired; }).slice(0, 10);
+    tbody.innerHTML = "";
+    for (var i = 0; i < violations.length; i++) {
+        var d = violations[i];
+        var row = tbody.insertRow();
+        row.insertCell(0).innerHTML = escapeHtml(d.company);
+        row.insertCell(1).innerHTML = escapeHtml(d.name);
+        row.insertCell(2).innerHTML = '<span class="badge badge-danger">EXPIRED</span>';
+        row.insertCell(3).innerHTML = escapeHtml(d.exp);
+        row.insertCell(4).innerHTML = '<span class="badge badge-warning">Overstay</span>';
+    }
+    if (violations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted">No violations</td></tr>';
+    }
 }
 
 function renderLicensesTable() {
     const tbody = document.getElementById("recentLicensesBody");
     if (!tbody) return;
-    tbody.innerHTML = licensesData.map(l => {
-        let isExpired = false;
+    tbody.innerHTML = "";
+    for (var i = 0; i < licensesData.length; i++) {
+        var l = licensesData[i];
+        var isExpired = false;
         try {
             isExpired = new Date(l.expiry) < new Date();
         } catch(e) {}
-        return `
-            <tr>
-                <td>${escapeHtml(l.company)}</td>
-                <td><span class="badge ${l.package === 'PRO' ? 'badge-pro' : (l.package === 'BASIC' ? 'badge-basic' : 'badge-demo')}">${escapeHtml(l.package)}</span></td>
-                <td><code>${escapeHtml(l.license_key)}</code></td>
-                <td class="${isExpired ? 'text-danger' : ''}">${escapeHtml(l.expiry)}</td>
-                <td><span class="badge ${l.status === 'ACTIVE' ? 'badge-active' : 'badge-expired'}">${escapeHtml(l.status)}</span></td>
-                <td>
-                    <button class="btn btn-outline btn-sm" onclick="openRenewModal('${escapeHtml(l.company)}')">Renew</button>
-                    <button class="btn btn-outline btn-sm" onclick="openUpgradeModal('${escapeHtml(l.company)}', '${escapeHtml(l.package)}')">Upgrade</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+        var row = tbody.insertRow();
+        row.insertCell(0).innerHTML = escapeHtml(l.company);
+        row.insertCell(1).innerHTML = '<span class="badge ' + (l.package === "PRO" ? "badge-pro" : (l.package === "BASIC" ? "badge-basic" : "badge-demo")) + '">' + escapeHtml(l.package) + '</span>';
+        row.insertCell(2).innerHTML = "<code>" + escapeHtml(l.license_key) + "</code>";
+        row.insertCell(3).innerHTML = isExpired ? '<span class="text-danger">' + escapeHtml(l.expiry) + '</span>' : escapeHtml(l.expiry);
+        row.insertCell(4).innerHTML = '<span class="badge ' + (l.status === "ACTIVE" ? "badge-active" : "badge-expired") + '">' + escapeHtml(l.status) + '</span>';
+        row.insertCell(5).innerHTML = '<button class="btn btn-outline btn-sm" onclick="openRenewModal(\'' + escapeHtml(l.company) + '\')">Renew</button> <button class="btn btn-outline btn-sm" onclick="openUpgradeModal(\'' + escapeHtml(l.company) + '\', \'' + escapeHtml(l.package) + '\')">Upgrade</button>';
+    }
+    if (licensesData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-muted">No licenses generated yet</td></tr>';
+    }
 }
 
 function updateCharts() {
-    const inCount = devicesData.filter(d => d.status === "IN").length;
-    const outCount = devicesData.filter(d => d.status === "OUT").length;
+    const inCount = devicesData.filter(function(d) { return d.status === "IN"; }).length;
+    const outCount = devicesData.filter(function(d) { return d.status === "OUT"; }).length;
     const ctx = document.getElementById("packageChart");
     if (!ctx) return;
     if (packageChart) packageChart.destroy();
@@ -672,10 +605,12 @@ function updateCharts() {
 }
 
 function switchTab(tabId) {
-    document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-    document.getElementById(`${tabId}Tab`)?.classList.add("active");
-    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-    const nav = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
+    var panes = document.querySelectorAll(".tab-pane");
+    for (var i = 0; i < panes.length; i++) panes[i].classList.remove("active");
+    document.getElementById(tabId + "Tab")?.classList.add("active");
+    var navs = document.querySelectorAll(".nav-item");
+    for (var j = 0; j < navs.length; j++) navs[j].classList.remove("active");
+    var nav = document.querySelector('.nav-item[data-tab="' + tabId + '"]');
     if (nav) nav.classList.add("active");
     document.getElementById("pageTitle").innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
 }
@@ -687,50 +622,25 @@ function refreshCompanies() { loadLicenses(); }
 function openChangePasswordModal() {
     document.getElementById("changePasswordModal").style.display = "flex";
 }
-
 function closeChangePasswordModal() {
     document.getElementById("changePasswordModal").style.display = "none";
     document.getElementById("oldPassword").value = "";
     document.getElementById("newPassword").value = "";
     document.getElementById("confirmPassword").value = "";
 }
-
-async function submitChangePassword() {
-    const oldPass = document.getElementById("oldPassword").value;
-    const newPass = document.getElementById("newPassword").value;
-    const confirmPass = document.getElementById("confirmPassword").value;
-    if (!oldPass || !newPass) {
-        showToast("Password tidak boleh kosong", "error");
-        return;
-    }
-    if (newPass !== confirmPass) {
-        showToast("Password baru tidak cocok", "error");
-        return;
-    }
-    if (newPass.length < 4) {
-        showToast("Password minimal 4 karakter", "error");
-        return;
-    }
-    const success = await changePassword(oldPass, newPass);
-    if (success) {
-        showToast("Password berhasil diubah", "success");
-        closeChangePasswordModal();
-    } else {
-        showToast("Password lama salah", "error");
-    }
+function submitChangePassword() {
+    showToast("Fungsi ganti password belum terintegrasi", "warning");
+    closeChangePasswordModal();
 }
-
 function openRenewModal(company) {
     document.getElementById("renewCompanyName").value = company;
     document.getElementById("renewModal").classList.add("active");
 }
-
 function openUpgradeModal(company, currentPackage) {
     document.getElementById("upgradeCompanyName").value = company;
     document.getElementById("upgradeCurrentPackage").value = currentPackage;
     document.getElementById("upgradeModal").classList.add("active");
 }
-
 async function handleGenerateLicense() {
     const company = document.getElementById("genCompanyName").value;
     const pic = document.getElementById("genPic").value;
@@ -747,27 +657,22 @@ async function handleGenerateLicense() {
     document.getElementById("genPhone").value = "";
     document.getElementById("genEmail").value = "";
 }
-
-async function handleAddAdmin() {
-    const username = document.getElementById("newAdminUser").value;
-    const password = document.getElementById("newAdminPass").value;
-    const role = document.getElementById("newAdminRole").value;
-    if (!username || !password) {
-        showToast("Username dan password wajib diisi", "error");
-        return;
-    }
-    if (password.length < 4) {
-        showToast("Password minimal 4 karakter", "error");
-        return;
-    }
-    // await addAdminUser(username, password, role);
-    document.getElementById("newAdminUser").value = "";
-    document.getElementById("newAdminPass").value = "";
+async function handleConfirmRenew() {
+    const company = document.getElementById("renewCompanyName").value;
+    const months = document.getElementById("renewMonths").value;
+    await renewLicense(company, months);
+    closeModal("renewModal");
 }
-
+async function handleConfirmUpgrade() {
+    const company = document.getElementById("upgradeCompanyName").value;
+    const newPackage = document.getElementById("upgradePackage").value;
+    await upgradeLicense(company, newPackage);
+    closeModal("upgradeModal");
+}
 async function handleClearViolations() {
     if (confirm("Hapus semua violations?")) {
-        await clearViolations();
+        showToast("Fungsi clear violations belum terintegrasi penuh", "warning");
+        loadAllData();
     }
 }
 
@@ -777,89 +682,62 @@ function exportToExcel(data, filename, columns) {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    XLSX.writeFile(wb, `${filename}_${new Date().toISOString().slice(0, 19)}.xlsx`);
+    XLSX.writeFile(wb, filename + "_" + new Date().toISOString().slice(0, 19) + ".xlsx");
     showToast("Export berhasil", "success");
 }
-
-function exportToPDF(data, title, columns) {
-    if (!window.jspdf) { showToast("PDF engine belum siap", "error"); return; }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape' });
-    doc.text(title, 14, 16);
-    const displayData = data.map(row => columns.map(c => row[c] || '-'));
-    doc.autoTable({ head: [columns], body: displayData, startY: 25 });
-    doc.save(`${title}_${new Date().toISOString().slice(0, 19)}.pdf`);
-    showToast("Export PDF berhasil", "success");
-}
-
 function exportDevicesToExcel() {
-    const exportData = devicesData.map(d => ({ Name: d.name, Company: d.company, PIC: d.pic, Checkin: d.checkin, Checkout: d.checkout, Status: d.status, Alert: d.alert }));
+    const exportData = devicesData.map(function(d) { return { Name: d.name, Company: d.company, PIC: d.pic, Checkin: d.checkin, Checkout: d.checkout, Status: d.status, Alert: d.alert }; });
     exportToExcel(exportData, "Devices", ["Name", "Company", "PIC", "Checkin", "Checkout", "Status", "Alert"]);
 }
-function exportDevicesToPDF() {
-    const exportData = devicesData.map(d => ({ Name: d.name, Company: d.company, PIC: d.pic, Checkin: d.checkin, Checkout: d.checkout, Status: d.status, Alert: d.alert }));
-    exportToPDF(exportData, "Devices_Report", ["Name", "Company", "PIC", "Checkin", "Checkout", "Status", "Alert"]);
-}
 function exportCompaniesToExcel() {
-    const exportData = licensesData.map(l => ({ Company: l.company, PIC: l.pic, Phone: l.phone, Email: l.email, Package: l.package, LicenseKey: l.license_key, Expiry: l.expiry, Status: l.status }));
+    const exportData = licensesData.map(function(l) { return { Company: l.company, PIC: l.pic, Phone: l.phone, Email: l.email, Package: l.package, LicenseKey: l.license_key, Expiry: l.expiry, Status: l.status }; });
     exportToExcel(exportData, "Companies", ["Company", "PIC", "Phone", "Email", "Package", "LicenseKey", "Expiry", "Status"]);
 }
-function exportCompaniesToPDF() {
-    const exportData = licensesData.map(l => ({ Company: l.company, PIC: l.pic, Phone: l.phone, Email: l.email, Package: l.package, LicenseKey: l.license_key, Expiry: l.expiry, Status: l.status }));
-    exportToPDF(exportData, "Companies_Report", ["Company", "PIC", "Phone", "Email", "Package", "LicenseKey", "Expiry", "Status"]);
-}
-function exportInvoicesToExcel() {
-    exportToExcel([], "Invoices", ["Invoice #", "Company", "Amount", "Status", "Created"]);
-}
 
-// ================= INIT =================
-document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".nav-item").forEach(nav => {
-        nav.addEventListener("click", () => {
-            const tab = nav.dataset.tab;
+// ================= EVENT LISTENERS =================
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".nav-item").forEach(function(nav) {
+        nav.addEventListener("click", function() {
+            const tab = this.dataset.tab;
             if (tab) switchTab(tab);
             if (window.innerWidth <= 768) document.getElementById("sidebar").classList.remove("open");
         });
     });
-    document.getElementById("mobileMenuBtn")?.addEventListener("click", () => {
+    document.getElementById("mobileMenuBtn")?.addEventListener("click", function() {
         document.getElementById("sidebar").classList.toggle("open");
     });
     document.getElementById("topLogoutBtn")?.addEventListener("click", logout);
     document.getElementById("sidebarLogoutBtn")?.addEventListener("click", logout);
     document.getElementById("deviceSearch")?.addEventListener("input", renderDevicesTable);
     document.getElementById("deviceStatusFilter")?.addEventListener("change", renderDevicesTable);
-    document.getElementById("companySearch")?.addEventListener("input", () => renderCompaniesTable());
+    document.getElementById("companySearch")?.addEventListener("input", function() { renderCompaniesTable(); });
     document.getElementById("doLoginBtn")?.addEventListener("click", doLogin);
     document.getElementById("topChangePasswordBtn")?.addEventListener("click", openChangePasswordModal);
     document.getElementById("sidebarChangePasswordBtn")?.addEventListener("click", openChangePasswordModal);
     document.getElementById("closePasswordModalBtn")?.addEventListener("click", closeChangePasswordModal);
     document.getElementById("submitPasswordBtn")?.addEventListener("click", submitChangePassword);
     document.getElementById("generateLicenseBtn")?.addEventListener("click", handleGenerateLicense);
-    document.getElementById("addAdminBtn")?.addEventListener("click", handleAddAdmin);
     document.getElementById("clearViolationsBtn")?.addEventListener("click", handleClearViolations);
     document.getElementById("refreshDataBtn")?.addEventListener("click", refreshData);
     document.getElementById("refreshLicensesBtn")?.addEventListener("click", loadLicenses);
     document.getElementById("refreshCompaniesBtn")?.addEventListener("click", refreshCompanies);
-    document.getElementById("confirmRenewBtn")?.addEventListener("click", confirmRenew);
-    document.getElementById("confirmUpgradeBtn")?.addEventListener("click", confirmUpgrade);
-    document.getElementById("refreshDeviceRequestsBtn")?.addEventListener("click", () => showToast("No requests", "info"));
+    document.getElementById("confirmRenewBtn")?.addEventListener("click", handleConfirmRenew);
+    document.getElementById("confirmUpgradeBtn")?.addEventListener("click", handleConfirmUpgrade);
+    document.getElementById("refreshDeviceRequestsBtn")?.addEventListener("click", function() { showToast("No requests", "info"); });
     document.getElementById("exportDevicesExcelBtn")?.addEventListener("click", exportDevicesToExcel);
-    document.getElementById("exportDevicesPdfBtn")?.addEventListener("click", exportDevicesToPDF);
     document.getElementById("exportCompaniesExcelBtn")?.addEventListener("click", exportCompaniesToExcel);
-    document.getElementById("exportCompaniesPdfBtn")?.addEventListener("click", exportCompaniesToPDF);
-    document.getElementById("exportInvoicesExcelBtn")?.addEventListener("click", exportInvoicesToExcel);
-    setInterval(() => {
+    document.getElementById("exportInvoicesExcelBtn")?.addEventListener("click", function() { showToast("No invoices", "info"); });
+    
+    setInterval(function() {
         const el = document.getElementById("serverTime");
-        if (el) el.innerHTML = `Server Time: ${new Date().toLocaleString('id-ID')}`;
+        if (el) el.innerHTML = "Server Time: " + new Date().toLocaleString('id-ID');
     }, 1000);
-    document.getElementById("loginPass")?.addEventListener("keypress", (e) => { if (e.key === "Enter") doLogin(); });
+    document.getElementById("loginPass")?.addEventListener("keypress", function(e) { if (e.key === "Enter") doLogin(); });
     
     const savedUser = localStorage.getItem("vms_admin_user");
-    const savedToken = localStorage.getItem("vms_admin_token");
     const savedRole = localStorage.getItem("vms_admin_role");
-    if (savedUser && savedToken && isSessionValid()) {
+    if (savedUser && savedRole && isSessionValid()) {
         currentUser = savedUser;
-        currentToken = savedToken;
         currentRole = savedRole;
         document.getElementById("loginOverlay").style.display = "none";
         document.getElementById("topUsername").innerText = savedUser;
@@ -869,10 +747,10 @@ document.addEventListener("DOMContentLoaded", () => {
         loadAllData();
         loadLicenses();
         if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(async () => {
+        refreshInterval = setInterval(function() {
             if (syncLock) return;
-            await loadAllData();
-            await loadLicenses();
+            loadAllData();
+            loadLicenses();
         }, 30000);
     } else {
         document.getElementById("loginOverlay").style.display = "flex";

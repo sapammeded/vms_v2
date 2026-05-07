@@ -72,6 +72,7 @@
         .license-badge { background: #fbbf24; color: #92400e; padding: 4px 12px; border-radius: 40px; font-size: 0.7rem; font-weight: 600; margin-left: 12px; }
         body.disable-interaction { pointer-events: none; opacity: 0.7; }
         .qr-reader-region { margin: 0 auto; }
+        .sync-error { background: #fee2e2 !important; border-left: 3px solid #dc2626 !important; }
     </style>
 </head>
 <body>
@@ -118,7 +119,7 @@
 <script>
 // ================= KONFIGURASI =================
 // ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT VMS CLIENT ANDA ⚠️
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAc_7k8YdMz9XnU2Z0dMBAkJ1dOfKuVk3s9R94VPmy9ufaEAC1J2XuerqwY7wdILaO/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8ToronjLC0oW4b1A7K3gK_q8al7ryrKUL2xd86AUlnNmagZp54w0mi6pLPi9yLG3M/exec";
 const SYNC_INTERVAL_MS = 5000;
 
 // ================= GLOBAL VARIABLES =================
@@ -137,6 +138,7 @@ let scanCounter = 0;
 const SCAN_COOLDOWN_MS = 3000;
 
 let currentLicense = localStorage.getItem("vms_license_key") || "";
+let isLicenseValid = false;
 let vmsSiteData = { names: { SITE_A: "SITE A", SITE_B: "SITE B", SITE_C: "SITE C" } };
 
 // ================= HELPER FUNCTIONS =================
@@ -171,6 +173,57 @@ function getSiteName(siteId) {
         localStorage.setItem("vms_site_names", JSON.stringify(names));
     }
     return name;
+}
+
+// ================= LICENSE FUNCTIONS =================
+function checkLicense() {
+    var savedLicense = localStorage.getItem("vms_license_key");
+    var licenseValid = localStorage.getItem("vms_license_valid") === "true";
+    var licenseExpiry = localStorage.getItem("vms_license_expiry");
+    
+    var isExpired = false;
+    if (licenseExpiry) {
+        var expDate = new Date(licenseExpiry);
+        isExpired = expDate < new Date();
+    }
+    
+    if (savedLicense && savedLicense.length > 10 && licenseValid && !isExpired) {
+        currentLicense = savedLicense;
+        isLicenseValid = true;
+        var badge = document.getElementById("licenseStatusBadge");
+        if (badge) {
+            badge.innerText = "✅ ELITE";
+            badge.style.background = "#10b981";
+            badge.style.color = "white";
+        }
+    } else {
+        isLicenseValid = false;
+        var badge2 = document.getElementById("licenseStatusBadge");
+        if (badge2) {
+            badge2.innerText = "⚠️ TRIAL";
+            badge2.style.background = "#f59e0b";
+            badge2.style.color = "white";
+        }
+    }
+    return isLicenseValid;
+}
+
+function activateLicense(key) {
+    if (key && key.length > 10) {
+        localStorage.setItem("vms_license_key", key);
+        localStorage.setItem("vms_license_valid", "true");
+        var expiry = new Date();
+        expiry.setFullYear(expiry.getFullYear() + 1);
+        localStorage.setItem("vms_license_expiry", expiry.toISOString());
+        currentLicense = key;
+        isLicenseValid = true;
+        toast("✅ License activated! Valid until " + expiry.toLocaleDateString('id-ID'), "success");
+        checkLicense();
+        return true;
+    } else {
+        toast("❌ License key tidak valid", "error");
+        return false;
+    }
 }
 
 // ================= STORAGE FUNCTIONS =================
@@ -302,16 +355,12 @@ async function pullFromSheet() {
                 var reg = row[8];
                 if (!reg) continue;
                 
-                var photoUrl = "";
-if (row[18] && row[18].startsWith("https://")) {
-    photoUrl = row[18];  // URL dari Google Drive
-} else if (visitors[reg] && visitors[reg].foto) {
-    if (visitors[reg].foto.startsWith("data:image")) {
-        photoUrl = visitors[reg].foto;  // Pertahankan base64 lokal
-    } else if (visitors[reg].foto.startsWith("https://")) {
-        photoUrl = visitors[reg].foto;
-    }
-}
+                var photoUrl = row[18] || "";
+                if (photoUrl && photoUrl.startsWith("https://")) {
+                    // sudah benar
+                } else if (visitors[reg] && visitors[reg].foto) {
+                    photoUrl = visitors[reg].foto;
+                }
                 
                 visitors[reg] = {
                     nama: row[0] || (visitors[reg] ? visitors[reg].nama : "Unknown"),
@@ -462,7 +511,7 @@ function renderLogTable() {
             var photoUrl = v.foto || "";
             if (photoUrl && photoUrl.length > 50) {
                 if (photoUrl.startsWith("https://")) {
-                    photoCell.innerHTML = '<img src="' + photoUrl + '" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;" onerror="this.onerror=null;this.parentElement.innerHTML=\'<div style=\\\"width:40px;height:40px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:10px;\\\">📷</div>\';">';
+                    photoCell.innerHTML = '<img src="' + photoUrl + '" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;" onerror="this.onerror=null;this.parentElement.innerHTML=\'<div style=\"width:40px;height:40px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:10px;\">📷</div>\';">';
                 } else if (photoUrl.startsWith("data:image")) {
                     photoCell.innerHTML = '<img src="' + photoUrl + '" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;">';
                 } else {
@@ -517,7 +566,6 @@ async function downloadPDF(reg, data) {
             }
         }
         
-        // Header
         doc.setFillColor(31, 78, 74);
         doc.rect(0, 0, 105, 25, "F");
         doc.setTextColor(255, 255, 255);
@@ -527,7 +575,7 @@ async function downloadPDF(reg, data) {
         doc.setFontSize(8);
         doc.text("SECURITY AUTHORIZED", 52.5, 18, { align: "center" });
         
-        // FOTO - HANYA BASE64, URL DRIVE DI-SKIP
+        // FOTO
         if (visitorData.foto && visitorData.foto.length > 100) {
             if (visitorData.foto.startsWith("data:image")) {
                 try {
@@ -535,8 +583,7 @@ async function downloadPDF(reg, data) {
                     doc.rect(32.5, 30, 40, 50);
                     doc.addImage(visitorData.foto, "JPEG", 33, 30.5, 39, 49);
                 } catch(e) { 
-                    console.error("Foto error:", e); 
-                    // Placeholder jika gagal
+                    console.error("Foto error:", e);
                     doc.setDrawColor(200, 200, 200);
                     doc.rect(32.5, 30, 40, 50);
                     doc.setFontSize(6);
@@ -544,14 +591,12 @@ async function downloadPDF(reg, data) {
                     doc.text("Photo", 52.5, 55, { align: "center" });
                 }
             } else if (visitorData.foto.startsWith("https://")) {
-                // URL Drive - tampilkan placeholder saja
                 doc.setDrawColor(200, 200, 200);
                 doc.rect(32.5, 30, 40, 50);
                 doc.setFontSize(6);
                 doc.setTextColor(100, 100, 100);
                 doc.text("Photo on Cloud", 52.5, 55, { align: "center" });
             } else {
-                // Format tidak dikenal - placeholder
                 doc.setDrawColor(200, 200, 200);
                 doc.rect(32.5, 30, 40, 50);
                 doc.setFontSize(6);
@@ -559,7 +604,6 @@ async function downloadPDF(reg, data) {
                 doc.text("No Photo", 52.5, 55, { align: "center" });
             }
         } else {
-            // Tidak ada foto - placeholder kosong
             doc.setDrawColor(200, 200, 200);
             doc.rect(32.5, 30, 40, 50);
             doc.setFontSize(6);
@@ -567,7 +611,6 @@ async function downloadPDF(reg, data) {
             doc.text("No Photo", 52.5, 55, { align: "center" });
         }
         
-        // Nama dan Perusahaan
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
         doc.setFont(undefined, "bold");
@@ -576,29 +619,24 @@ async function downloadPDF(reg, data) {
         doc.setFont(undefined, "normal");
         doc.text(visitorData.perusahaan || "-", 52.5, 96, { align: "center" });
         
-        // Garis pembatas
         doc.setDrawColor(31, 78, 74);
         doc.setLineWidth(0.5);
         doc.line(15, 102, 90, 102);
         
-        // Detail
         doc.setFontSize(8);
         var y = 108;
         doc.text("PIC      : " + (visitorData.pic || "-"), 15, y);
         doc.text("DATE     : " + (visitorData.startDate || "-"), 15, y + 5);
         doc.text("VALID TO : " + (visitorData.expDate || "-"), 15, y + 10);
         
-        // QR Code
         if (visitorData.qrImage) {
             doc.addImage(visitorData.qrImage, "PNG", 70, 115, 25, 25);
         }
         
-        // REG
         doc.setFontSize(7);
         doc.setTextColor(150, 150, 150);
         doc.text(reg, 82.5, 142, { align: "center" });
         
-        // Footer
         doc.setFontSize(6);
         doc.text("Property of Security Department. Must be worn at all times.", 52.5, 146, { align: "center" });
         
@@ -719,10 +757,18 @@ async function processScan(qrText) {
     qrText = qrText.trim();
     var mode = document.getElementById("scanMode").value;
     var reg = null;
-    if (qrText.match(/^REG\d+/i)) reg = qrText;
-    else if (qrText.includes("|")) { var parts = qrText.split("|"); if (parts[0].match(/^REG\d+/i)) reg = parts[0]; }
+    if (qrText.match(/^REG\d+/i)) {
+        reg = qrText;
+    } else if (qrText.includes("REG")) {
+        var match = qrText.match(/REG\d+/i);
+        if (match) reg = match[0];
+    }
     
-    if (!reg) { toast("QR tidak valid!", "error"); globalScanLock = false; return false; }
+    if (!reg) {
+        toast("QR tidak valid! Format REG tidak ditemukan", "error");
+        globalScanLock = false;
+        return false;
+    }
     
     var nowTime = Date.now();
     if (lastScanTime[reg] && nowTime - lastScanTime[reg] < SCAN_COOLDOWN_MS) { globalScanLock = false; return false; }
@@ -731,7 +777,18 @@ async function processScan(qrText) {
     processingRegs.add(reg);
     actionMutex = true;
     try {
-        var visitor = visitors[reg] || { nama: "Visitor", currentStatus: "OUT" };
+        var visitor = visitors[reg];
+        if (!visitor) {
+            toast("⏳ Memuat data pengunjung...", "info");
+            await pullFromSheet();
+            visitor = visitors[reg];
+            if (!visitor) {
+                toast("❌ Data pengunjung tidak ditemukan di server", "error");
+                globalScanLock = false;
+                return false;
+            }
+        }
+        
         if (mode === "CHECK_IN") {
             var result = await checkinVisitor(reg);
             if (result.status === "success") {
@@ -740,7 +797,7 @@ async function processScan(qrText) {
                 addLocalLog(reg, "CHECK_IN");
                 vibrate();
                 toast("✅ IN: " + visitor.nama, "success");
-            } else { toast("Gagal Check-in", "error"); }
+            } else { toast("Gagal Check-in: " + (result.message || ""), "error"); }
         } else {
             var result2 = await checkoutVisitor(reg);
             if (result2.status === "success") {
@@ -749,7 +806,7 @@ async function processScan(qrText) {
                 addLocalLog(reg, "CHECK_OUT");
                 vibrate();
                 toast("✅ OUT: " + visitor.nama, "success");
-            } else { toast("Gagal Check-out", "error"); }
+            } else { toast("Gagal Check-out: " + (result2.message || ""), "error"); }
         }
         renderDashboard();
         renderLogTable();
@@ -951,7 +1008,12 @@ document.getElementById("manualProcess").onclick = async function() {
         var mode = document.getElementById("scanMode").value;
         if (!reg || !reg.match(/^REG\d+/i)) { toast("Format REG salah!", "error"); return; }
         var visitor = visitors[reg];
-        if (!visitor) { toast("REG tidak ditemukan!", "error"); return; }
+        if (!visitor) {
+            toast("⏳ Memuat data...", "info");
+            await pullFromSheet();
+            visitor = visitors[reg];
+            if (!visitor) { toast("REG tidak ditemukan!", "error"); return; }
+        }
         if (mode === "CHECK_IN") {
             var result = await checkinVisitor(reg);
             if (result.status === "success") {
@@ -1004,9 +1066,9 @@ document.getElementById("regPhotoFile").onchange = function(e) { if (e.target.fi
 document.getElementById("submitLicenseBtn").onclick = function() { 
     var input = document.getElementById("licenseInput"); 
     if (input && input.value) {
-        localStorage.setItem("vms_license_key", input.value);
-        toast("✅ License activated!", "success");
-        input.value = "";
+        if (activateLicense(input.value)) {
+            input.value = "";
+        }
     } else {
         toast("Masukkan license key", "warning");
     }
@@ -1070,6 +1132,7 @@ document.getElementById("overlay").onclick = function() { document.getElementByI
 async function initVmsSystem() {
     secureLoad();
     vmsSite_load();
+    checkLicense();
     setSite(SITE_ID);
     renderDashboard();
     renderLogTable();
