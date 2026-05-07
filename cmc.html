@@ -1275,7 +1275,7 @@
     
     try {
         // PAKAI GET METHOD (bukan POST) untuk menghindari CORS preflight
-        const url = API_URL + "/login?username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password);
+        const url = API_URL + "?path=/login&username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password);
         const res = await fetch(url, {
             method: "GET",
             headers: {
