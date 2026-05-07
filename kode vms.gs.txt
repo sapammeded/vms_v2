@@ -2,6 +2,8 @@
 // Google Sheet ID untuk data visitor
 const SPREADSHEET_ID = "1xSsLnRqf_JT6CckwK6HAaD-kH5aCvWD9TlwfReJEA78";
 const FOLDER_FOTO_ID = "1LfTkAfSl2SVM_8b1jAgnYbk18KB-qhzV";
+const WRITE_LOCK_TIMEOUT_MS = 8000;
+const MAX_SCAN_EVENTS_PER_MIN = 120;
 
 function doGet(e) {
   return handleRequest(e);
@@ -65,10 +67,21 @@ function getVisitorSheet() {
 
 function registerVisitor(p) {
   if (!p.reg) return { status: "error", message: "Missing REG" };
-  
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(WRITE_LOCK_TIMEOUT_MS)) return { status: "retry", message: "Server busy" };
   try {
     var sheet = getVisitorSheet();
     var now = new Date();
+    var lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      var regs = sheet.getRange(2, 9, lastRow - 1, 1).getValues();
+      for (var r = regs.length - 1; r >= 0; r--) {
+        if (String(regs[r][0]) === String(p.reg)) {
+          sheet.getRange(r + 2, 18).setValue(now);
+          return { status: "exists", reg: p.reg };
+        }
+      }
+    }
     
     // PROSES FOTO KE DRIVE
     var photoUrl = "";
@@ -118,21 +131,27 @@ function registerVisitor(p) {
     
   } catch(err) {
     return { status: "error", message: err.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch(e) {}
   }
 }
 
 function updateStatus(reg, statusLabel, timeCol) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(WRITE_LOCK_TIMEOUT_MS)) return { status: "retry", message: "Server busy" };
   try {
     var sheet = getVisitorSheet();
     var lastRow = sheet.getLastRow();
     if (lastRow <= 1) return { status: "not_found" };
-    
-    var data = sheet.getRange(2, 9, lastRow - 1, 1).getValues();
+    var data = sheet.getRange(2, 9, lastRow - 1, 10).getValues();
     var now = new Date();
-    
     for (var i = data.length - 1; i >= 0; i--) {
-      if (data[i][0] == reg) {
+      var regCell = data[i][0];
+      if (!regCell) continue;
+      if (String(regCell) === String(reg)) {
         var row = i + 2;
+        var currentStatus = String(data[i][3] || "");
+        if (currentStatus === statusLabel) return { status: "success", idempotent: true };
         sheet.getRange(row, timeCol).setValue(now);
         sheet.getRange(row, 12).setValue(statusLabel);
         sheet.getRange(row, 18).setValue(now);
@@ -143,6 +162,8 @@ function updateStatus(reg, statusLabel, timeCol) {
     return { status: "not_found" };
   } catch(err) {
     return { status: "error", message: err.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch(e) {}
   }
 }
 

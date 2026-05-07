@@ -134,6 +134,7 @@ let processingRegs = new Set();
 let lastScanTime = {};
 let scanCounter = 0;
 const SCAN_COOLDOWN_MS = 3000;
+const MAX_QUEUE_RETRY_DELAY_MS = 60000;
 const MAX_VISITORS = 800;
 const MAX_LOGS = 300;
 
@@ -171,6 +172,7 @@ async function processSyncQueue() {
         for (var i = 0; i < syncQueue.length; i++) {
             var item = normalizeQueueItem(syncQueue[i]);
             if (!item) continue;
+            if (item.nextRetryAt && Date.now() < item.nextRetryAt) { nextQueue.push(item); continue; }
             var ok = false;
             if (item.type === "REGISTER" && item.payload) {
                 var r1 = await registerVisitor(item.reg, item.payload);
@@ -184,7 +186,8 @@ async function processSyncQueue() {
             }
             if (!ok) {
                 item.attempts = (item.attempts || 0) + 1;
-                if (item.attempts < 5) nextQueue.push(item);
+                item.nextRetryAt = Date.now() + Math.min(MAX_QUEUE_RETRY_DELAY_MS, Math.pow(2, item.attempts) * 1000);
+                if (item.attempts < 7) nextQueue.push(item);
             }
         }
         syncQueue = nextQueue;
@@ -733,6 +736,9 @@ async function processScan(qrText) {
     try {
         var reg = (qrText || "").trim();
         if (!reg.match(/^REG\d+/i)) { toast("QR tidak valid!", "error"); return false; }
+        var nowTs = Date.now();
+        if (lastScanTime[reg] && (nowTs - lastScanTime[reg]) < SCAN_COOLDOWN_MS) return false;
+        lastScanTime[reg] = nowTs;
 
         var mode = document.getElementById("scanMode").value;
         var visitor = visitors[reg];
@@ -1009,9 +1015,9 @@ function switchTab(tabId) {
     document.querySelectorAll(".nav-item").forEach(function(nav) { nav.classList.remove("active"); });
     document.querySelector('.nav-item[data-tab="' + tabId + '"]').classList.add("active");
 }
-document.querySelectorAll(".nav-item").forEach(function(el) { el.addEventListener("click", function() { switchTab(this.dataset.tab); if (window.innerWidth <= 780) { document.getElementById("mobileSidebar").classList.remove("open"); } }); });
-document.querySelectorAll(".mobile-nav").forEach(function(el) { el.addEventListener("click", function() { switchTab(this.dataset.tab); document.getElementById("mobileSidebar").classList.remove("open"); }); });
-document.getElementById("mobileMenuBtn").onclick = function() { document.getElementById("mobileSidebar").classList.add("open"); };
+document.querySelectorAll(".sidebar .nav-item").forEach(function(el) { el.addEventListener("click", function() { switchTab(this.dataset.tab); if (window.innerWidth <= 780) { document.getElementById("mobileSidebar").classList.remove("open"); document.getElementById("overlay").style.display = "none"; } }); });
+document.querySelectorAll(".mobile-nav").forEach(function(el) { el.addEventListener("click", function() { switchTab(this.dataset.tab); document.getElementById("mobileSidebar").classList.remove("open"); document.getElementById("overlay").style.display = "none"; }); });
+document.getElementById("mobileMenuBtn").onclick = function() { document.getElementById("mobileSidebar").classList.add("open"); document.getElementById("overlay").style.display = "block"; };
 document.getElementById("overlay").onclick = function() { document.getElementById("mobileSidebar").classList.remove("open"); document.getElementById("overlay").style.display = "none"; };
 
 // ================= INIT =================
@@ -1037,6 +1043,26 @@ async function init() {
     }, SYNC_INTERVAL_MS);
     if (!runtimeListenersBound) {
         window.addEventListener("online", function() { processSyncQueue(); pullFromSheet(); });
+        window.addEventListener("visibilitychange", function() {
+            if (document.visibilityState === "visible") {
+                secureLoad();
+                renderDashboard();
+                renderLogTable();
+                if (navigator.onLine) { processSyncQueue(); pullFromSheet(); }
+            } else if (document.visibilityState === "hidden" && isScanning) {
+                stopScanner();
+            }
+        });
+        window.addEventListener("storage", function(e) {
+            if (!e || !e.key) return;
+            if (["vms_visitors", "vms_logs", "vms_sync_queue", "vms_site", "vms_site_names"].indexOf(e.key) !== -1) {
+                secureLoad();
+                vmsSite_load();
+                if (e.key === "vms_site") SITE_ID = localStorage.getItem("vms_site") || SITE_ID;
+                renderDashboard();
+                renderLogTable();
+            }
+        });
         window.addEventListener("beforeunload", function() { try { stopScanner(); } catch(e) {} });
         runtimeListenersBound = true;
     }
