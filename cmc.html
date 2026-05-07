@@ -1134,53 +1134,7 @@
         setTimeout(() => toast.remove(), 3000);
     }
 
-    async function apiCall(endpoint, options = {}) {
-        try {
-            const headers = {
-                "Content-Type": "application/json",
-                ...(options.headers || {})
-            };
-
-            const currentToken = localStorage.getItem("vms_admin_token");
-
-            if (currentToken) {
-                headers["x-token"] = currentToken;
-            }
-
-            const url = API_URL + endpoint;
-            const res = await fetch(url, {
-                ...options,
-                headers
-            });
-
-            if (res.status === 401) {
-                localStorage.removeItem("vms_admin_token");
-                localStorage.removeItem("vms_admin_user");
-                localStorage.removeItem("vms_admin_role");
-                alert("Session habis / token invalid. Login ulang.");
-                location.reload();
-                return null;
-            }
-
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error("API ERROR " + res.status);
-            }
-
-            const contentType = res.headers.get("content-type") || "";
-            if (!contentType.includes("application/json")) {
-                throw new Error("Server returned non-JSON response");
-            }
-
-            const data = await res.json();
-            return data;
-
-        } catch (e) {
-            console.error("[API CATCH]", e);
-            showToast(e.message || "Unknown error", "error");
-            return null;
-        }
-    }
+    async function apiCall(
 
     function formatCurrency(amount) {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
@@ -1263,25 +1217,26 @@
     }
 
     async function doLogin() {
-    const username = document.getElementById("loginUser").value.trim();
-    const password = document.getElementById("loginPass").value;
+    const userEl = document.getElementById("loginUser");
+    const passEl = document.getElementById("loginPass");
+    const username = userEl.value.trim();
+    const password = passEl.value;
     
     if (!username || !password) {
-        showToast("Username and password required", "error");
+        showToast("Username dan password wajib diisi", "error");
         return;
     }
     
-    showToast("Logging in...", "info");
+    showToast("Authenticating...", "info");
     
     try {
-        // Gabungkan path dan kredensial ke dalam URL sebagai query parameters
-        const url = `${API_URL}?path=/login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+        // Kirim kredensial lewat Query Params untuk menghindari OPTIONS request
+        const loginUrl = `${API_URL}?path=/login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
         
-        const res = await fetch(url, {
+        const res = await fetch(loginUrl, {
             method: "GET",
-            mode: "cors",           // Mengizinkan lintas asal
-            redirect: "follow"      // WAJIB: Mengikuti pengalihan server Google
-            // HEADERS DIHAPUS agar tidak memicu CORS Preflight
+            mode: "cors",
+            redirect: "follow"
         });
         
         const data = await res.json();
@@ -1292,29 +1247,25 @@
             localStorage.setItem("vms_admin_role", data.role);
             
             currentUser = { username: data.username, role: data.role };
-            
             document.getElementById("loginOverlay").classList.add("hidden");
             
+            // Update UI
             document.getElementById("topUsername").innerText = data.username;
             document.getElementById("sidebarUsername").innerText = data.username;
             document.getElementById("topRole").innerText = data.role;
             document.getElementById("sidebarRole").innerText = data.role;
             
-            showToast(`Welcome ${data.username}`, "success");
-            
+            showToast(`Selamat datang ${data.username}`, "success");
             startRefresh();
             loadAllData();
-            
         } else {
-            showToast(data?.error || "Login failed", "error");
+            showToast(data?.error || "Login gagal", "error");
         }
-        
     } catch (err) {
         console.error("[LOGIN ERROR]", err);
-        showToast("Login error: Pastikan Deployment Apps Script sudah 'Anyone'", "error");
+        showToast("Gagal terhubung ke server", "error");
     }
 }
-
 
     function logout() {
         currentUser = null;
