@@ -1152,7 +1152,11 @@
             }
 
             const res = await fetch(finalUrl, fetchOptions);
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const ct = res.headers.get("content-type") || "";
+            if (!ct.includes("application/json")) throw new Error("Non-JSON response");
             const data = await res.json();
+            if (!data || typeof data !== "object") throw new Error("Malformed payload");
             return data;
         } catch (e) {
             console.error("API Error:", e);
@@ -2275,7 +2279,9 @@
 
     function startRefresh() {
         if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(loadAllData, 30000);
+        refreshInterval = setInterval(() => {
+            if (document.visibilityState === "visible" && navigator.onLine) loadAllData();
+        }, 30000);
     }
 
     async function init() {
@@ -2302,6 +2308,14 @@
             if (loginOverlay) loginOverlay.classList.remove("hidden");
         }
         
+        window.addEventListener("online", () => { if (localStorage.getItem("vms_admin_token")) loadAllData(); });
+        window.addEventListener("storage", (e) => {
+            if (!e || !e.key) return;
+            if (e.key === "vms_admin_token" && !localStorage.getItem("vms_admin_token")) {
+                location.reload();
+            }
+        });
+
         setInterval(() => {
             const serverTimeSpan = document.getElementById("serverTime");
             if (serverTimeSpan) serverTimeSpan.innerHTML = `Server Time: ${new Date().toLocaleString()}`;
