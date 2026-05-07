@@ -117,7 +117,7 @@
 
 <script>
 // ================= KONFIGURASI =================
-// ⚠️ GANTI URL INI DENGAN URL APPS SCRIPT ANDA ⚠️
+// ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT VMS CLIENT ANDA ⚠️
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXvfNLR5rbkvBDcBswXrVAHErlkX1IGt6XhrhF0wRjjdALwFm4sGTfCWw0WNi-KDpF/exec";
 const SYNC_INTERVAL_MS = 5000;
 
@@ -136,20 +136,17 @@ let lastScanTime = {};
 let scanCounter = 0;
 const SCAN_COOLDOWN_MS = 3000;
 
-// License key (sama untuk semua device - sync dari localStorage)
 let currentLicense = localStorage.getItem("vms_license_key") || "";
-let isLicenseValid = false;
-
-// Site names storage
 let vmsSiteData = { names: { SITE_A: "SITE A", SITE_B: "SITE B", SITE_C: "SITE C" } };
 
 // ================= HELPER FUNCTIONS =================
-function toast(msg, type = "info") {
-    let t = document.createElement("div");
-    t.className = `toast-msg ${type}`;
+function toast(msg, type) {
+    type = type || "info";
+    var t = document.createElement("div");
+    t.className = "toast-msg " + type;
     t.innerText = msg;
     document.body.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
+    setTimeout(function() { t.remove(); }, 3000);
 }
 window.toast = toast;
 
@@ -165,9 +162,9 @@ function generateReg() {
 }
 
 function getSiteName(siteId) {
-    let names = {};
+    var names = {};
     try { names = JSON.parse(localStorage.getItem("vms_site_names") || "{}"); } catch(e) {}
-    let name = names[siteId];
+    var name = names[siteId];
     if (!name || name.trim() === "") {
         name = siteId.replace(/_/g, " ");
         names[siteId] = name;
@@ -176,45 +173,13 @@ function getSiteName(siteId) {
     return name;
 }
 
-// ================= LICENSE CHECK (SAMA UNTUK SEMUA DEVICE) =================
-function checkLicense() {
-    // License key disimpan di localStorage, akan sync via pullFromSheet nanti
-    let savedLicense = localStorage.getItem("vms_license_key");
-    if (savedLicense && savedLicense.length > 10) {
-        currentLicense = savedLicense;
-        isLicenseValid = true;
-        document.getElementById("licenseStatusBadge").innerText = "✅ ELITE";
-        document.getElementById("licenseStatusBadge").style.background = "#10b981";
-        document.getElementById("licenseStatusBadge").style.color = "white";
-    } else {
-        isLicenseValid = false;
-        document.getElementById("licenseStatusBadge").innerText = "⚠️ TRIAL";
-        document.getElementById("licenseStatusBadge").style.background = "#f59e0b";
-    }
-    return isLicenseValid;
-}
-
-function activateLicense(key) {
-    if (key && key.length > 10) {
-        localStorage.setItem("vms_license_key", key);
-        currentLicense = key;
-        isLicenseValid = true;
-        toast("✅ License activated!", "success");
-        checkLicense();
-        return true;
-    } else {
-        toast("❌ License key tidak valid", "error");
-        return false;
-    }
-}
-
 // ================= STORAGE FUNCTIONS =================
 function secureSave() {
     try {
-        let keys = Object.keys(visitors);
+        var keys = Object.keys(visitors);
         if (keys.length > 500) {
-            keys.sort((a, b) => (visitors[a].updatedAt || 0) - (visitors[b].updatedAt || 0));
-            keys.slice(0, keys.length - 500).forEach(k => delete visitors[k]);
+            keys.sort(function(a, b) { return (visitors[a].updatedAt || 0) - (visitors[b].updatedAt || 0); });
+            keys.slice(0, keys.length - 500).forEach(function(k) { delete visitors[k]; });
         }
         if (logs.length > 500) logs = logs.slice(0, 400);
         localStorage.setItem("vms_visitors", JSON.stringify(visitors));
@@ -239,12 +204,12 @@ function secureLoad() {
 }
 
 function addLocalLog(reg, action) {
-    let v = visitors[reg];
+    var v = visitors[reg];
     logs.unshift({
         reg: reg,
-        nama: v?.nama || reg,
-        perusahaan: v?.perusahaan || "-",
-        kategori: v?.kategori || "UMUM",
+        nama: v && v.nama ? v.nama : reg,
+        perusahaan: v && v.perusahaan ? v.perusahaan : "-",
+        kategori: v && v.kategori ? v.kategori : "UMUM",
         type: action,
         timestamp: Date.now(),
         site_id: SITE_ID
@@ -253,16 +218,20 @@ function addLocalLog(reg, action) {
     secureSave();
 }
 
-// ================= API CALLS (FOTO DIKIRIM LENGKAP) =================
+// ================= API CALLS =================
 async function apiCall(params) {
     if (!navigator.onLine) return { status: "offline" };
     try {
-        // Tambahkan license key ke setiap request
-        params.license_key = currentLicense;
-        
-        const res = await fetch(APPS_SCRIPT_URL, {
+        var formBody = [];
+        for (var key in params) {
+            if (params.hasOwnProperty(key)) {
+                formBody.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key]));
+            }
+        }
+        var res = await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            body: new URLSearchParams(params)
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formBody.join("&")
         });
         if (!res.ok) throw new Error("Server Response Error");
         return await res.json();
@@ -273,9 +242,6 @@ async function apiCall(params) {
 }
 
 async function registerVisitor(reg, data) {
-    // Kirim foto BASE64 LENGKAP ke server
-    let photoToSend = data.foto || "";
-    
     return await apiCall({
         action: "register",
         reg: reg,
@@ -289,7 +255,7 @@ async function registerVisitor(reg, data) {
         kategori: data.kategori,
         site_id: SITE_ID,
         site_name: getSiteName(SITE_ID),
-        photoBase64: photoToSend
+        photoBase64: data.foto || ""
     });
 }
 
@@ -318,83 +284,55 @@ async function checkoutVisitor(reg) {
     return await apiCall({ action: "checkout", reg: reg, site_id: SITE_ID });
 }
 
-// ================= SYNC FUNCTIONS (PULL DATA LENGKAP DENGAN FOTO URL) =================
+// ================= SYNC FUNCTIONS =================
 async function pullFromSheet() {
     if (syncLock || !navigator.onLine) return;
     syncLock = true;
     try {
-        const res = await fetch(APPS_SCRIPT_URL, {
-            method: "POST",
-            body: new URLSearchParams({ action: "pull", site_id: SITE_ID, license_key: currentLicense })
-        });
-        const result = await res.json();
+        var res = await fetch(APPS_SCRIPT_URL + "?action=pull&site_id=" + encodeURIComponent(SITE_ID));
+        var result = await res.json();
         
         if (result.status === "success" && result.data && result.data.length > 0) {
-            const headers = result.data[0];
-            const idx = {
-                nama: headers.indexOf("Nama"),
-                perusahaan: headers.indexOf("Perusahaan"),
-                tujuan: headers.indexOf("Tujuan"),
-                pic: headers.indexOf("PIC"),
-                startDate: headers.indexOf("Start"),
-                expDate: headers.indexOf("Exp"),
-                kategori: headers.indexOf("Kategori"),
-                dept: headers.indexOf("Dept"),
-                reg: headers.indexOf("REG"),
-                status: headers.indexOf("Status"),
-                site: headers.indexOf("Site"),
-                photoUrl: headers.indexOf("Keterangan")
-            };
+            var headers = result.data[0];
+            var rows = result.data.slice(1);
+            var updated = 0;
             
-            const rows = result.data.slice(1);
-            let updated = 0;
-            
-            rows.forEach(row => {
-                const reg = row[idx.reg];
-                if (!reg) return;
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var reg = row[8];
+                if (!reg) continue;
                 
-                // Ambil foto URL dari Google Drive (kolom Keterangan)
-                let photoUrl = "";
-                if (row[idx.photoUrl] && row[idx.photoUrl].startsWith("https://")) {
-                    photoUrl = row[idx.photoUrl];
-                } else if (visitors[reg]?.foto && visitors[reg].foto.startsWith("https://")) {
-                    photoUrl = visitors[reg].foto;
-                } else if (visitors[reg]?.foto && visitors[reg].foto.startsWith("data:image")) {
+                var photoUrl = row[18] || "";
+                if (photoUrl && photoUrl.startsWith("https://")) {
+                    // sudah benar
+                } else if (visitors[reg] && visitors[reg].foto) {
                     photoUrl = visitors[reg].foto;
                 }
                 
-                // UPDATE ATAU TAMBAH DATA LENGKAP
                 visitors[reg] = {
-                    nama: row[idx.nama] || visitors[reg]?.nama || "Unknown",
-                    perusahaan: row[idx.perusahaan] || visitors[reg]?.perusahaan || "-",
-                    tujuan: row[idx.tujuan] || visitors[reg]?.tujuan || "-",
-                    pic: row[idx.pic] || visitors[reg]?.pic || "-",
-                    dept: row[idx.dept] || visitors[reg]?.dept || "-",
-                    startDate: row[idx.startDate] || visitors[reg]?.startDate || "-",
-                    expDate: row[idx.expDate] || visitors[reg]?.expDate || "-",
-                    kategori: row[idx.kategori] || visitors[reg]?.kategori || "UMUM",
-                    currentStatus: row[idx.status] || visitors[reg]?.currentStatus || "OUT",
-                    site: row[idx.site] || visitors[reg]?.site || SITE_ID,
+                    nama: row[0] || (visitors[reg] ? visitors[reg].nama : "Unknown"),
+                    perusahaan: row[1] || (visitors[reg] ? visitors[reg].perusahaan : "-"),
+                    tujuan: row[2] || (visitors[reg] ? visitors[reg].tujuan : "-"),
+                    pic: row[3] || (visitors[reg] ? visitors[reg].pic : "-"),
+                    startDate: row[4] || (visitors[reg] ? visitors[reg].startDate : "-"),
+                    expDate: row[5] || (visitors[reg] ? visitors[reg].expDate : "-"),
+                    kategori: row[14] || (visitors[reg] ? visitors[reg].kategori : "UMUM"),
+                    dept: row[15] || (visitors[reg] ? visitors[reg].dept : "-"),
+                    currentStatus: row[11] || (visitors[reg] ? visitors[reg].currentStatus : "OUT"),
+                    site: row[12] || (visitors[reg] ? visitors[reg].site : SITE_ID),
                     foto: photoUrl,
                     updatedAt: Date.now()
                 };
                 updated++;
-            });
+            }
             
             if (updated > 0) {
                 secureSave();
                 renderDashboard();
                 renderLogTable();
-                console.log(`✅ Sync: ${updated} data diperbarui`);
+                console.log("✅ Sync: " + updated + " data diperbarui");
             }
         }
-        
-        // Cek juga apakah ada license key dari server
-        if (result.license_key) {
-            localStorage.setItem("vms_license_key", result.license_key);
-            checkLicense();
-        }
-        
     } catch (e) {
         console.warn("Pull Sync Fail:", e.message);
     } finally {
@@ -402,20 +340,22 @@ async function pullFromSheet() {
     }
 }
 
-function addToQueue(action, reg, data = {}) {
+function addToQueue(action, reg, data) {
+    data = data || {};
     if (!Array.isArray(syncQueue)) syncQueue = [];
-    const isExist = syncQueue.find(item => item.reg === reg && item.action === action);
+    var isExist = syncQueue.some(function(item) { return item.reg === reg && item.action === action; });
     if (isExist) return;
-    syncQueue.push({ action, reg, data, retryCount: 0, createdAt: Date.now() });
+    syncQueue.push({ action: action, reg: reg, data: data, retryCount: 0, createdAt: Date.now() });
     localStorage.setItem("vms_sync_queue", JSON.stringify(syncQueue));
 }
 
 async function processQueue() {
     if (isProcessingQueue || syncQueue.length === 0) return;
     isProcessingQueue = true;
-    const newQueue = [];
-    for (const item of syncQueue) {
-        let result;
+    var newQueue = [];
+    for (var i = 0; i < syncQueue.length; i++) {
+        var item = syncQueue[i];
+        var result;
         try {
             if (item.action === "checkin") result = await checkinVisitor(item.reg);
             else if (item.action === "checkout") result = await checkoutVisitor(item.reg);
@@ -434,28 +374,37 @@ async function processQueue() {
 // ================= RENDER FUNCTIONS =================
 function renderDashboard() {
     try {
-        let v = Object.values(visitors);
-        let active = v.filter(x => x.currentStatus === "IN").length;
-        let todayCheckins = logs.filter(l => {
-            let d = new Date(l.timestamp);
-            return d.toDateString() === new Date().toDateString() && l.type === "CHECK_IN";
-        }).length;
-        let statsWidget = document.getElementById("statsWidget");
+        var v = Object.values(visitors);
+        var active = 0;
+        var todayCheckins = 0;
+        for (var i = 0; i < v.length; i++) {
+            if (v[i].currentStatus === "IN") active++;
+        }
+        var today = new Date().toDateString();
+        for (var j = 0; j < logs.length; j++) {
+            var d = new Date(logs[j].timestamp);
+            if (d.toDateString() === today && logs[j].type === "CHECK_IN") todayCheckins++;
+        }
+        var statsWidget = document.getElementById("statsWidget");
         if (statsWidget) {
-            statsWidget.innerHTML = `<div class="stat-card"><h4>Total Visitors</h4><div class="stat-number">${v.length}</div></div>
-                <div class="stat-card"><h4>Active Inside</h4><div class="stat-number">${active}</div></div>
-                <div class="stat-card"><h4>Check-ins Today</h4><div class="stat-number">${todayCheckins}</div></div>`;
+            statsWidget.innerHTML = '<div class="stat-card"><h4>Total Visitors</h4><div class="stat-number">' + v.length + '</div></div>' +
+                '<div class="stat-card"><h4>Active Inside</h4><div class="stat-number">' + active + '</div></div>' +
+                '<div class="stat-card"><h4>Check-ins Today</h4><div class="stat-number">' + todayCheckins + '</div></div>';
         }
         
-        let last7Days = [], last7Labels = [];
-        for (let i = 6; i >= 0; i--) {
-            let d = new Date();
-            d.setDate(d.getDate() - i);
+        var last7Days = [], last7Labels = [];
+        for (var k = 6; k >= 0; k--) {
+            var d = new Date();
+            d.setDate(d.getDate() - k);
             last7Labels.push(d.toLocaleDateString("id", { weekday: "short" }));
-            let count = logs.filter(l => new Date(l.timestamp).toDateString() === d.toDateString() && l.type === "CHECK_IN").length;
+            var count = 0;
+            for (var l = 0; l < logs.length; l++) {
+                var logDate = new Date(logs[l].timestamp);
+                if (logDate.toDateString() === d.toDateString() && logs[l].type === "CHECK_IN") count++;
+            }
             last7Days.push(count);
         }
-        let trendChart = document.getElementById("trendChart");
+        var trendChart = document.getElementById("trendChart");
         if (trendChart && window.Chart) {
             if (window.lineChart) {
                 window.lineChart.data.labels = last7Labels;
@@ -466,9 +415,11 @@ function renderDashboard() {
             }
         }
         
-        let catCount = { VVIP: 0, VIP: 0, UMUM: 0 };
-        v.forEach(x => { if (x.kategori) catCount[x.kategori]++; });
-        let categoryChart = document.getElementById("categoryChart");
+        var catCount = { VVIP: 0, VIP: 0, UMUM: 0 };
+        for (var m = 0; m < v.length; m++) {
+            if (v[m].kategori) catCount[v[m].kategori]++;
+        }
+        var categoryChart = document.getElementById("categoryChart");
         if (categoryChart && window.Chart) {
             if (window.pieChart) {
                 window.pieChart.data.datasets[0].data = [catCount.VVIP, catCount.VIP, catCount.UMUM];
@@ -482,69 +433,65 @@ function renderDashboard() {
 
 function renderLogTable() {
     try {
-        let search = document.getElementById("searchLog")?.value.toLowerCase() || "";
-        let tbody = document.getElementById("logTableBody");
+        var search = document.getElementById("searchLog") ? document.getElementById("searchLog").value.toLowerCase() : "";
+        var tbody = document.getElementById("logTableBody");
         if (!tbody) return;
-        let filtered = logs.filter(l => {
-            if (!l.nama) return false;
-            let matchSearch = l.nama.toLowerCase().includes(search) || (l.reg && l.reg.toLowerCase().includes(search));
-            let matchSite = (!l.site_id || l.site_id === SITE_ID);
-            return matchSearch && matchSite;
-        });
-        filtered.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        var filtered = [];
+        for (var i = 0; i < logs.length; i++) {
+            var l = logs[i];
+            if (!l.nama) continue;
+            var matchSearch = l.nama.toLowerCase().indexOf(search) !== -1 || (l.reg && l.reg.toLowerCase().indexOf(search) !== -1);
+            var matchSite = (!l.site_id || l.site_id === SITE_ID);
+            if (matchSearch && matchSite) filtered.push(l);
+        }
+        filtered.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
         tbody.innerHTML = "";
-        filtered.slice(0, 100).forEach((l) => {
-            let row = tbody.insertRow();
-            let v = visitors[l.reg] || {};
-            row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${l.reg}">`;
+        var sliceLen = filtered.length > 100 ? 100 : filtered.length;
+        for (var j = 0; j < sliceLen; j++) {
+            var l = filtered[j];
+            var row = tbody.insertRow();
+            var v = visitors[l.reg] || {};
+            row.insertCell(0).innerHTML = '<input type="checkbox" class="logCheckItem" data-reg="' + l.reg + '">';
             row.insertCell(1).innerText = l.reg;
             
-            let photoCell = row.insertCell(2);
-            let photoUrl = v.foto || "";
-            
-            // TAMPILKAN FOTO (SUPPORT BASE64 ATAU URL)
+            var photoCell = row.insertCell(2);
+            var photoUrl = v.foto || "";
             if (photoUrl && photoUrl.length > 50) {
-                if (photoUrl.startsWith("https://drive.google.com")) {
-                    // URL Google Drive - butuh konversi ke direct link
-                    let directUrl = photoUrl.replace("https://drive.google.com/file/d/", "https://drive.google.com/uc?export=view&id=");
-                    directUrl = directUrl.replace("/view?usp=sharing", "");
-                    if (directUrl.includes("?id=")) {
-                        directUrl = directUrl.replace("?id=", "/");
-                    }
-                    photoCell.innerHTML = `<img src="${directUrl}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;" onerror="this.onerror=null;this.parentElement.innerHTML='<div style=\"width:40px;height:40px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:10px;\">📷 ERR</div>';">`;
+                if (photoUrl.startsWith("https://")) {
+                    photoCell.innerHTML = '<img src="' + photoUrl + '" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;" onerror="this.onerror=null;this.parentElement.innerHTML=\'<div style=\\\"width:40px;height:40px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:10px;\\\">📷</div>\';">';
                 } else if (photoUrl.startsWith("data:image")) {
-                    photoCell.innerHTML = `<img src="${photoUrl}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;">`;
+                    photoCell.innerHTML = '<img src="' + photoUrl + '" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;">';
                 } else {
-                    photoCell.innerHTML = `<div style="width:40px; height:40px; border-radius:8px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">📷 FOTO</div>`;
+                    photoCell.innerHTML = '<div style="width:40px; height:40px; border-radius:8px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">NO IMG</div>';
                 }
             } else {
-                photoCell.innerHTML = `<div style="width:40px; height:40px; border-radius:8px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">NO IMG</div>`;
+                photoCell.innerHTML = '<div style="width:40px; height:40px; border-radius:8px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">NO IMG</div>';
             }
             
             row.insertCell(3).innerText = v.nama || l.nama || "-";
             row.insertCell(4).innerText = v.perusahaan || l.perusahaan || "-";
-            row.insertCell(5).innerHTML = `<span class="badge badge-${(v.kategori || 'umum').toLowerCase()}">${v.kategori || 'Visitor'}</span>`;
-            let currentStatus = v.currentStatus || "OUT";
-            let statusText = currentStatus === "IN" ? "DI DALAM" : "SELESAI";
-            let statusColor = currentStatus === "IN" ? "#16a34a" : "#dc2626";
-            row.insertCell(6).innerHTML = `<span style="background:${statusColor}; color:white; padding:4px 10px; border-radius:999px; font-size:10px; font-weight:bold;">${statusText}</span>`;
-            let actionCell = row.insertCell(7);
-            actionCell.innerHTML = `<button class="btn-outline" style="padding:4px 8px;" onclick="showPreview('${l.reg}', visitors['${l.reg}'])">🖨️ PDF</button>`;
-            let timeDisplay = l.timestamp ? new Date(l.timestamp).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : "-";
+            row.insertCell(5).innerHTML = '<span class="badge badge-' + (v.kategori || 'umum').toLowerCase() + '">' + (v.kategori || 'Visitor') + '</span>';
+            var currentStatus = v.currentStatus || "OUT";
+            var statusText = currentStatus === "IN" ? "DI DALAM" : "SELESAI";
+            var statusColor = currentStatus === "IN" ? "#16a34a" : "#dc2626";
+            row.insertCell(6).innerHTML = '<span style="background:' + statusColor + '; color:white; padding:4px 10px; border-radius:999px; font-size:10px; font-weight:bold;">' + statusText + '</span>';
+            var actionCell = row.insertCell(7);
+            actionCell.innerHTML = '<button class="btn-outline" style="padding:4px 8px;" onclick="showPreview(\'' + l.reg + '\', visitors[\'' + l.reg + '\'])">🖨️ PDF</button>';
+            var timeDisplay = l.timestamp ? new Date(l.timestamp).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : "-";
             row.insertCell(8).innerText = timeDisplay;
             row.insertCell(9).innerText = l.site_id || "-";
-        });
+        }
         if (filtered.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#999;">📭 Tidak ada data tamu</td></tr>`;
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:#999;">📭 Tidak ada data tamu</td></tr>';
         }
     } catch(e) { console.error("renderLogTable error:", e); }
 }
 
-// ================= PDF GENERATION (FIXED) =================
+// ================= PDF GENERATION =================
 async function ensureJSPDF() {
     if (window.jspdf) return true;
-    return new Promise(resolve => {
-        let i = 0, iv = setInterval(() => {
+    return new Promise(function(resolve) {
+        var i = 0, iv = setInterval(function() {
             if (window.jspdf) { clearInterval(iv); resolve(true); }
             if (i++ > 100) { clearInterval(iv); resolve(false); }
         }, 100);
@@ -554,17 +501,16 @@ async function ensureJSPDF() {
 async function downloadPDF(reg, data) {
     try {
         await ensureJSPDF();
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a6" });
+        var jsPDF = window.jspdf.jsPDF;
+        var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a6" });
         
-        // Fallback: ambil data dari visitors jika data tidak lengkap
-        let visitorData = { ...data };
-        const fromStorage = visitors[reg];
+        var visitorData = {};
+        for (var key in data) { visitorData[key] = data[key]; }
+        var fromStorage = visitors[reg];
         if (fromStorage) {
-            visitorData = { ...visitorData, ...fromStorage };
+            for (var k in fromStorage) { if (!visitorData[k] || visitorData[k] === "-") visitorData[k] = fromStorage[k]; }
         }
         
-        // Header
         doc.setFillColor(31, 78, 74);
         doc.rect(0, 0, 105, 25, "F");
         doc.setTextColor(255, 255, 255);
@@ -574,23 +520,14 @@ async function downloadPDF(reg, data) {
         doc.setFontSize(8);
         doc.text("SECURITY AUTHORIZED", 52.5, 18, { align: "center" });
         
-        // Foto (support base64 dan URL)
-        if (visitorData.foto && visitorData.foto.length > 100) {
+        if (visitorData.foto && visitorData.foto.length > 100 && visitorData.foto.startsWith("data:image")) {
             try {
-                let fotoToUse = visitorData.foto;
-                // Jika URL Google Drive, konversi ke direct download
-                if (fotoToUse.includes("drive.google.com")) {
-                    // Skip dulu untuk PDF karena butuh CORS
-                    console.log("Skip foto dari Drive untuk PDF");
-                } else if (fotoToUse.startsWith("data:image")) {
-                    doc.setDrawColor(200, 200, 200);
-                    doc.rect(32.5, 30, 40, 50);
-                    doc.addImage(fotoToUse, "JPEG", 33, 30.5, 39, 49);
-                }
+                doc.setDrawColor(200, 200, 200);
+                doc.rect(32.5, 30, 40, 50);
+                doc.addImage(visitorData.foto, "JPEG", 33, 30.5, 39, 49);
             } catch(e) { console.error("Foto error:", e); }
         }
         
-        // Nama dan Perusahaan
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
         doc.setFont(undefined, "bold");
@@ -599,33 +536,28 @@ async function downloadPDF(reg, data) {
         doc.setFont(undefined, "normal");
         doc.text(visitorData.perusahaan || "-", 52.5, 96, { align: "center" });
         
-        // Garis pembatas
         doc.setDrawColor(31, 78, 74);
         doc.setLineWidth(0.5);
         doc.line(15, 102, 90, 102);
         
-        // Detail
         doc.setFontSize(8);
-        let y = 108;
-        doc.text(`PIC      : ${visitorData.pic || "-"}`, 15, y);
-        doc.text(`DATE     : ${visitorData.startDate || "-"}`, 15, y + 5);
-        doc.text(`VALID TO : ${visitorData.expDate || "-"}`, 15, y + 10);
+        var y = 108;
+        doc.text("PIC      : " + (visitorData.pic || "-"), 15, y);
+        doc.text("DATE     : " + (visitorData.startDate || "-"), 15, y + 5);
+        doc.text("VALID TO : " + (visitorData.expDate || "-"), 15, y + 10);
         
-        // QR Code
         if (visitorData.qrImage) {
             doc.addImage(visitorData.qrImage, "PNG", 70, 115, 25, 25);
         }
         
-        // REG
         doc.setFontSize(7);
         doc.setTextColor(150, 150, 150);
         doc.text(reg, 82.5, 142, { align: "center" });
         
-        // Footer
         doc.setFontSize(6);
         doc.text("Property of Security Department. Must be worn at all times.", 52.5, 146, { align: "center" });
         
-        doc.save(`VISITOR_PASS_${reg}.pdf`);
+        doc.save("VISITOR_PASS_" + reg + ".pdf");
         toast("Badge Visitor berhasil di-download", "success");
         return true;
     } catch(err) {
@@ -637,7 +569,7 @@ async function downloadPDF(reg, data) {
 
 async function generateQRandShow(reg, data) {
     try {
-        let qrImage = await QRCode.toDataURL(reg, { width: 200 });
+        var qrImage = await QRCode.toDataURL(reg, { width: 200 });
         showPreviewWithQR(reg, data, qrImage);
     } catch(e) {
         console.error("QR FAIL:", e);
@@ -647,35 +579,21 @@ async function generateQRandShow(reg, data) {
 
 function showPreviewWithQR(reg, data, qrImage) {
     if (!qrImage || !qrImage.startsWith("data:image")) { toast("QR gagal dibuat!", "error"); return; }
-    let modal = document.createElement("div");
+    var modal = document.createElement("div");
     modal.className = "modal-overlay";
-    let fotoDisplay = data.foto && data.foto.length > 100 ? `<img src="${data.foto}" style="width:70px; height:70px; border-radius:12px; object-fit:cover; border:2px solid #1f4e4a;">` : `<div style="width:70px; height:70px; border-radius:12px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">NO PHOTO</div>`;
-    modal.innerHTML = `
-        <div class="modal-card" style="max-height: 90vh; overflow-y: auto;">
-            <h3 style="text-align:center; margin-bottom:15px;">📄 Preview Invitation</h3>
-            <div style="display:flex; gap:15px; background:#f8fafc; padding:14px; border-radius:20px; margin-bottom:16px; align-items:center;">
-                ${fotoDisplay}
-                <div style="font-size:0.75rem; flex:1;">
-                    <p><strong>Name</strong>: ${data.nama}</p>
-                    <p><strong>Company</strong>: ${data.perusahaan}</p>
-                    <p><strong>REG</strong>: ${reg}</p>
-                </div>
-            </div>
-            <div style="text-align:center;">
-                <img class="qr-preview" src="${qrImage}" style="width:140px; margin: 0 auto;">
-                <p style="font-size:0.65rem; color:#666; margin-top:5px;">${reg}</p>
-            </div>
-            <div class="flex-btns">
-                <button id="previewDownloadBtn" style="flex:1;">Download PDF</button>
-                <button id="previewCloseBtn" class="btn-outline" style="flex:1;">Close</button>
-            </div>
-        </div>`;
+    var fotoDisplay = (data.foto && data.foto.length > 100) ? '<img src="' + data.foto + '" style="width:70px; height:70px; border-radius:12px; object-fit:cover; border:2px solid #1f4e4a;">' : '<div style="width:70px; height:70px; border-radius:12px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">NO PHOTO</div>';
+    modal.innerHTML = '<div class="modal-card" style="max-height: 90vh; overflow-y: auto;">' +
+        '<h3 style="text-align:center; margin-bottom:15px;">📄 Preview Invitation</h3>' +
+        '<div style="display:flex; gap:15px; background:#f8fafc; padding:14px; border-radius:20px; margin-bottom:16px; align-items:center;">' + fotoDisplay +
+        '<div style="font-size:0.75rem; flex:1;"><p><strong>Name</strong>: ' + data.nama + '</p><p><strong>Company</strong>: ' + data.perusahaan + '</p><p><strong>REG</strong>: ' + reg + '</p></div></div>' +
+        '<div style="text-align:center;"><img class="qr-preview" src="' + qrImage + '" style="width:140px; margin: 0 auto;"><p style="font-size:0.65rem; color:#666; margin-top:5px;">' + reg + '</p></div>' +
+        '<div class="flex-btns"><button id="previewDownloadBtn" style="flex:1;">Download PDF</button><button id="previewCloseBtn" class="btn-outline" style="flex:1;">Close</button></div></div>';
     document.body.appendChild(modal);
-    setTimeout(() => modal.classList.add("active"), 10);
-    let downloadBtn = modal.querySelector("#previewDownloadBtn");
-    let closeBtn = modal.querySelector("#previewCloseBtn");
+    setTimeout(function() { modal.classList.add("active"); }, 10);
+    var downloadBtn = modal.querySelector("#previewDownloadBtn");
+    var closeBtn = modal.querySelector("#previewCloseBtn");
     if (downloadBtn) {
-        downloadBtn.onclick = async () => {
+        downloadBtn.onclick = async function() {
             if (window.downloading) return;
             window.downloading = true;
             data.qrImage = qrImage;
@@ -684,7 +602,7 @@ function showPreviewWithQR(reg, data, qrImage) {
             modal.remove();
         };
     }
-    if (closeBtn) closeBtn.onclick = () => modal.remove();
+    if (closeBtn) closeBtn.onclick = function() { modal.remove(); };
 }
 
 function showPreview(reg, data) { generateQRandShow(reg, data); }
@@ -692,24 +610,25 @@ function showPreview(reg, data) { generateQRandShow(reg, data); }
 // ================= CAMERA SCANNER =================
 async function getAvailableCameras() {
     try {
-        const devices = await Html5Qrcode.getCameras();
-        const select = document.getElementById("cameraSelection");
+        var devices = await Html5Qrcode.getCameras();
+        var select = document.getElementById("cameraSelection");
         if (devices && devices.length > 0) {
             select.innerHTML = "";
-            devices.forEach((device, index) => {
-                const option = document.createElement("option");
+            for (var i = 0; i < devices.length; i++) {
+                var device = devices[i];
+                var option = document.createElement("option");
                 option.value = device.id;
-                let label = device.label.toLowerCase();
+                var label = device.label.toLowerCase();
                 if (label.includes("back") || label.includes("rear") || label.includes("0")) {
                     option.text = "📷 Kamera Belakang";
                     option.selected = true;
                 } else if (label.includes("front") || label.includes("user") || label.includes("1")) {
                     option.text = "🤳 Kamera Depan";
                 } else {
-                    option.text = `Kamera ${index + 1}`;
+                    option.text = "Kamera " + (i + 1);
                 }
                 select.appendChild(option);
-            });
+            }
         } else {
             select.innerHTML = "<option>Kamera tdk ditemukan</option>";
         }
@@ -718,7 +637,7 @@ async function getAvailableCameras() {
 
 async function startScanner() {
     if (isScanning) return;
-    const selectedCamId = document.getElementById("cameraSelection").value;
+    var selectedCamId = document.getElementById("cameraSelection").value;
     if (!selectedCamId || selectedCamId.includes("Mencari")) {
         toast("Pilih kamera dulu!", "warning");
         return;
@@ -726,10 +645,10 @@ async function startScanner() {
     if (!scannerInstance) scannerInstance = new Html5Qrcode("cameraPreview");
     try {
         await scannerInstance.start(selectedCamId, { fps: 10, qrbox: { width: 280, height: 280 }, aspectRatio: 1.0 },
-            async (decodedText) => {
+            async function(decodedText) {
                 if (!processingRegs.has(decodedText)) await processScan(decodedText);
             },
-            (error) => {}
+            function(error) {}
         );
         isScanning = true;
         toast("Scanner Aktif", "success");
@@ -744,8 +663,8 @@ async function stopScanner() {
 }
 
 // ================= PROCESS SCAN =================
-let globalScanLock = false;
-setInterval(() => scanCounter = 0, 60000);
+var globalScanLock = false;
+setInterval(function() { scanCounter = 0; }, 60000);
 
 async function processScan(qrText) {
     if (actionMutex || globalScanLock) return false;
@@ -753,38 +672,38 @@ async function processScan(qrText) {
     scanCounter++;
     globalScanLock = true;
     qrText = qrText.trim();
-    const mode = document.getElementById("scanMode").value;
-    let reg = null;
+    var mode = document.getElementById("scanMode").value;
+    var reg = null;
     if (qrText.match(/^REG\d+/i)) reg = qrText;
-    else if (qrText.includes("|")) { const parts = qrText.split("|"); if (parts[0].match(/^REG\d+/i)) reg = parts[0]; }
+    else if (qrText.includes("|")) { var parts = qrText.split("|"); if (parts[0].match(/^REG\d+/i)) reg = parts[0]; }
     
     if (!reg) { toast("QR tidak valid!", "error"); globalScanLock = false; return false; }
     
-    const nowTime = Date.now();
+    var nowTime = Date.now();
     if (lastScanTime[reg] && nowTime - lastScanTime[reg] < SCAN_COOLDOWN_MS) { globalScanLock = false; return false; }
     lastScanTime[reg] = nowTime;
     if (processingRegs.has(reg)) { globalScanLock = false; return false; }
     processingRegs.add(reg);
     actionMutex = true;
     try {
-        let visitor = visitors[reg] || { nama: "Visitor", currentStatus: "OUT" };
+        var visitor = visitors[reg] || { nama: "Visitor", currentStatus: "OUT" };
         if (mode === "CHECK_IN") {
-            let result = await checkinVisitor(reg);
+            var result = await checkinVisitor(reg);
             if (result.status === "success") {
                 visitor.currentStatus = "IN";
                 visitors[reg] = visitor;
                 addLocalLog(reg, "CHECK_IN");
                 vibrate();
-                toast(`✅ IN: ${visitor.nama}`, "success");
+                toast("✅ IN: " + visitor.nama, "success");
             } else { toast("Gagal Check-in", "error"); }
         } else {
-            let result = await checkoutVisitor(reg);
-            if (result.status === "success") {
+            var result2 = await checkoutVisitor(reg);
+            if (result2.status === "success") {
                 visitor.currentStatus = "OUT";
                 visitors[reg] = visitor;
                 addLocalLog(reg, "CHECK_OUT");
                 vibrate();
-                toast(`✅ OUT: ${visitor.nama}`, "success");
+                toast("✅ OUT: " + visitor.nama, "success");
             } else { toast("Gagal Check-out", "error"); }
         }
         renderDashboard();
@@ -793,40 +712,47 @@ async function processScan(qrText) {
         await pullFromSheet();
         return true;
     } catch(e) { console.error("processScan error:", e); return false; }
-    finally { actionMutex = false; globalScanLock = false; setTimeout(() => processingRegs.delete(reg), 1000); }
+    finally { actionMutex = false; globalScanLock = false; setTimeout(function() { processingRegs.delete(reg); }, 1000); }
 }
 
 // ================= SITE MANAGEMENT =================
 function setSite(site) {
     SITE_ID = site;
     localStorage.setItem("vms_site", SITE_ID);
-    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { if (sel && sel.value !== site) sel.value = site; });
+    var selectors = document.querySelectorAll("#siteSelector, #siteSelectorTop");
+    for (var i = 0; i < selectors.length; i++) {
+        if (selectors[i] && selectors[i].value !== site) selectors[i].value = site;
+    }
     vmsSite_applyToUI();
-    toast(`Site aktif: ${getSiteName(SITE_ID)}`, "success");
+    toast("Site aktif: " + getSiteName(SITE_ID), "success");
     renderDashboard();
     renderLogTable();
 }
 
 function vmsSite_load() {
-    try { let stored = localStorage.getItem("vms_site_names"); if (stored) Object.assign(vmsSiteData.names, JSON.parse(stored)); } catch(e) {}
+    try { var stored = localStorage.getItem("vms_site_names"); if (stored) { var parsed = JSON.parse(stored); for (var k in parsed) { vmsSiteData.names[k] = parsed[k]; } } } catch(e) {}
     vmsSite_applyToUI();
 }
 function vmsSite_applyToUI() {
-    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => {
-        if (!sel) return;
-        Array.from(sel.options).forEach(opt => {
-            let val = opt.value;
+    var selectors = document.querySelectorAll("#siteSelector, #siteSelectorTop");
+    for (var i = 0; i < selectors.length; i++) {
+        var sel = selectors[i];
+        if (!sel) continue;
+        var options = sel.options;
+        for (var j = 0; j < options.length; j++) {
+            var opt = options[j];
+            var val = opt.value;
             if (vmsSiteData.names[val]) {
-                let icon = opt.textContent.substring(0, 2);
-                let hasIcon = icon === "🏭" || icon === "🏢" || icon === "🏬";
+                var icon = opt.textContent.substring(0, 2);
+                var hasIcon = icon === "🏭" || icon === "🏢" || icon === "🏬";
                 opt.textContent = (hasIcon ? icon + " " : "") + vmsSiteData.names[val];
             }
-        });
-    });
+        }
+    }
 }
 function vmsSite_save() { localStorage.setItem("vms_site_names", JSON.stringify(vmsSiteData.names)); return true; }
 function vmsSite_open() {
-    let modal = document.getElementById("vmsSiteModal");
+    var modal = document.getElementById("vmsSiteModal");
     if (modal) {
         modal.style.display = "flex";
         document.getElementById("vmsA").value = vmsSiteData.names.SITE_A || "SITE A";
@@ -846,72 +772,70 @@ function vmsSite_submit() {
 }
 
 // ================= EVENT HANDLERS =================
-document.getElementById("generateQRBtn").onclick = async () => {
+document.getElementById("generateQRBtn").onclick = async function() {
     if (actionMutex) return;
     actionMutex = true;
     lockUI(true);
     try {
-        let nama = document.getElementById("regName").value.trim();
-        let perusahaan = document.getElementById("regCompany").value.trim();
-        let kategori = document.getElementById("regCategory").value;
-        let tujuan = document.getElementById("regPurpose").value;
-        let custom = document.getElementById("regCustomPurpose").value.trim();
+        var nama = document.getElementById("regName").value.trim();
+        var perusahaan = document.getElementById("regCompany").value.trim();
+        var kategori = document.getElementById("regCategory").value;
+        var tujuan = document.getElementById("regPurpose").value;
+        var custom = document.getElementById("regCustomPurpose").value.trim();
         if (tujuan === "Lainnya") tujuan = custom || "Custom";
-        let pic = document.getElementById("regPic").value.trim();
-        let dept = document.getElementById("regDept").value.trim();
-        let startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);
-        let expDate = document.getElementById("regExpDate").value;
+        var pic = document.getElementById("regPic").value.trim();
+        var dept = document.getElementById("regDept").value.trim();
+        var startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);
+        var expDate = document.getElementById("regExpDate").value;
         if (!nama || !perusahaan || !pic || !dept || !expDate) { toast("Lengkapi semua field wajib", "error"); return; }
         
-        let reg = generateReg();
+        var reg = generateReg();
         if (visitors[reg]) { toast("REG sudah ada!", "warning"); return; }
         
-        let foto = "";
-        let file = document.getElementById("regPhotoFile").files[0];
+        var foto = "";
+        var file = document.getElementById("regPhotoFile").files[0];
         if (file) {
             try {
-                let reader = await new Promise(resolve => { let fr = new FileReader(); fr.onload = () => resolve(fr.result); fr.readAsDataURL(file); });
-                let img = new Image();
+                var reader = await new Promise(function(resolve) { var fr = new FileReader(); fr.onload = function() { resolve(fr.result); }; fr.readAsDataURL(file); });
+                var img = new Image();
                 img.src = reader;
-                await new Promise(r => img.onload = r);
-                let canvas = document.createElement("canvas");
-                let maxWidth = 400;
-                let scale = maxWidth / img.width;
+                await new Promise(function(r) { img.onload = r; });
+                var canvas = document.createElement("canvas");
+                var maxWidth = 400;
+                var scale = maxWidth / img.width;
                 canvas.width = maxWidth;
                 canvas.height = img.height * scale;
-                let ctx = canvas.getContext("2d");
+                var ctx = canvas.getContext("2d");
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 foto = canvas.toDataURL("image/jpeg", 0.8);
                 console.log("✅ Foto berhasil diproses, size:", foto.length);
             } catch(e) { console.warn("Photo processing error:", e); toast("Gagal memproses foto", "error"); }
         }
         
-        let data = { nama, perusahaan, kategori, tujuan, pic, dept, startDate, expDate, foto, sessions: [], currentStatus: "OUT", updatedAt: Date.now() };
+        var data = { nama: nama, perusahaan: perusahaan, kategori: kategori, tujuan: tujuan, pic: pic, dept: dept, startDate: startDate, expDate: expDate, foto: foto, sessions: [], currentStatus: "OUT", updatedAt: Date.now() };
         visitors[reg] = data;
         addLocalLog(reg, "REGISTER");
         secureSave();
         
         toast("📤 Mengirim data ke server...", "info");
-        let result = await registerVisitor(reg, data);
+        var result = await registerVisitor(reg, data);
         
         if (result && result.status === "success") {
             if (result.photo && result.photo.startsWith("https://")) {
                 visitors[reg].foto = result.photo;
                 secureSave();
-                toast(`✅ Foto tersimpan di Cloud!`, "success");
+                toast("✅ Foto tersimpan di Cloud!", "success");
             }
-            toast(`✅ ${nama} terdaftar (${reg})`, "success");
+            toast("✅ " + nama + " terdaftar (" + reg + ")", "success");
         } else if (!result || result.status !== "success") {
             addToQueue("register", reg, data);
-            toast(`⚠️ ${nama} masuk antrean (Offline)`, "warning");
+            toast("⚠️ " + nama + " masuk antrean (Offline)", "warning");
         }
         
         vibrate();
         generateQRandShow(reg, data);
-        ["regName", "regCompany", "regPic", "regDept", "regPhotoFile"].forEach(id => { 
-            let el = document.getElementById(id);
-            if (el) el.value = "";
-        });
+        var resetIds = ["regName", "regCompany", "regPic", "regDept", "regPhotoFile"];
+        for (var i = 0; i < resetIds.length; i++) { var el = document.getElementById(resetIds[i]); if (el) el.value = ""; }
         document.getElementById("previewPhotoThumb").src = "";
         renderDashboard();
         renderLogTable();
@@ -920,22 +844,22 @@ document.getElementById("generateQRBtn").onclick = async () => {
     finally { actionMutex = false; lockUI(false); }
 };
 
-document.getElementById("walkinBtn").onclick = async () => {
+document.getElementById("walkinBtn").onclick = async function() {
     if (actionMutex) return;
     actionMutex = true;
     lockUI(true);
     try {
-        let reg = generateReg();
-        let now = new Date();
-        let exp = new Date(now);
+        var reg = generateReg();
+        var now = new Date();
+        var exp = new Date(now);
         exp.setDate(exp.getDate() + 1);
-        let walkData = { nama: `WALK-IN ${now.getHours()}:${now.getMinutes()}`, perusahaan: "Guest Visitor", kategori: "UMUM", tujuan: "Immediate Visit", pic: "Reception", dept: "Umum", startDate: now.toISOString().slice(0, 10), expDate: exp.toISOString().slice(0, 10), foto: "", sessions: [], currentStatus: "OUT", updatedAt: Date.now() };
+        var walkData = { nama: "WALK-IN " + now.getHours() + ":" + now.getMinutes(), perusahaan: "Guest Visitor", kategori: "UMUM", tujuan: "Immediate Visit", pic: "Reception", dept: "Umum", startDate: now.toISOString().slice(0, 10), expDate: exp.toISOString().slice(0, 10), foto: "", sessions: [], currentStatus: "OUT", updatedAt: Date.now() };
         visitors[reg] = walkData;
         addLocalLog(reg, "WALK-IN");
         secureSave();
-        let result = await walkinVisitor(reg, walkData);
+        var result = await walkinVisitor(reg, walkData);
         if (!result || result.status !== "success") addToQueue("walkin", reg, walkData);
-        toast(`✅ Walk-in registered ${reg}`, "success");
+        toast("✅ Walk-in registered " + reg, "success");
         vibrate();
         generateQRandShow(reg, walkData);
         renderDashboard();
@@ -945,27 +869,27 @@ document.getElementById("walkinBtn").onclick = async () => {
     finally { actionMutex = false; lockUI(false); }
 };
 
-document.getElementById("startCamBtn").onclick = async () => { document.getElementById("cameraPreview").innerHTML = ""; await stopScanner(); if (scannerInstance) { try { await scannerInstance.clear(); } catch(e) {} scannerInstance = null; } await startScanner(); };
-document.getElementById("stopCamBtn").onclick = async () => { await stopScanner(); if (scannerInstance) { try { await scannerInstance.clear(); } catch(e) {} scannerInstance = null; } toast("Kamera berhenti", "info"); };
-document.getElementById("uploadQrBtn").onclick = () => document.getElementById("uploadQrFile")?.click();
-document.getElementById("uploadQrFile").onchange = async (e) => {
+document.getElementById("startCamBtn").onclick = async function() { document.getElementById("cameraPreview").innerHTML = ""; await stopScanner(); if (scannerInstance) { try { await scannerInstance.clear(); } catch(e) {} scannerInstance = null; } await startScanner(); };
+document.getElementById("stopCamBtn").onclick = async function() { await stopScanner(); if (scannerInstance) { try { await scannerInstance.clear(); } catch(e) {} scannerInstance = null; } toast("Kamera berhenti", "info"); };
+document.getElementById("uploadQrBtn").onclick = function() { document.getElementById("uploadQrFile").click(); };
+document.getElementById("uploadQrFile").onchange = async function(e) {
     if (actionMutex) return;
     actionMutex = true;
     lockUI(true);
     try {
-        let file = e.target.files[0];
+        var file = e.target.files[0];
         if (!file) return;
-        let url = URL.createObjectURL(file);
-        let img = new Image();
+        var url = URL.createObjectURL(file);
+        var img = new Image();
         img.src = url;
         await img.decode();
         URL.revokeObjectURL(url);
-        let canvas = document.createElement("canvas");
+        var canvas = document.createElement("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
         canvas.getContext("2d").drawImage(img, 0, 0);
-        let scanner = new Html5Qrcode("temp-reader");
-        let decoded = await scanner.scanImage(canvas, { qrbox: { width: img.width, height: img.height } });
+        var scanner = new Html5Qrcode("temp-reader");
+        var decoded = await scanner.scanImage(canvas, { qrbox: { width: img.width, height: img.height } });
         await processScan(decoded);
         await scanner.clear();
         document.getElementById("temp-reader").innerHTML = "";
@@ -973,33 +897,33 @@ document.getElementById("uploadQrFile").onchange = async (e) => {
     finally { actionMutex = false; lockUI(false); }
 };
 
-document.getElementById("manualProcess").onclick = async () => {
+document.getElementById("manualProcess").onclick = async function() {
     if (actionMutex) return;
     actionMutex = true;
     lockUI(true);
     try {
-        let reg = document.getElementById("manualReg").value.trim();
-        const mode = document.getElementById("scanMode").value;
+        var reg = document.getElementById("manualReg").value.trim();
+        var mode = document.getElementById("scanMode").value;
         if (!reg || !reg.match(/^REG\d+/i)) { toast("Format REG salah!", "error"); return; }
-        let visitor = visitors[reg];
+        var visitor = visitors[reg];
         if (!visitor) { toast("REG tidak ditemukan!", "error"); return; }
         if (mode === "CHECK_IN") {
-            let result = await checkinVisitor(reg);
+            var result = await checkinVisitor(reg);
             if (result.status === "success") {
                 visitor.currentStatus = "IN";
                 visitors[reg] = visitor;
                 addLocalLog(reg, "CHECK_IN");
                 vibrate();
-                toast(`Check-in ${visitor.nama} success`, "success");
+                toast("Check-in " + visitor.nama + " success", "success");
             } else { addToQueue("checkin", reg); toast("Masuk queue", "warning"); }
         } else {
-            let result = await checkoutVisitor(reg);
-            if (result.status === "success") {
+            var result2 = await checkoutVisitor(reg);
+            if (result2.status === "success") {
                 visitor.currentStatus = "OUT";
                 visitors[reg] = visitor;
                 addLocalLog(reg, "CHECK_OUT");
                 vibrate();
-                toast(`Check-out ${visitor.nama} success`, "success");
+                toast("Check-out " + visitor.nama + " success", "success");
             } else { addToQueue("checkout", reg); toast("Masuk queue", "warning"); }
         }
         renderDashboard();
@@ -1010,76 +934,97 @@ document.getElementById("manualProcess").onclick = async () => {
     finally { actionMutex = false; lockUI(false); }
 };
 
-document.getElementById("refreshLogsBtn").onclick = () => { pullFromSheet(); renderLogTable(); };
-document.getElementById("selectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = true);
-document.getElementById("deselectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = false);
-document.getElementById("deleteSelectedBtn").onclick = () => {
-    let regs = [...new Set([...document.querySelectorAll(".logCheckItem:checked")].map(c => c.dataset.reg))];
-    regs.forEach(r => delete visitors[r]);
-    logs = logs.filter(l => !regs.includes(l.reg));
+document.getElementById("refreshLogsBtn").onclick = function() { pullFromSheet(); renderLogTable(); };
+document.getElementById("selectAllBtn").onclick = function() { var checks = document.querySelectorAll(".logCheckItem"); for (var i = 0; i < checks.length; i++) checks[i].checked = true; };
+document.getElementById("deselectAllBtn").onclick = function() { var checks = document.querySelectorAll(".logCheckItem"); for (var i = 0; i < checks.length; i++) checks[i].checked = false; };
+document.getElementById("deleteSelectedBtn").onclick = function() {
+    var regs = [];
+    var checks = document.querySelectorAll(".logCheckItem:checked");
+    for (var i = 0; i < checks.length; i++) regs.push(checks[i].dataset.reg);
+    var uniqueRegs = [];
+    for (var j = 0; j < regs.length; j++) { if (uniqueRegs.indexOf(regs[j]) === -1) uniqueRegs.push(regs[j]); }
+    for (var k = 0; k < uniqueRegs.length; k++) delete visitors[uniqueRegs[k]];
+    var newLogs = [];
+    for (var l = 0; l < logs.length; l++) { if (uniqueRegs.indexOf(logs[l].reg) === -1) newLogs.push(logs[l]); }
+    logs = newLogs;
     secureSave();
     renderDashboard();
     renderLogTable();
-    toast(`Berhasil menghapus ${regs.length} data`, "success");
+    toast("Berhasil menghapus " + uniqueRegs.length + " data", "success");
 };
-document.getElementById("deleteAllBtn").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("All data cleared", "info"); };
-document.getElementById("backupAction").onclick = () => { try { let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify({ visitors, logs })], { type: "application/json" })); a.download = `vms_backup_${Date.now()}.json`; a.click(); toast("Backup ready", "success"); } catch(e) { toast("Backup gagal", "error"); } };
-document.getElementById("resetDatabaseAction").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("Database reset", "info"); };
-document.getElementById("regPhotoFile").onchange = (e) => { if (e.target.files[0]) { let r = new FileReader(); r.onload = ev => { let preview = document.getElementById("previewPhotoThumb"); if (preview) preview.src = ev.target.result; }; r.readAsDataURL(e.target.files[0]); } };
-document.getElementById("submitLicenseBtn").onclick = () => { 
-    let input = document.getElementById("licenseInput"); 
+document.getElementById("deleteAllBtn").onclick = function() { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("All data cleared", "info"); };
+document.getElementById("backupAction").onclick = function() { try { var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify({ visitors: visitors, logs: logs })], { type: "application/json" })); a.download = "vms_backup_" + Date.now() + ".json"; a.click(); toast("Backup ready", "success"); } catch(e) { toast("Backup gagal", "error"); } };
+document.getElementById("resetDatabaseAction").onclick = function() { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("Database reset", "info"); };
+document.getElementById("regPhotoFile").onchange = function(e) { if (e.target.files[0]) { var r = new FileReader(); r.onload = function(ev) { var preview = document.getElementById("previewPhotoThumb"); if (preview) preview.src = ev.target.result; }; r.readAsDataURL(e.target.files[0]); } };
+document.getElementById("submitLicenseBtn").onclick = function() { 
+    var input = document.getElementById("licenseInput"); 
     if (input && input.value) {
-        if (activateLicense(input.value)) {
-            input.value = "";
-            // Setelah aktivasi, sync ke semua device via pull
-            pullFromSheet();
-        }
+        localStorage.setItem("vms_license_key", input.value);
+        toast("✅ License activated!", "success");
+        input.value = "";
     } else {
         toast("Masukkan license key", "warning");
     }
 };
-document.getElementById("siteSelector").onchange = (e) => setSite(e.target.value);
-document.getElementById("siteSelectorTop").onchange = (e) => setSite(e.target.value);
+document.getElementById("siteSelector").onchange = function(e) { setSite(e.target.value); };
+document.getElementById("siteSelectorTop").onchange = function(e) { setSite(e.target.value); };
 
 function exportToExcel() {
     try {
         if (!window.XLSX) { toast("Excel engine belum siap", "error"); return; }
-        let dataForExcel = [];
-        Object.entries(visitors).forEach(([reg, visitor]) => {
-            let jamMasuk = "-", jamKeluar = "-", keterangan = "";
+        var dataForExcel = [];
+        var visitorEntries = Object.entries(visitors);
+        for (var i = 0; i < visitorEntries.length; i++) {
+            var entry = visitorEntries[i];
+            var reg = entry[0];
+            var visitor = entry[1];
+            var jamMasuk = "-", jamKeluar = "-", keterangan = "";
             if (visitor.sessions && visitor.sessions.length > 0) {
-                let last = visitor.sessions[visitor.sessions.length - 1];
+                var last = visitor.sessions[visitor.sessions.length - 1];
                 if (last.checkIn) jamMasuk = new Date(last.checkIn).toLocaleString("id-ID");
                 if (last.checkOut) jamKeluar = new Date(last.checkOut).toLocaleString("id-ID");
                 keterangan = visitor.currentStatus === "IN" ? "Di Dalam" : (last.checkOut ? "Sudah Keluar" : "Belum Check-in");
             } else keterangan = "Data Terdaftar";
             dataForExcel.push({ "Nama": visitor.nama || "-", "Perusahaan": visitor.perusahaan || "-", "Kategori": visitor.kategori || "-", "PIC": visitor.pic || "-", "Jam Masuk": jamMasuk, "Jam Keluar": jamKeluar, "REG": reg, "Keterangan": keterangan });
-        });
+        }
         if (dataForExcel.length === 0) { toast("Tidak ada data", "warning"); return; }
-        let ws = XLSX.utils.json_to_sheet(dataForExcel);
-        let wb = XLSX.utils.book_new();
+        var ws = XLSX.utils.json_to_sheet(dataForExcel);
+        var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "VMS_Visitor_Report");
-        XLSX.writeFile(wb, `VMS_Report_${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.xlsx`);
+        XLSX.writeFile(wb, "VMS_Report_" + new Date().toISOString().slice(0, 19).replace(/:/g, "-") + ".xlsx");
         toast("✅ Export Excel berhasil", "success");
     } catch(err) { toast("Export gagal", "error"); }
 }
 document.getElementById("exportExcelAction").onclick = exportToExcel;
 
-let panes = { dashboard: document.getElementById("dashboardPane"), register: document.getElementById("registerPane"), scanner: document.getElementById("scannerPane"), logs: document.getElementById("logsPane") };
+var panes = { dashboard: document.getElementById("dashboardPane"), register: document.getElementById("registerPane"), scanner: document.getElementById("scannerPane"), logs: document.getElementById("logsPane") };
 function switchTab(tabId) {
-    Object.values(panes).forEach(p => p?.classList.remove("active-pane"));
+    for (var p in panes) { if (panes[p]) panes[p].classList.remove("active-pane"); }
     if (panes[tabId]) panes[tabId].classList.add("active-pane");
-    document.querySelectorAll(".nav-item").forEach(nav => { if (nav.dataset?.tab === tabId) nav.classList.add("active"); else nav.classList.remove("active"); });
+    var navs = document.querySelectorAll(".nav-item");
+    for (var i = 0; i < navs.length; i++) { if (navs[i].dataset && navs[i].dataset.tab === tabId) navs[i].classList.add("active"); else navs[i].classList.remove("active"); }
 }
-document.querySelectorAll(".nav-item, .mobile-nav").forEach(el => { if (el.dataset?.tab) { el.addEventListener("click", () => { switchTab(el.dataset.tab); if (window.innerWidth <= 780) { document.getElementById("mobileSidebar").classList.remove("open"); document.getElementById("overlay").style.display = "none"; } }); } });
-document.getElementById("mobileMenuBtn").onclick = () => { document.getElementById("mobileSidebar").classList.add("open"); document.getElementById("overlay").style.display = "block"; };
-document.getElementById("overlay").onclick = () => { document.getElementById("mobileSidebar").classList.remove("open"); document.getElementById("overlay").style.display = "none"; };
+var navItems = document.querySelectorAll(".nav-item, .mobile-nav");
+for (var ni = 0; ni < navItems.length; ni++) {
+    var el = navItems[ni];
+    if (el.dataset && el.dataset.tab) {
+        el.addEventListener("click", function(e) {
+            var tab = this.dataset.tab;
+            switchTab(tab);
+            if (window.innerWidth <= 780) {
+                document.getElementById("mobileSidebar").classList.remove("open");
+                document.getElementById("overlay").style.display = "none";
+            }
+        });
+    }
+}
+document.getElementById("mobileMenuBtn").onclick = function() { document.getElementById("mobileSidebar").classList.add("open"); document.getElementById("overlay").style.display = "block"; };
+document.getElementById("overlay").onclick = function() { document.getElementById("mobileSidebar").classList.remove("open"); document.getElementById("overlay").style.display = "none"; };
 
 // ================= INITIALIZATION =================
 async function initVmsSystem() {
     secureLoad();
     vmsSite_load();
-    checkLicense();
     setSite(SITE_ID);
     renderDashboard();
     renderLogTable();
@@ -1088,12 +1033,12 @@ async function initVmsSystem() {
         toast("🔄 Sinkronisasi data...", "info");
         await pullFromSheet();
     }
-    setInterval(() => { if (navigator.onLine) pullFromSheet(); }, SYNC_INTERVAL_MS);
-    setInterval(() => { if (navigator.onLine && syncQueue.length > 0) processQueue(); }, 5000);
+    setInterval(function() { if (navigator.onLine) pullFromSheet(); }, SYNC_INTERVAL_MS);
+    setInterval(function() { if (navigator.onLine && syncQueue.length > 0) processQueue(); }, 5000);
 }
 initVmsSystem();
 
-window.addEventListener("beforeunload", () => {
+window.addEventListener("beforeunload", function() {
     if (scannerInstance) { try { scannerInstance.stop(); scannerInstance.clear(); } catch(e) {} }
     secureSave();
 });
