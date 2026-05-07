@@ -1103,7 +1103,7 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyqY19K1UBo5--6LxDxNgjXIEbM070tLaVlib03tci_2jnMb1PBvmbLoFf7CUA-V8mgXg/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxv5ysP2C1sBJ3FG_4X34JAebMWdJMAQQR5wmmyOSh4cpZRcg20BId8ZmM25ZuzMrOtwQ/exec";
     
     let currentUser = null;
     let refreshInterval = null;
@@ -1134,7 +1134,33 @@
         setTimeout(() => toast.remove(), 3000);
     }
 
-    async function apiCall(
+        async function apiCall(endpoint, options = {}) {
+        try {
+            const currentToken = localStorage.getItem("vms_admin_token");
+            
+            // Gabungkan path dan token ke dalam URL untuk menghindari Preflight CORS
+            const finalUrl = API_URL + "?path=" + endpoint + (currentToken ? "&token=" + currentToken : "");
+
+            const fetchOptions = {
+                method: options.method || "GET",
+                mode: "cors",
+                redirect: "follow"
+            };
+
+            if (options.body) {
+                fetchOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
+            }
+
+            const res = await fetch(finalUrl, fetchOptions);
+            const data = await res.json();
+            return data;
+        } catch (e) {
+            console.error("API Error:", e);
+            showToast("Koneksi gagal", "error");
+            return null;
+        }
+    }
+
 
     function formatCurrency(amount) {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
