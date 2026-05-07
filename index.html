@@ -572,45 +572,50 @@ async function downloadPDF(reg, data) {
         doc.setFontSize(14);
         doc.setFont(undefined, "bold");
         doc.text("VISITOR PASS", 52.5, 12, { align: "center" });
-        doc.setFontSize(8);
-        doc.text("SECURITY AUTHORIZED", 52.5, 18, { align: "center" });
         
-        // FOTO
-        if (visitorData.foto && visitorData.foto.length > 100) {
-            if (visitorData.foto.startsWith("data:image")) {
-                try {
-                    doc.setDrawColor(200, 200, 200);
-                    doc.rect(32.5, 30, 40, 50);
-                    doc.addImage(visitorData.foto, "JPEG", 33, 30.5, 39, 49);
-                } catch(e) { 
-                    console.error("Foto error:", e);
-                    doc.setDrawColor(200, 200, 200);
-                    doc.rect(32.5, 30, 40, 50);
-                    doc.setFontSize(6);
-                    doc.setTextColor(100, 100, 100);
-                    doc.text("Photo", 52.5, 55, { align: "center" });
+        // --- PERBAIKAN LOGIKA FOTO ---
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(32.5, 30, 40, 50); // Bingkai foto
+
+        if (visitorData.foto) {
+            try {
+                let imgSrc = visitorData.foto;
+                
+                // Jika URL Google Drive, ubah ke format thumbnail/direct link
+                if (imgSrc.includes("drive.google.com")) {
+                    let fileId = imgSrc.split('id=')[1] || imgSrc.split('/d/')[1].split('/')[0];
+                    // Gunakan thumbnail link Google Drive yang lebih ringan & biasanya lolos CORS sederhana
+                    imgSrc = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
                 }
-            } else if (visitorData.foto.startsWith("https://")) {
-                doc.setDrawColor(200, 200, 200);
-                doc.rect(32.5, 30, 40, 50);
+
+                // Fungsi internal untuk memuat gambar ke PDF
+                const addImgToDoc = (src) => {
+                    return new Promise((resolve, reject) => {
+                        let img = new Image();
+                        img.crossOrigin = "Anonymous"; // Mencoba melewati batasan CORS
+                        img.onload = function() {
+                            doc.addImage(img, "JPEG", 33, 30.5, 39, 49);
+                            resolve();
+                        };
+                        img.onerror = () => reject();
+                        img.src = src;
+                    });
+                };
+
+                await addImgToDoc(imgSrc);
+            } catch (e) {
+                console.warn("Gagal memuat foto ke PDF:", e);
                 doc.setFontSize(6);
                 doc.setTextColor(100, 100, 100);
-                doc.text("Photo on Cloud", 52.5, 55, { align: "center" });
-            } else {
-                doc.setDrawColor(200, 200, 200);
-                doc.rect(32.5, 30, 40, 50);
-                doc.setFontSize(6);
-                doc.setTextColor(100, 100, 100);
-                doc.text("No Photo", 52.5, 55, { align: "center" });
+                doc.text("Photo Not Available", 52.5, 55, { align: "center" });
             }
         } else {
-            doc.setDrawColor(200, 200, 200);
-            doc.rect(32.5, 30, 40, 50);
             doc.setFontSize(6);
             doc.setTextColor(100, 100, 100);
             doc.text("No Photo", 52.5, 55, { align: "center" });
         }
-        
+        // --- SELESAI PERBAIKAN FOTO ---
+
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
         doc.setFont(undefined, "bold");
@@ -637,9 +642,6 @@ async function downloadPDF(reg, data) {
         doc.setTextColor(150, 150, 150);
         doc.text(reg, 82.5, 142, { align: "center" });
         
-        doc.setFontSize(6);
-        doc.text("Property of Security Department. Must be worn at all times.", 52.5, 146, { align: "center" });
-        
         doc.save("VISITOR_PASS_" + reg + ".pdf");
         toast("Badge Visitor berhasil di-download", "success");
         return true;
@@ -649,6 +651,7 @@ async function downloadPDF(reg, data) {
         return false;
     }
 }
+
 
 async function generateQRandShow(reg, data) {
     try {
