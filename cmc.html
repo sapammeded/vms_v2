@@ -1263,55 +1263,56 @@
     }
 
     async function doLogin() {
-        const username = document.getElementById("loginUser").value.trim();
-        const password = document.getElementById("loginPass").value;
-
-        if (!username || !password) {
-            showToast("Username and password required", "error");
-            return;
-        }
-
-        showToast("Logging in...", "info");
-
-        try {
-            const res = await fetch(API_URL + "/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ username, password })
-            });
-
-            const data = await res.json();
-
-            if (data && data.ok) {
-                localStorage.setItem("vms_admin_token", data.token);
-                localStorage.setItem("vms_admin_user", data.username);
-                localStorage.setItem("vms_admin_role", data.role);
-
-                currentUser = { username: data.username, role: data.role };
-
-                document.getElementById("loginOverlay").classList.add("hidden");
-
-                document.getElementById("topUsername").innerText = data.username;
-                document.getElementById("sidebarUsername").innerText = data.username;
-                document.getElementById("topRole").innerText = data.role;
-                document.getElementById("sidebarRole").innerText = data.role;
-
-                showToast(`Welcome ${data.username}`, "success");
-
-                startRefresh();
-                loadAllData();
-
-            } else {
-                showToast(data?.error || "Login failed", "error");
-            }
-
-        } catch (err) {
-            console.error("[LOGIN ERROR]", err);
-            showToast("Login error", "error");
-        }
+    const username = document.getElementById("loginUser").value.trim();
+    const password = document.getElementById("loginPass").value;
+    
+    if (!username || !password) {
+        showToast("Username and password required", "error");
+        return;
     }
+    
+    showToast("Logging in...", "info");
+    
+    try {
+        // PAKAI GET METHOD (bukan POST) untuk menghindari CORS preflight
+        const url = API_URL + "/login?username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password);
+        const res = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (data && data.ok) {
+            localStorage.setItem("vms_admin_token", data.token);
+            localStorage.setItem("vms_admin_user", data.username);
+            localStorage.setItem("vms_admin_role", data.role);
+            
+            currentUser = { username: data.username, role: data.role };
+            
+            document.getElementById("loginOverlay").classList.add("hidden");
+            
+            document.getElementById("topUsername").innerText = data.username;
+            document.getElementById("sidebarUsername").innerText = data.username;
+            document.getElementById("topRole").innerText = data.role;
+            document.getElementById("sidebarRole").innerText = data.role;
+            
+            showToast(`Welcome ${data.username}`, "success");
+            
+            startRefresh();
+            loadAllData();
+            
+        } else {
+            showToast(data?.error || "Login failed", "error");
+        }
+        
+    } catch (err) {
+        console.error("[LOGIN ERROR]", err);
+        showToast("Login error: " + err.message, "error");
+    }
+}
 
     function logout() {
         currentUser = null;
