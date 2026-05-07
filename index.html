@@ -86,20 +86,15 @@
                 <option value="CHECK_IN">CHECK-IN</option>
                 <option value="CHECK_OUT">CHECK-OUT</option>
             </select>
-            
             <select id="cameraSelection" style="padding: 8px; border-radius: 12px; flex: 1; min-width: 150px;">
                 <option value="">⏳ Mencari Kamera...</option>
             </select>
-
             <button id="startCamBtn">📷 Start</button>
             <button id="stopCamBtn" class="btn-outline">Stop</button>
         </div>
-
         <button id="uploadQrBtn">🖼️ Upload QR</button>
         <input type="file" id="uploadQrFile" accept="image/*" style="display:none">
-
         <div id="cameraPreview" style="margin-top:24px;"></div>
-
         <label>Manual REG Number</label>
         <input type="text" id="manualReg" placeholder="REG2026xxxx">
         <button id="manualProcess" style="margin-top:8px;">Proses</button>
@@ -111,7 +106,6 @@
 <button id="backupAction">Backup</button>
 <button id="resetDatabaseAction" style="background:#92400e;">Reset DB</button>
 </div>
-
 <div class="table-wrap">
     <table id="logTable">
        <thead>
@@ -127,7 +121,6 @@
         <th>Site</th>
     </tr>
 </thead>
-
         <tbody id="logTableBody"></tbody>
     </table>
 </div>
@@ -135,393 +128,173 @@
 <div id="vmsSiteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:10001;"><div style="background:white; border-radius:28px; padding:28px; width:420px; max-width:90%;"><h3>⚙️ Edit Site Names</h3><div style="margin-bottom:16px;"><label>🏭 SITE A</label><input type="text" id="vmsA" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏢 SITE B</label><input type="text" id="vmsB" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="margin-bottom:16px;"><label>🏬 SITE C</label><input type="text" id="vmsC" style="width:100%; padding:12px; margin-top:5px; border-radius:16px; border:1px solid #ccc;"></div><div style="display:flex; gap:12px;"><button id="vmsSaveBtn" onclick="vmsSite_submit()" style="background:#1f4e4a;">💾 Save</button><button onclick="vmsSite_close()" class="btn-outline">Cancel</button></div></div></div>
 
 <script>
-// ================= GLOBAL DATA CORE (PENAWAR ERROR) =================
-// Menyiapkan wadah data utama agar tidak muncul error "vmsData is not defined"
-let vmsData = {
-    logs: [],       // Daftar riwayat tamu
-    visitors: {}    // Detail foto dan data visitor per REG
-};
+// ================= KONFIGURASI =================
+// ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA ⚠️
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqbabX7Ni2zXz6VMChiAG-Vg5e6onojW1AC_ZtBiZUQx0g-P9V6lYEnxNzg_QAgG2C/exec";
+const SYNC_INTERVAL_MS = 8000;
 
-// ================= FAILSAFE CORE =================
-window.VMS_SAFE = true;
-
-window.addEventListener("error", function(e){
-    console.error("GLOBAL ERROR:", e.message);
-    if(window.toast) toast("⚠️ System error terdeteksi", "error");
-});
-
-window.addEventListener("unhandledrejection", function(e){
-    console.error("PROMISE ERROR:", e.reason);
-    if(window.toast) toast("⚠️ Network/async error", "warning");
-});
-
-// ================= SECURITY & HARDENING =================
-const SECRET = "OMNIGUARD_SECRET_2026";
+// ================= GLOBAL VARIABLES =================
+let visitors = {};
+let logs = [];
+let SITE_ID = localStorage.getItem("vms_site") || "SITE_A";
+let syncQueue = [];
+let isProcessingQueue = false;
+let syncLock = false;
+let actionMutex = false;
+let scannerInstance = null;
+let isScanning = false;
+let processingRegs = new Set();
+let lastScanTime = {};
+let scanCounter = 0;
 const SCAN_COOLDOWN_MS = 3000;
 const SCAN_MAX_PER_MIN = 20;
-let scanCounter = 0;
-let syncLock = false;
-let globalScanLock = false;
 
-setInterval(() => scanCounter = 0, 60000);
+// Site names storage
+let vmsSiteData = { names: { SITE_A: "SITE A", SITE_B: "SITE B", SITE_C: "SITE C" } };
 
+// ================= HELPER FUNCTIONS =================
+function toast(msg, type = "info") {
+    let t = document.createElement("div");
+    t.className = `toast-msg ${type}`;
+    t.innerText = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+}
+window.toast = toast;
 
-function lockUI(lock=true){
+function vibrate() { if (navigator.vibrate) navigator.vibrate(100); }
+
+function lockUI(lock) {
     document.body.style.pointerEvents = lock ? "none" : "auto";
     document.body.style.opacity = lock ? "0.6" : "1";
 }
 
-function vibrate(){
-    if (navigator.vibrate) navigator.vibrate(100);
+function generateReg() {
+    return "REG" + Date.now() + Math.floor(Math.random() * 10000);
 }
 
-async function sha256(str){
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2,'0'))
-    .join('');
-}
-
-// ================= INIT =================
-(function initSiteNameDefault() {  
-    let saved = localStorage.getItem("vms_site_names");  
-    if (!saved) {  
-        localStorage.setItem("vms_site_names", JSON.stringify({ SITE_A: "SITE A", SITE_B: "SITE B", SITE_C: "SITE C" }));  
-    }  
-})();  
-
-var vmsSiteData = {
-  names: { SITE_A: "SITE A", SITE_B: "SITE B", SITE_C: "SITE C" }
-};
-
-// ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA ⚠️
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbymsNSRIXP_2QAaameNilabmnrK2yplDBoT58D6r0FhuN2z2smDJ3zfjAuaDG4g5N3J/exec";  
-const SYNC_INTERVAL_MS = 10000;  
-// ================= CORE VARIABLES & QUEUE ENGINE =================
-let visitors = {};  
-let logs = [];  
-let SITE_ID = localStorage.getItem("vms_site") || "SITE_A";  
-let isProcessingQueue = false;  
-let syncQueue = [];  
-let lastScanTime = {};  
-let processingRegs = new Set();  
-let scannerInstance = null;  
-let isScanning = false;  
-let currentCameraId = null;  
-let cameraResetInterval = null;  
-let actionMutex = false;  
-let localStorageVersion = parseInt(localStorage.getItem("vms_version") || "0");  
-
-function incrementVersion() {
-    localStorageVersion++;
-    localStorage.setItem("vms_version", localStorageVersion);
-}
-
-function updateQueueStatus() {  
-    let div = document.getElementById("queueStatusIndicator");  
-    if (!div) {  
-        div = document.createElement("div");  
-        div.id = "queueStatusIndicator";  
-        div.className = "queue-status";  
-        document.body.appendChild(div);  
-    }  
-    div.innerHTML = syncQueue.length 
-        ? `📦 Queue: ${syncQueue.length}` 
-        : `✅ Sync OK`;  
-}
-
-// FIX POINT 1: Fungsi Antrean Agar Tidak Halu saat Offline
-function addToQueue(action, reg, data = {}) {
-    if (!Array.isArray(syncQueue)) syncQueue = [];
-    
-    // Cegah duplikasi di dalam antrean agar tidak spam server
-    const isExist = syncQueue.find(item => item.reg === reg && item.action === action);
-    if (isExist) return;
-
-    syncQueue.push({
-        action,
-        reg,
-        data,
-        retryCount: 0,
-        createdAt: Date.now()
-    });
-
-    persistQueue();
-    updateQueueStatus();
-    console.log("📦 Masuk Antrean:", action, reg);
-}
-
-function persistQueue() {
-    try {
-        localStorage.setItem("vms_sync_queue", JSON.stringify(syncQueue));
-    } catch(e) {
-        console.error("Storage Error (Queue):", e);
+function getSiteName(siteId) {
+    let names = {};
+    try { names = JSON.parse(localStorage.getItem("vms_site_names") || "{}"); } catch(e) {}
+    let name = names[siteId];
+    if (!name || name.trim() === "") {
+        name = siteId.replace(/_/g, " ");
+        names[siteId] = name;
+        localStorage.setItem("vms_site_names", JSON.stringify(names));
     }
+    return name;
 }
 
-
-function getSiteName(siteId) {  
-    let names = {};  
-    try { names = JSON.parse(localStorage.getItem("vms_site_names") || "{}"); } catch(e) { console.error("getSiteName parse error:", e); }  
-    let name = names[siteId];  
-    if (!name || name.trim() === "" || name === "undefined") {  
-        name = siteId.replace(/_/g, " ");  
-        names[siteId] = name;  
-        localStorage.setItem("vms_site_names", JSON.stringify(names));  
-    }  
-    return name;  
-}  
-
-function toast(msg, type = "info") {  
-    let t = document.createElement("div");  
-    t.className = `toast-msg ${type}`;  
-    t.innerText = msg;  
-    document.body.appendChild(t);  
-    setTimeout(() => t.remove(), 3000);  
-}  
-window.toast = toast;  
-
-function generateReg() {  
-    let reg; let attempts = 0;  
-    do {  
-        reg = "REG" + Date.now() + Math.floor(Math.random() * 10000);  
-        attempts++;  
-        if (attempts > 10) break;  
-    } while (visitors[reg]); // CEK GLOBAL REG
-    return reg;  
-}  
-
-// ================= HARDENED STORAGE (PERBAIKAN FOTO & RAM) =================
+// ================= STORAGE FUNCTIONS =================
 function secureSave() {
     try {
-        // 1. Manajemen Kapasitas (Biar Oppo A92 lancar)
-        // Batasi 500 visitor terbaru agar tidak melebihi 5MB limit LocalStorage
         let keys = Object.keys(visitors);
         if (keys.length > 500) {
             keys.sort((a, b) => (visitors[a].updatedAt || 0) - (visitors[b].updatedAt || 0));
-            let toDelete = keys.slice(0, keys.length - 500);
-            toDelete.forEach(k => delete visitors[k]);
+            keys.slice(0, keys.length - 500).forEach(k => delete visitors[k]);
         }
-        
-        if (logs.length > 500) {
-            logs = logs.slice(0, 400);
-        }
-        
-        // 2. Simpan Data (FOTO TIDAK BOLEH DI-DELETE LAGI)
-        // Kita simpan utuh agar saat preview/print PDF foto tetap muncul
+        if (logs.length > 500) logs = logs.slice(0, 400);
         localStorage.setItem("vms_visitors", JSON.stringify(visitors));
         localStorage.setItem("vms_logs", JSON.stringify(logs));
         localStorage.setItem("vms_sync_queue", JSON.stringify(syncQueue));
-        
-        if (typeof updateQueueStatus === "function") updateQueueStatus();
     } catch (e) {
         console.error("STORAGE ERROR:", e);
-        // Jika storage HP benar-benar penuh (QuotaExceeded), baru kita bersihkan logs
         if (e.name === 'QuotaExceededError') {
-            logs = logs.slice(0, 50); 
+            logs = logs.slice(0, 50);
             localStorage.setItem("vms_logs", JSON.stringify(logs));
             toast("⚠️ Memori HP Penuh, Riwayat Lama Dihapus", "warning");
         }
     }
 }
 
-function secureLoad() {  
+function secureLoad() {
     try {
-        // Ambil data utuh (Termasuk foto yang tersimpan)
         visitors = JSON.parse(localStorage.getItem("vms_visitors")) || {};
         logs = JSON.parse(localStorage.getItem("vms_logs")) || [];
         syncQueue = JSON.parse(localStorage.getItem("vms_sync_queue")) || [];
-        
-        window.visitors = visitors;
-        window.logs = logs;
-    } catch(e) {
-        console.error("secureLoad error:", e);
-        toast("⚠️ Gagal memuat data", "error");
-    }
-}  
+    } catch(e) { console.error("secureLoad error:", e); }
+}
 
-function addLocalLog(reg, action) {  
-    let v = visitors[reg]; 
-    // Gunakan 'timestamp' agar sama dengan fungsi sort di tabel
+function addLocalLog(reg, action) {
+    let v = visitors[reg];
     logs.unshift({
         reg: reg,
         nama: v?.nama || reg,
         perusahaan: v?.perusahaan || "-",
         kategori: v?.kategori || "UMUM",
-        type: action, // Sesuaikan dengan logika renderLogTable
-        timestamp: Date.now(), 
+        type: action,
+        timestamp: Date.now(),
         site_id: SITE_ID
     });
-    
-    if (logs.length > 500) logs = logs.slice(0, 400);  
-    secureSave();  
+    if (logs.length > 500) logs = logs.slice(0, 400);
+    secureSave();
 }
 
-// Bersihkan memori setiap 5 menit (bukan tiap 1 menit biar tidak boros baterai)
-setInterval(() => {
-    if (Object.keys(visitors).length > 500 || logs.length > 500) {
-        secureSave();
-    }
-}, 300000);
-
-
-// ================= POINT 2: OPTIMIZED API & ACTION ENGINE =================
+// ================= API CALLS =================
 async function apiCall(params) {
     if (!navigator.onLine) return { status: "offline" };
-    
     try {
-        const cleanParams = { ...params };
-        // Proteksi RAM: Jangan kirim foto mentah ke Apps Script (biar HP gak lag)
-        if (cleanParams.photo && cleanParams.photo.length > 500) {
-            cleanParams.photo = "LOCAL_STORAGE_ONLY"; 
-        }
-
         const res = await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            body: new URLSearchParams(cleanParams)
+            body: new URLSearchParams(params)
         });
-
         if (!res.ok) throw new Error("Server Response Error");
-
-        const text = await res.text();
-        return JSON.parse(text);
+        return await res.json();
     } catch (e) {
-        console.warn("🌐 API Call Fail:", e.message);
+        console.warn("API Call Fail:", e.message);
         return { status: "error_network" };
     }
 }
 
-// Integrasi Action dengan Mapping Data yang Benar (Sesuai Kolom Sheets Bapak)
-async function registerVisitor(reg, data) {  
-    return await apiCall({ 
-        action: "register", 
-        reg: reg, 
+async function registerVisitor(reg, data) {
+    return await apiCall({
+        action: "register",
+        reg: reg,
         nama: data.nama,
-        perusahaan: data.perusahaan, 
+        perusahaan: data.perusahaan,
         tujuan: data.tujuan,
-        pic: data.pic, 
-        dept: data.dept, 
+        pic: data.pic,
+        dept: data.dept,
         startDate: data.startDate,
         expDate: data.expDate,
-        kategori: data.kategori, 
-        site_id: SITE_ID, 
-        site_name: (getSiteName(SITE_ID) || SITE_ID).trim(), 
-        photo: "" 
-    });  
-}  
+        kategori: data.kategori,
+        site_id: SITE_ID,
+        site_name: getSiteName(SITE_ID),
+        photoBase64: data.foto || ""
+    });
+}
 
-async function walkinVisitor(reg, data) {  
-    return await apiCall({ 
-        action: "walkin", 
-        reg: reg, 
+async function walkinVisitor(reg, data) {
+    return await apiCall({
+        action: "walkin",
+        reg: reg,
         nama: data.nama,
-        perusahaan: data.perusahaan, 
+        perusahaan: data.perusahaan,
         tujuan: data.tujuan,
-        pic: data.pic, 
-        dept: data.dept, 
+        pic: data.pic,
+        dept: data.dept,
         startDate: data.startDate,
         expDate: data.expDate,
-        kategori: data.kategori, 
-        site_id: SITE_ID, 
-        site_name: (getSiteName(SITE_ID) || SITE_ID).trim(), 
-        photo: "" 
-    });  
-}  
-
-async function checkinVisitor(reg) { 
-    return await apiCall({ action: "checkin", reg: reg, site_id: SITE_ID }); 
-}  
-
-async function checkoutVisitor(reg) { 
-    return await apiCall({ action: "checkout", reg: reg, site_id: SITE_ID }); 
+        kategori: data.kategori,
+        site_id: SITE_ID,
+        site_name: getSiteName(SITE_ID),
+        photoBase64: ""
+    });
 }
 
-
-async function walkinVisitor(reg, data) {  
-    return await apiCall({ 
-        action: "walkin", 
-        reg: reg, 
-        nama: data.nama,             // Diubah dari 'name' ke 'nama'
-        perusahaan: data.perusahaan, 
-        tujuan: data.tujuan,         // Diubah dari 'purpose' ke 'tujuan'
-        pic: data.pic, 
-        dept: data.dept, 
-        startDate: data.startDate,   // Diubah dari 'start' ke 'startDate'
-        expDate: data.expDate,       // Diubah dari 'exp' ke 'expDate'
-        kategori: data.kategori, 
-        site_id: SITE_ID, 
-        site_name: (getSiteName(SITE_ID) || SITE_ID.replace(/_/g," ")).trim(), 
-        photo: "" // Sama, kosongkan foto untuk server
-    });  
-}  
-
-async function checkinVisitor(reg) { 
-    return await apiCall({ action: "checkin", reg: reg, site_id: SITE_ID }); 
-}  
-
-async function checkoutVisitor(reg) { 
-    return await apiCall({ action: "checkout", reg: reg, site_id: SITE_ID }); 
-}  
-
-async function generateQRCode(reg) { 
-    return await apiCall({ action: "generateqr", reg: reg }); 
-}  
-
-async function validateQRCode(qrData) { 
-    return await apiCall({ action: "validateqr", qrData: qrData }); 
+async function checkinVisitor(reg) {
+    return await apiCall({ action: "checkin", reg: reg, site_id: SITE_ID });
 }
 
-// ================= POINT 3: SMART SYNC ENGINE (PROTEKSI FOTO) =================
-function syncVisitorStatus(sheetData) {  
-    if (!Array.isArray(sheetData) || sheetData.length < 2) return;
-    
-    const headers = sheetData[0]; 
-    const idx = {
-        nama: headers.indexOf("Nama"),
-        perusahaan: headers.indexOf("Perusahaan"),
-        reg: headers.indexOf("REG"),
-        status: headers.indexOf("Status"),
-        kategori: headers.indexOf("Kategori"),
-        exp: headers.indexOf("Exp") 
-    };
-
-    let adaPerubahan = false;
-    for (let i = 1; i < sheetData.length; i++) {
-        const row = sheetData[i];
-        const reg = row[idx.reg];
-        if (!reg) continue;
-
-        const serverStatus = row[idx.status] || "OUT";
-
-        // Update jika: Data belum ada ATAU Status berubah
-        if (!visitors[reg] || visitors[reg].currentStatus !== serverStatus) {
-            
-            // PROTEKSI KRITIKAL: Ambil foto lama dari LocalStorage (HP)
-            let existingFoto = (visitors[reg] && visitors[reg].foto) ? visitors[reg].foto : "";
-            
-            visitors[reg] = {
-                ...visitors[reg], 
-                nama: row[idx.nama] || "Unknown",
-                perusahaan: row[idx.perusahaan] || "-",
-                kategori: row[idx.kategori] || "UMUM",
-                expDate: row[idx.exp] || "",
-                currentStatus: serverStatus,
-                foto: existingFoto, // Foto tidak boleh ditimpa server
-                updatedAt: Date.now()
-            };
-            adaPerubahan = true;
-        }
-    }
-
-    if (adaPerubahan) { 
-        secureSave(); 
-        renderDashboard(); 
-        renderLogTable(); 
-    }
+async function checkoutVisitor(reg) {
+    return await apiCall({ action: "checkout", reg: reg, site_id: SITE_ID });
 }
 
+async function validateQRCode(qrData) {
+    return await apiCall({ action: "validateqr", qrData: qrData });
+}
+
+// ================= SYNC FUNCTIONS (FIXED) =================
 async function pullFromSheet() {
     if (syncLock || !navigator.onLine) return;
     syncLock = true;
@@ -532,33 +305,58 @@ async function pullFromSheet() {
         });
         const result = await res.json();
         
-        if (result.status === "success" && result.data) {
+        if (result.status === "success" && result.data && result.data.length > 0) {
             const headers = result.data[0];
+            const idx = {
+                nama: headers.indexOf("Nama"),
+                perusahaan: headers.indexOf("Perusahaan"),
+                tujuan: headers.indexOf("Tujuan"),
+                pic: headers.indexOf("PIC"),
+                startDate: headers.indexOf("Start"),
+                expDate: headers.indexOf("Exp"),
+                kategori: headers.indexOf("Kategori"),
+                dept: headers.indexOf("Dept"),
+                reg: headers.indexOf("REG"),
+                status: headers.indexOf("Status"),
+                site: headers.indexOf("Site"),
+                photoUrl: headers.indexOf("Keterangan")
+            };
+            
             const rows = result.data.slice(1);
-
+            let updated = 0;
+            
             rows.forEach(row => {
-                const reg = row[headers.indexOf("REG")];
+                const reg = row[idx.reg];
                 if (!reg) return;
-
-                // Sinkronisasi: Update atau Tambah data dari Cloud ke Lokal HP
-                // Biar HP A dan HP B punya data yang sama persis
-                let existingFoto = (visitors[reg] && visitors[reg].foto) ? visitors[reg].foto : "";
                 
+                let photoUrl = (row[idx.photoUrl] && row[idx.photoUrl].startsWith("https://")) 
+                    ? row[idx.photoUrl] 
+                    : (visitors[reg]?.foto || "");
+                
+                // UPDATE ATAU TAMBAH DATA LENGKAP
                 visitors[reg] = {
-                    nama: row[headers.indexOf("Nama")] || "Unknown",
-                    perusahaan: row[headers.indexOf("Perusahaan")] || "-",
-                    kategori: row[headers.indexOf("Kategori")] || "UMUM",
-                    currentStatus: row[headers.indexOf("Status")] || "OUT",
-                    expDate: row[headers.indexOf("Exp")] || "",
-                    foto: existingFoto, // Foto tetep prioritas ambil dari memori lokal HP
+                    nama: row[idx.nama] || visitors[reg]?.nama || "Unknown",
+                    perusahaan: row[idx.perusahaan] || visitors[reg]?.perusahaan || "-",
+                    tujuan: row[idx.tujuan] || visitors[reg]?.tujuan || "-",
+                    pic: row[idx.pic] || visitors[reg]?.pic || "-",
+                    dept: row[idx.dept] || visitors[reg]?.dept || "-",
+                    startDate: row[idx.startDate] || visitors[reg]?.startDate || "-",
+                    expDate: row[idx.expDate] || visitors[reg]?.expDate || "-",
+                    kategori: row[idx.kategori] || visitors[reg]?.kategori || "UMUM",
+                    currentStatus: row[idx.status] || visitors[reg]?.currentStatus || "OUT",
+                    site: row[idx.site] || visitors[reg]?.site || SITE_ID,
+                    foto: photoUrl,
                     updatedAt: Date.now()
                 };
+                updated++;
             });
-
-            secureSave(); 
-            renderDashboard(); 
-            renderLogTable(); 
-            console.log("🌐 Cloud Sync Success: All devices updated.");
+            
+            if (updated > 0) {
+                secureSave();
+                renderDashboard();
+                renderLogTable();
+                console.log(`✅ Sync: ${updated} data diperbarui`);
+            }
         }
     } catch (e) {
         console.warn("Pull Sync Fail:", e.message);
@@ -567,74 +365,61 @@ async function pullFromSheet() {
     }
 }
 
-
-// ================= QUEUE (FIX LOOP) =================
-async function processQueue() {  
-    if (isProcessingQueue || syncQueue.length === 0) return;  
-
-    isProcessingQueue = true;  
-    const newQueue = [];  
-
-    for (const item of syncQueue) {  
-        let result;  
-
-        try {  
-            if (item.action === "checkin") result = await checkinVisitor(item.reg);  
-            else if (item.action === "checkout") result = await checkoutVisitor(item.reg);  
-            else if (item.action === "register") result = await registerVisitor(item.reg, item.data);  
-            else if (item.action === "walkin") result = await walkinVisitor(item.reg, item.data);  
-        } catch (e) {  
-            result = { status: "error" };  
-        }  
-
-        console.log("📦 QUEUE RESULT:", result);
-
-        // ✅ SUCCESS → langsung selesai (tidak retry)
-        if (result && result.status === "success") {
-            continue;
-        }
-
-        // ⚠️ duplicate → anggap selesai juga
-        if (result && result.status === "duplicate") {
-            continue;
-        }
-
-        // ❌ selain itu → retry
-        item.retryCount = (item.retryCount || 0) + 1;
-
-        if (item.retryCount <= 5) {
-            await new Promise(r => setTimeout(r, 1000));
-            newQueue.push(item);
-        } else {
-            console.warn("DROP QUEUE:", item);
-        }
-    }  
-
-    syncQueue = newQueue;  
-    persistQueue();  
-    isProcessingQueue = false;  
+function addToQueue(action, reg, data = {}) {
+    if (!Array.isArray(syncQueue)) syncQueue = [];
+    const isExist = syncQueue.find(item => item.reg === reg && item.action === action);
+    if (isExist) return;
+    syncQueue.push({ action, reg, data, retryCount: 0, createdAt: Date.now() });
+    localStorage.setItem("vms_sync_queue", JSON.stringify(syncQueue));
 }
 
-// ================= PERFORMANCE OPTIMIZED CHARTS =================
-function renderDashboard() {  
-    try {  
-        let v = Object.values(visitors);  
-        let active = v.filter(x => x.currentStatus === "IN").length;  
-        let todayCheckins = logs.filter(l => new Date(l.time).toDateString() === new Date().toDateString() && l.action === "CHECK_IN").length;  
-        let statsWidget = document.getElementById("statsWidget");  
-        if (statsWidget) {  
-            statsWidget.innerHTML = `<div class="stat-card"><h4>Total Visitors</h4><div class="stat-number">${v.length}</div></div><div class="stat-card"><h4>Active Inside</h4><div class="stat-number">${active}</div></div><div class="stat-card"><h4>Check-ins Today</h4><div class="stat-number">${todayCheckins}</div></div>`;  
-        }  
-        let last7Days = [], last7Labels = [];  
-        for (let i = 6; i >= 0; i--) {  
-            let d = new Date();  
-            d.setDate(d.getDate() - i);  
-            last7Labels.push(d.toLocaleDateString("id", { weekday: "short" }));  
-            let count = logs.filter(l => new Date(l.time).toDateString() === d.toDateString() && l.action === "CHECK_IN").length;  
-            last7Days.push(count);  
-        }  
-        let trendChart = document.getElementById("trendChart");  
-        if (trendChart && window.Chart) {  
+async function processQueue() {
+    if (isProcessingQueue || syncQueue.length === 0) return;
+    isProcessingQueue = true;
+    const newQueue = [];
+    for (const item of syncQueue) {
+        let result;
+        try {
+            if (item.action === "checkin") result = await checkinVisitor(item.reg);
+            else if (item.action === "checkout") result = await checkoutVisitor(item.reg);
+            else if (item.action === "register") result = await registerVisitor(item.reg, item.data);
+            else if (item.action === "walkin") result = await walkinVisitor(item.reg, item.data);
+            if (result && (result.status === "success" || result.status === "duplicate")) continue;
+        } catch(e) { result = { status: "error" }; }
+        item.retryCount++;
+        if (item.retryCount <= 3) newQueue.push(item);
+    }
+    syncQueue = newQueue;
+    localStorage.setItem("vms_sync_queue", JSON.stringify(syncQueue));
+    isProcessingQueue = false;
+}
+
+// ================= RENDER FUNCTIONS =================
+function renderDashboard() {
+    try {
+        let v = Object.values(visitors);
+        let active = v.filter(x => x.currentStatus === "IN").length;
+        let todayCheckins = logs.filter(l => {
+            let d = new Date(l.timestamp);
+            return d.toDateString() === new Date().toDateString() && l.type === "CHECK_IN";
+        }).length;
+        let statsWidget = document.getElementById("statsWidget");
+        if (statsWidget) {
+            statsWidget.innerHTML = `<div class="stat-card"><h4>Total Visitors</h4><div class="stat-number">${v.length}</div></div>
+                <div class="stat-card"><h4>Active Inside</h4><div class="stat-number">${active}</div></div>
+                <div class="stat-card"><h4>Check-ins Today</h4><div class="stat-number">${todayCheckins}</div></div>`;
+        }
+        
+        let last7Days = [], last7Labels = [];
+        for (let i = 6; i >= 0; i--) {
+            let d = new Date();
+            d.setDate(d.getDate() - i);
+            last7Labels.push(d.toLocaleDateString("id", { weekday: "short" }));
+            let count = logs.filter(l => new Date(l.timestamp).toDateString() === d.toDateString() && l.type === "CHECK_IN").length;
+            last7Days.push(count);
+        }
+        let trendChart = document.getElementById("trendChart");
+        if (trendChart && window.Chart) {
             if (window.lineChart) {
                 window.lineChart.data.labels = last7Labels;
                 window.lineChart.data.datasets[0].data = last7Days;
@@ -642,384 +427,217 @@ function renderDashboard() {
             } else {
                 window.lineChart = new Chart(trendChart, { type: "line", data: { labels: last7Labels, datasets: [{ label: "Daily Visits", data: last7Days, borderColor: "#1f4e4a", fill: false }] } });
             }
-        }  
-        let catCount = { VVIP: 0, VIP: 0, UMUM: 0 };  
-        v.forEach(x => { if (x.kategori) catCount[x.kategori]++; });  
-        let categoryChart = document.getElementById("categoryChart");  
-        if (categoryChart && window.Chart) {  
+        }
+        
+        let catCount = { VVIP: 0, VIP: 0, UMUM: 0 };
+        v.forEach(x => { if (x.kategori) catCount[x.kategori]++; });
+        let categoryChart = document.getElementById("categoryChart");
+        if (categoryChart && window.Chart) {
             if (window.pieChart) {
                 window.pieChart.data.datasets[0].data = [catCount.VVIP, catCount.VIP, catCount.UMUM];
                 window.pieChart.update();
             } else {
                 window.pieChart = new Chart(categoryChart, { type: "pie", data: { labels: ["VVIP", "VIP", "UMUM"], datasets: [{ data: [catCount.VVIP, catCount.VIP, catCount.UMUM], backgroundColor: ["#fbbf24", "#94a3b8", "#1f4e4a"] }] } });
             }
-        }  
-    } catch (e) { console.error("renderDashboard error:", e); }  
-}  
+        }
+    } catch(e) { console.error("renderDashboard error:", e); }
+}
 
-// ================= RENDER LOG TABLE (FIXED & CLEAN VERSION) =================
-function renderLogTable() {  
-    try {  
-        let search = document.getElementById("searchLog")?.value.toLowerCase() || "";  
-        let tbody = document.getElementById("logTableBody");  
-        if (!tbody) return;  
-
-        let allLogs = Array.isArray(logs) ? logs : [];
-
-        // 1. FILTER DATA
-        let filtered = allLogs.filter(l => {
-            if (!l.nama || l.nama === "undefined" || l.nama.trim() === "") return false;
+function renderLogTable() {
+    try {
+        let search = document.getElementById("searchLog")?.value.toLowerCase() || "";
+        let tbody = document.getElementById("logTableBody");
+        if (!tbody) return;
+        let filtered = logs.filter(l => {
+            if (!l.nama) return false;
             let matchSearch = l.nama.toLowerCase().includes(search) || (l.reg && l.reg.toLowerCase().includes(search));
             let matchSite = (!l.site_id || l.site_id === SITE_ID);
             return matchSearch && matchSite;
         });
-
-        // 2. SORT (Terbaru di atas)
         filtered.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        
-        tbody.innerHTML = ""; 
-        
-        filtered.slice(0, 100).forEach((l) => {  
+        tbody.innerHTML = "";
+        filtered.slice(0, 100).forEach((l) => {
             let row = tbody.insertRow();
-            let v = visitors[l.reg] || {}; // Ambil data visitor pendukung (foto, status asli)
-            
-            // Kolom 0: Checkbox
-            row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${l.reg}">`;  
-            
-            // Kolom 1: REG
+            let v = visitors[l.reg] || {};
+            row.insertCell(0).innerHTML = `<input type="checkbox" class="logCheckItem" data-reg="${l.reg}">`;
             row.insertCell(1).innerText = l.reg;
-
-            // Kolom 2: Foto (Proteksi RAM & HP Oppo)
             let photoCell = row.insertCell(2);
             let photoUrl = v.foto || "";
-            photoCell.innerHTML = photoUrl 
-                ? `<img src="${photoUrl}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;">`
-                : `<div style="width:40px; height:40px; border-radius:8px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">NO IMG</div>`;
-
-            // Kolom 3 & 4: Nama & Perusahaan
-            row.insertCell(3).innerText = l.nama || "-";
-            row.insertCell(4).innerText = l.perusahaan || "-";
-            
-            // Kolom 5: Kategori
-            row.insertCell(5).innerHTML = `<span class="badge badge-${(l.kategori || 'umum').toLowerCase()}">${l.kategori || 'Visitor'}</span>`;
-
-            // Kolom 6: STATUS (Logika Warna Tajam Security)
-            let currentStatus = v.currentStatus || "OUT";
-            let statusText = "DAFTAR";
-            let statusColor = "#6b7280"; // Abu-abu default
-
-            if (currentStatus === "IN") {
-                statusText = "DI DALAM";
-                statusColor = "#16a34a"; // Hijau Tajam
+            if (photoUrl && photoUrl.startsWith("https://drive.google.com")) {
+                photoCell.innerHTML = `<img src="${photoUrl}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;" onerror="this.onerror=null;this.style.display='none';this.parentElement.innerHTML='<div style=\"width:40px;height:40px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;\">📷</div>';">`;
+            } else if (photoUrl && photoUrl.startsWith("data:image")) {
+                photoCell.innerHTML = `<img src="${photoUrl}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid #16a34a;">`;
             } else {
-                statusText = "SELESAI";
-                statusColor = "#dc2626"; // Merah
-            }      
+                photoCell.innerHTML = `<div style="width:40px; height:40px; border-radius:8px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-size:10px; color:#ccc;">NO IMG</div>`;
+            }
+            row.insertCell(3).innerText = v.nama || l.nama || "-";
+            row.insertCell(4).innerText = v.perusahaan || l.perusahaan || "-";
+            row.insertCell(5).innerHTML = `<span class="badge badge-${(v.kategori || 'umum').toLowerCase()}">${v.kategori || 'Visitor'}</span>`;
+            let currentStatus = v.currentStatus || "OUT";
+            let statusText = currentStatus === "IN" ? "DI DALAM" : "SELESAI";
+            let statusColor = currentStatus === "IN" ? "#16a34a" : "#dc2626";
             row.insertCell(6).innerHTML = `<span style="background:${statusColor}; color:white; padding:4px 10px; border-radius:999px; font-size:10px; font-weight:bold;">${statusText}</span>`;
-
-            // Kolom 7: Aksi (Sesuai order kolom di HTML Bapak)
             let actionCell = row.insertCell(7);
             actionCell.innerHTML = `<button class="btn-outline" style="padding:4px 8px;" onclick="showPreview('${l.reg}', visitors['${l.reg}'])">🖨️ PDF</button>`;
-
-            // Kolom 8: Waktu
             let timeDisplay = l.timestamp ? new Date(l.timestamp).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : "-";
             row.insertCell(8).innerText = timeDisplay;
-            
-            // Kolom 9: Site
             row.insertCell(9).innerText = l.site_id || "-";
-        }); 
-
+        });
         if (filtered.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#999;">📭 Tidak ada data tamu yang cocok</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#999;">📭 Tidak ada data tamu</td></tr>`;
         }
-
-    } catch (e) { 
-        console.error("renderLogTable error:", e); 
-    }  
+    } catch(e) { console.error("renderLogTable error:", e); }
 }
 
+// ================= PDF GENERATION (FIXED) =================
+async function ensureJSPDF() {
+    if (window.jspdf) return true;
+    return new Promise(resolve => {
+        let i = 0, iv = setInterval(() => {
+            if (window.jspdf) { clearInterval(iv); resolve(true); }
+            if (i++ > 100) { clearInterval(iv); resolve(false); }
+        }, 100);
+    });
+}
 
-
-// ================= QR SCAN PROCESS (FIXED) =================
-async function processScan(qrText) {  
-    if (actionMutex) return false;
-    if (globalScanLock) return false;
-    if (!qrText || typeof qrText !== "string") return false;
-    
-    if (scanCounter > SCAN_MAX_PER_MIN) {
-        toast("⚠️ Scanner overload, tunggu sebentar", "warning");
-        return false;
-    }
-    scanCounter++;
-    
-    globalScanLock = true;
-    qrText = qrText.trim();  
-    const mode = document.getElementById("scanMode").value;  
-    
-    let reg = null;
-    if (qrText.match(/^REG\d+/i)) {
-        reg = qrText;
-    } else if (qrText.includes("|")) {
-        const parts = qrText.split("|");
-        if (parts[0].match(/^REG\d+/i)) reg = parts[0];
-    } else {
-        let validation = await validateQRCode(qrText);
-        if (validation.status === "success" && validation.data && validation.data.reg) {
-            reg = validation.data.reg;
-        }
-    }
-    
-    if (!reg) {
-        toast("QR tidak valid!", "error");
-        globalScanLock = false;
-        return false;
-    }
-    
-    const nowTime = Date.now();  
-    if (lastScanTime[reg] && nowTime - lastScanTime[reg] < SCAN_COOLDOWN_MS) { 
-        globalScanLock = false; 
-        return false;
-    }  
-    lastScanTime[reg] = nowTime;  
-    
-    if (processingRegs.has(reg)) { 
-        globalScanLock = false; 
-        return false;
-    }  
-    processingRegs.add(reg);  
-    actionMutex = true;  
-    
-    try {  
-        // FIX: Cari secara GLOBAL tanpa SITE_ID
-        let visitor = visitors[reg]; 
-        
-        if (!visitor) {  
-            // Jika data belum ada di local gate ini, biarkan server yang validasi
-            // Data akan ditarik otomatis saat pullFromSheet selanjutnya
-            visitor = { nama: "Visitor", currentStatus: "OUT", sessions: [] };
-        }  
-        
-        if (mode === "CHECK_IN") {
-            let result = await checkinVisitor(reg);
-            if (result.status === "success") {
-                visitor.currentStatus = "IN";
-                visitors[reg] = visitor; // SIMPAN GLOBAL
-                addLocalLog(reg, "CHECK_IN");
-                vibrate();
-                toast(`✅ IN: ${visitor.nama}`, "success");
-            } else {
-                toast("Gagal Check-in", "error");
-            }
-        } else {
-            let result = await checkoutVisitor(reg);
-            if (result.status === "success") {
-                visitor.currentStatus = "OUT";
-                visitors[reg] = visitor; // SIMPAN GLOBAL
-                addLocalLog(reg, "CHECK_OUT");
-                vibrate();
-                toast(`✅ OUT: ${visitor.nama}`, "success");
-            } else {
-                toast("Gagal Check-out", "error");
-            }
-        }
-        renderDashboard();  
-        renderLogTable();  
-        secureSave();  
-        await pullFromSheet();  
-        return true;  
-    } catch (e) {  
-        console.error("processScan error:", e);  
-        return false;  
-    } finally {  
-        actionMutex = false;  
-        globalScanLock = false;
-        setTimeout(() => processingRegs.delete(reg), 1000);  
-    }  
-}  
-
-
-async function generateQRandShow(reg, data) {  
+async function downloadPDF(reg, data) {
     try {
-        let result = await generateQRCode(reg);  
-        // QR Data = REG number saja (clean)
-        let qrData = reg;
-        let qrImage;  
-        try {  
-            qrImage = await QRCode.toDataURL(qrData, { width: 200 });  
-        } catch (e) {  
-            console.error("QR FAIL:", e);  
-            try { qrImage = await QRCode.toDataURL(reg, { width: 200 }); } catch (e2) { console.error("QR FALLBACK FAIL:", e2); qrImage = null; }  
-        }  
-        showPreviewWithQR(reg, data, qrImage);  
-    } catch (e) {
-        console.error("generateQRandShow error:", e);
+        await ensureJSPDF();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a6" });
+        
+        // Fallback: ambil data dari visitors jika data tidak lengkap
+        let visitorData = { ...data };
+        if (!visitorData.pic || visitorData.pic === "-" || !visitorData.startDate) {
+            const fromStorage = visitors[reg];
+            if (fromStorage) {
+                visitorData = { ...visitorData, ...fromStorage };
+            }
+        }
+        
+        doc.setFillColor(31, 78, 74);
+        doc.rect(0, 0, 105, 25, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14);
+        doc.setFont(undefined, "bold");
+        doc.text("VISITOR PASS", 52.5, 12, { align: "center" });
+        doc.setFontSize(8);
+        doc.text("SECURITY AUTHORIZED", 52.5, 18, { align: "center" });
+        
+        if (visitorData.foto && (visitorData.foto.startsWith("data:image") || visitorData.foto.startsWith("https://drive.google.com"))) {
+            try {
+                doc.setDrawColor(200, 200, 200);
+                doc.rect(32.5, 30, 40, 50);
+                doc.addImage(visitorData.foto, "JPEG", 33, 30.5, 39, 49);
+            } catch(e) { console.error("Foto error:", e); }
+        }
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(12);
+        doc.setFont(undefined, "bold");
+        doc.text((visitorData.nama || "Unknown").toUpperCase(), 52.5, 90, { align: "center" });
+        doc.setFontSize(9);
+        doc.setFont(undefined, "normal");
+        doc.text(visitorData.perusahaan || "-", 52.5, 96, { align: "center" });
+        
+        doc.setDrawColor(31, 78, 74);
+        doc.setLineWidth(0.5);
+        doc.line(15, 102, 90, 102);
+        
+        doc.setFontSize(8);
+        let y = 108;
+        doc.text(`PIC      : ${visitorData.pic || "-"}`, 15, y);
+        doc.text(`DATE     : ${visitorData.startDate || "-"}`, 15, y + 5);
+        doc.text(`VALID TO : ${visitorData.expDate || "-"}`, 15, y + 10);
+        
+        if (visitorData.qrImage) {
+            doc.addImage(visitorData.qrImage, "PNG", 70, 115, 25, 25);
+        }
+        
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.text(reg, 82.5, 142, { align: "center" });
+        
+        doc.setFontSize(6);
+        doc.text("Property of Security Department. Must be worn at all times.", 52.5, 146, { align: "center" });
+        
+        doc.save(`VISITOR_PASS_${reg}.pdf`);
+        toast("Badge Visitor berhasil di-download", "success");
+        return true;
+    } catch(err) {
+        console.error("PDF Error:", err);
+        toast("Gagal membuat Badge", "error");
+        return false;
+    }
+}
+
+async function generateQRandShow(reg, data) {
+    try {
+        let qrImage = await QRCode.toDataURL(reg, { width: 200 });
+        showPreviewWithQR(reg, data, qrImage);
+    } catch(e) {
+        console.error("QR FAIL:", e);
         toast("Gagal generate QR", "error");
     }
-}  
+}
 
-function showPreviewWithQR(reg, data, qrImage) {  
-    if (!qrImage || !qrImage.startsWith("data:image")) { toast("QR gagal dibuat, ulangi!", "error"); return; }  
-    
-    let modal = document.createElement("div");  
-    modal.className = "modal-overlay";  
-    
-    // Blok HTML Modal dengan tambahan Foto Visitor (data.foto)
+function showPreviewWithQR(reg, data, qrImage) {
+    if (!qrImage || !qrImage.startsWith("data:image")) { toast("QR gagal dibuat!", "error"); return; }
+    let modal = document.createElement("div");
+    modal.className = "modal-overlay";
     modal.innerHTML = `
         <div class="modal-card" style="max-height: 90vh; overflow-y: auto;">
             <h3 style="text-align:center; margin-bottom:15px;">📄 Preview Invitation</h3>
-            
             <div style="display:flex; gap:15px; background:#f8fafc; padding:14px; border-radius:20px; margin-bottom:16px; align-items:center;">
-                <img src="${data.foto || ''}" 
-                     style="width:70px; height:70px; border-radius:12px; object-fit:cover; border:2px solid #1f4e4a; display: ${data.foto ? 'block' : 'none'};">
-                
+                <img src="${data.foto || ''}" style="width:70px; height:70px; border-radius:12px; object-fit:cover; border:2px solid #1f4e4a; display: ${data.foto ? 'block' : 'none'};">
                 <div style="font-size:0.75rem; flex:1;">
                     <p><strong>Name</strong>: ${data.nama}</p>
                     <p><strong>Company</strong>: ${data.perusahaan}</p>
                     <p><strong>REG</strong>: ${reg}</p>
                 </div>
             </div>
-
             <div style="text-align:center;">
                 <img class="qr-preview" src="${qrImage}" style="width:140px; margin: 0 auto;">
                 <p style="font-size:0.65rem; color:#666; margin-top:5px;">${reg}</p>
             </div>
-
             <div class="flex-btns">
                 <button id="previewDownloadBtn" style="flex:1;">Download PDF</button>
                 <button id="previewCloseBtn" class="btn-outline" style="flex:1;">Close</button>
             </div>
         </div>`;
-        
-    document.body.appendChild(modal);  
-    setTimeout(() => modal.classList.add("active"), 10);  
-    
-    let downloadBtn = modal.querySelector("#previewDownloadBtn");  
-    let closeBtn = modal.querySelector("#previewCloseBtn");  
-    
-    if (downloadBtn) {  
-        downloadBtn.onclick = async () => {  
-            if (window.downloading) return;  
-            window.downloading = true;  
-            
-            // Pastikan data QR dikirim ke fungsi downloadPDF
-            data.qrImage = qrImage;  
-            
-            await downloadPDF(reg, data);  
-            window.downloading = false;  
-            modal.remove();  
-        };  
-    }  
-    if (closeBtn) closeBtn.onclick = () => modal.remove();  
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add("active"), 10);
+    let downloadBtn = modal.querySelector("#previewDownloadBtn");
+    let closeBtn = modal.querySelector("#previewCloseBtn");
+    if (downloadBtn) {
+        downloadBtn.onclick = async () => {
+            if (window.downloading) return;
+            window.downloading = true;
+            data.qrImage = qrImage;
+            await downloadPDF(reg, data);
+            window.downloading = false;
+            modal.remove();
+        };
+    }
+    if (closeBtn) closeBtn.onclick = () => modal.remove();
 }
 
+function showPreview(reg, data) { generateQRandShow(reg, data); }
 
-async function downloadPDF(reg, data) {  
-    try {  
-        await ensureJSPDF();  
-        const { jsPDF } = window.jspdf;  
-        // Menggunakan ukuran A6 (105x148mm) agar lebih pas sebagai standar kartu visitor
-        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a6" });  
-
-        // 1. Header Akses (Background warna gelap khas Security)
-        doc.setFillColor(31, 78, 74);  
-        doc.rect(0, 0, 105, 25, "F");  
-        
-        doc.setTextColor(255, 255, 255);  
-        doc.setFontSize(14);  
-        doc.setFont(undefined, "bold");  
-        doc.text("VISITOR PASS", 52.5, 12, { align: "center" });  
-        doc.setFontSize(8);
-        doc.text("SECURITY AUTHORIZED", 52.5, 18, { align: "center" });
-
-        // 2. Foto Visitor (Posisi Tengah - Standar ID Card Bank)
-        if (data.foto && data.foto.startsWith("data:image")) { 
-            try { 
-                let format = data.foto.includes("png") ? "PNG" : "JPEG";
-                // Frame Foto
-                doc.setDrawColor(200, 200, 200);
-                doc.rect(32.5, 30, 40, 50); 
-                doc.addImage(data.foto, format, 33, 30.5, 39, 49); 
-            } catch (e) { console.error("Foto error:", e); } 
-        }
-
-        // 3. Nama & Info (Text Besar di Tengah)
-        doc.setTextColor(0, 0, 0);  
-        doc.setFontSize(12);  
-        doc.setFont(undefined, "bold");  
-        doc.text(data.nama.toUpperCase(), 52.5, 90, { align: "center" });  
-        
-        doc.setFontSize(9);  
-        doc.setFont(undefined, "normal");  
-        doc.text(data.perusahaan, 52.5, 96, { align: "center" });  
-
-        // Garis Pembatas
-        doc.setDrawColor(31, 78, 74);
-        doc.setLineWidth(0.5);
-        doc.line(15, 102, 90, 102);
-
-        // 4. Detail Identitas (Layout Bersih)
-        doc.setFontSize(8);
-        let y = 108;
-        doc.text(`PIC      : ${data.pic}`, 15, y);
-        doc.text(`DATE     : ${data.startDate}`, 15, y + 5);
-        doc.text(`VALID TO : ${data.expDate}`, 15, y + 10);
-
-        // 5. QR Code di pojok bawah (Standar Scan Data Center)
-        if (data.qrImage) {
-            doc.addImage(data.qrImage, "PNG", 70, 115, 25, 25);
-        }
-
-        // Nomor REG di bawah QR
-        doc.setFontSize(7);
-        doc.setTextColor(150, 150, 150);
-        doc.text(reg, 82.5, 142, { align: "center" });
-
-        // 6. Footer Legal
-        doc.setFontSize(6);
-        doc.text("Property of Security Department. Must be worn at all times.", 52.5, 146, { align: "center" });
-
-        // Download
-        doc.save(`VISITOR_PASS_${reg}.pdf`);
-        toast("Badge Visitor berhasil di-download", "success");  
-        return true;  
-    } catch (err) {  
-        console.error("PDF Error:", err);  
-        toast("Gagal membuat Badge", "error");  
-        return false;  
-    }  
-}
-
-
-async function ensureJSPDF() {  
-    if (window.jspdf) return true;  
-    return new Promise(resolve => {  
-        let i = 0, iv = setInterval(() => {  
-            if (window.jspdf) { clearInterval(iv); resolve(true); }  
-            if (i++ > 100) { clearInterval(iv); resolve(false); }  
-        }, 100);  
-    });  
-}  
-
-function showPreview(reg, data) { generateQRandShow(reg, data); }  
-
-// ================= REPLACE TOTAL DISINI =================
-
-// 1. Fungsi Deteksi Kamera (Otomatis mengisi dropdown saat aplikasi dibuka)
+// ================= CAMERA SCANNER =================
 async function getAvailableCameras() {
     try {
         const devices = await Html5Qrcode.getCameras();
         const select = document.getElementById("cameraSelection");
         if (devices && devices.length > 0) {
-            select.innerHTML = ""; 
+            select.innerHTML = "";
             devices.forEach((device, index) => {
                 const option = document.createElement("option");
                 option.value = device.id;
                 let label = device.label.toLowerCase();
-                
-                // Logika identifikasi kamera untuk HP (seperti Oppo A92)
                 if (label.includes("back") || label.includes("rear") || label.includes("0")) {
                     option.text = "📷 Kamera Belakang";
-                    option.selected = true; 
+                    option.selected = true;
                 } else if (label.includes("front") || label.includes("user") || label.includes("1")) {
                     option.text = "🤳 Kamera Depan";
                 } else {
@@ -1030,565 +648,378 @@ async function getAvailableCameras() {
         } else {
             select.innerHTML = "<option>Kamera tdk ditemukan</option>";
         }
-    } catch (err) {
-        console.error("Gagal cari kamera:", err);
-        toast("Izin kamera diperlukan", "error");
-    }
+    } catch(err) { console.error("Gagal cari kamera:", err); toast("Izin kamera diperlukan", "error"); }
 }
 
-// 2. Fungsi Start Scanner (Mengambil ID kamera dari pilihan user)
-async function startScanner() {  
-    if (isScanning) return;  
-    
+async function startScanner() {
+    if (isScanning) return;
     const selectedCamId = document.getElementById("cameraSelection").value;
-    
     if (!selectedCamId || selectedCamId.includes("Mencari")) {
-        toast("Pilih kamera dulu, Pak!", "warning");
+        toast("Pilih kamera dulu!", "warning");
         return;
     }
-
-    if (!scannerInstance) { 
-        scannerInstance = new Html5Qrcode("cameraPreview"); 
-    } 
-
-    try {  
-        await scannerInstance.start(
-            selectedCamId, 
-            { 
-                fps: 10, 
-                qrbox: { width: 280, height: 280 }, 
-                aspectRatio: 1.0 
-            },  
-            async (decodedText) => { 
-                // Mencegah double scan untuk data yang sama
-                if (!processingRegs.has(decodedText)) {
-                    await processScan(decodedText); 
-                }
-            },  
-            (error) => { /* ignore noise */ }
-        );  
-        isScanning = true;  
-        toast("Scanner Aktif", "success");  
-    } catch (err) { 
-        toast("Gagal: " + err.message, "error"); 
-        isScanning = false; 
-    }  
+    if (!scannerInstance) scannerInstance = new Html5Qrcode("cameraPreview");
+    try {
+        await scannerInstance.start(selectedCamId, { fps: 10, qrbox: { width: 280, height: 280 }, aspectRatio: 1.0 },
+            async (decodedText) => {
+                if (!processingRegs.has(decodedText)) await processScan(decodedText);
+            },
+            (error) => {}
+        );
+        isScanning = true;
+        toast("Scanner Aktif", "success");
+    } catch(err) { toast("Gagal: " + err.message, "error"); isScanning = false; }
 }
 
-// Panggil deteksi kamera saat halaman dimuat
-document.addEventListener("DOMContentLoaded", () => {
-    getAvailableCameras();
-});
+async function stopScanner() {
+    if (scannerInstance && isScanning) {
+        try { await scannerInstance.stop(); await scannerInstance.clear(); } catch(err) {}
+    }
+    isScanning = false;
+}
 
-
-async function stopScanner() {  
-    if (cameraResetInterval) { clearInterval(cameraResetInterval); cameraResetInterval = null; }  
-    if (scannerInstance && isScanning) { 
-        try { 
-            await scannerInstance.stop(); 
-            await scannerInstance.clear(); 
-        } catch (err) { 
-            console.error("stopScanner error:", err); 
-        } 
-    }  
-    isScanning = false;  
-}  
-
-function setSite(site) {  
-    SITE_ID = site;  
-    localStorage.setItem("vms_site", SITE_ID);  
-    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { if (sel && sel.value !== site) sel.value = site; });  
-    vmsSite_applyToUI();  
-    toast(`Site aktif: ${getSiteName(SITE_ID)}`, "success");  
-    renderDashboard();  
-    renderLogTable();  
-}  
-
-// ================= EVENT HANDLERS=================
-document.getElementById("generateQRBtn").onclick = async () => {  
-    if (actionMutex) return;  
-    actionMutex = true;  
-    lockUI(true);
-    try {  
-        let nama = document.getElementById("regName").value.trim();  
-        let perusahaan = document.getElementById("regCompany").value.trim();  
-        let kategori = document.getElementById("regCategory").value;  
-        let tujuan = document.getElementById("regPurpose").value;  
-        let custom = document.getElementById("regCustomPurpose").value.trim();  
-        if (tujuan === "Lainnya") tujuan = custom || "Custom";  
-        let pic = document.getElementById("regPic").value.trim();  
-        let dept = document.getElementById("regDept").value.trim();  
-        let startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);  
-        let expDate = document.getElementById("regExpDate").value;  
-
-        // Validasi ketat sebelum proses
-        if (!nama || !perusahaan || !pic || !dept || !expDate) { 
-            toast("Lengkapi semua field wajib", "error"); 
-            return; 
-        }  
-      
-        let reg = generateReg();  
-        if (visitors[reg]) { toast("REG sudah ada!", "warning"); return; }  
-        
-        let foto = "";  
-        let file = document.getElementById("regPhotoFile").files[0];  
-        if (file) {  
-            try {  
-                let reader = await new Promise(resolve => { 
-                    let fr = new FileReader(); 
-                    fr.onload = () => resolve(fr.result); 
-                    fr.readAsDataURL(file); 
-                });  
-                let img = new Image();  
-                img.src = reader;  
-                await new Promise(r => img.onload = r);  
-                let canvas = document.createElement("canvas");  
-                let maxWidth = 400;  
-                let scale = maxWidth / img.width;  
-                canvas.width = maxWidth;  
-                canvas.height = img.height * scale;  
-                let ctx = canvas.getContext("2d");  
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);  
-                // Kompres 0.5 (50%) untuk hemat storage HP
-                foto = canvas.toDataURL("image/jpeg", 0.5);  
-            } catch (e) { console.warn("Photo processing error:", e); }  
-        }  
-
-        // Object Data Lengkap (Untuk Lokal/PDF)
-        let data = { 
-            nama, perusahaan, kategori, tujuan, pic, dept, 
-            startDate, expDate, foto, sessions: [], 
-            currentStatus: "OUT", updatedAt: Date.now() 
-        };  
-        
-        // Simpan ke Lokal (Lengkap dengan Foto)
-        visitors[reg] = data;  
-        addLocalLog(reg, "REGISTER");  
-        secureSave(); // Langsung amankan di storage HP
-
-        // Data untuk Server (Foto dibuang biar enteng/Queue lancar)
-        let serverData = { ...data, foto: "" }; 
-
-        let result = await registerVisitor(reg, serverData);  
-        
-        if (!result || typeof result !== "object") { 
-            addToQueue("register", reg, serverData); 
-            toast(`⚠️ ${nama} masuk antrean (Offline)`, "warning"); 
-        } else if (result.status === "duplicate") { 
-            toast("REG sudah terdaftar di server!", "warning"); 
-            delete visitors[reg]; 
-            secureSave(); 
-            return; 
-        } else if (result.status !== "success") {
-            addToQueue("register", reg, serverData);
+// ================= PROCESS SCAN =================
+async function processScan(qrText) {
+    if (actionMutex || globalScanLock) return false;
+    if (scanCounter > SCAN_MAX_PER_MIN) { toast("Scanner overload, tunggu sebentar", "warning"); return false; }
+    scanCounter++;
+    globalScanLock = true;
+    qrText = qrText.trim();
+    const mode = document.getElementById("scanMode").value;
+    let reg = null;
+    if (qrText.match(/^REG\d+/i)) reg = qrText;
+    else if (qrText.includes("|")) { const parts = qrText.split("|"); if (parts[0].match(/^REG\d+/i)) reg = parts[0]; }
+    else {
+        let validation = await validateQRCode(qrText);
+        if (validation.status === "success" && validation.data && validation.data.reg) reg = validation.data.reg;
+    }
+    if (!reg) { toast("QR tidak valid!", "error"); globalScanLock = false; return false; }
+    const nowTime = Date.now();
+    if (lastScanTime[reg] && nowTime - lastScanTime[reg] < SCAN_COOLDOWN_MS) { globalScanLock = false; return false; }
+    lastScanTime[reg] = nowTime;
+    if (processingRegs.has(reg)) { globalScanLock = false; return false; }
+    processingRegs.add(reg);
+    actionMutex = true;
+    try {
+        let visitor = visitors[reg] || { nama: "Visitor", currentStatus: "OUT", sessions: [] };
+        if (mode === "CHECK_IN") {
+            let result = await checkinVisitor(reg);
+            if (result.status === "success") {
+                visitor.currentStatus = "IN";
+                visitors[reg] = visitor;
+                addLocalLog(reg, "CHECK_IN");
+                vibrate();
+                toast(`✅ IN: ${visitor.nama}`, "success");
+            } else { toast("Gagal Check-in", "error"); }
+        } else {
+            let result = await checkoutVisitor(reg);
+            if (result.status === "success") {
+                visitor.currentStatus = "OUT";
+                visitors[reg] = visitor;
+                addLocalLog(reg, "CHECK_OUT");
+                vibrate();
+                toast(`✅ OUT: ${visitor.nama}`, "success");
+            } else { toast("Gagal Check-out", "error"); }
         }
-
-        toast(`✅ ${nama} terdaftar (${reg})`, "success");  
-        vibrate();
-        generateQRandShow(reg, data); // Tampilkan QR dari data lokal
-        
-        // Reset Form
-        ["regName", "regCompany", "regPic", "regDept", "regPhotoFile"].forEach(id => {
-            document.getElementById(id).value = "";
-        });
-        document.getElementById("previewPhotoThumb").src = "";  
-        
-        renderDashboard();  
-        renderLogTable();  
-        await pullFromSheet();  
-    } catch (e) {  
-        console.error("generateQRBtn error:", e);  
-        toast("Terjadi kesalahan sistem", "error");  
-    } finally {  
-        actionMutex = false;  
-        lockUI(false);
-    }  
-};  
-
-document.getElementById("walkinBtn").onclick = async () => {  
-    if (actionMutex) return;  
-    actionMutex = true;  
-    lockUI(true);
-    try {  
-        let reg = generateReg();  
-        let now = new Date();  
-        let exp = new Date(now);  
-        exp.setDate(exp.getDate() + 1);  
-        
-        let walkData = { 
-            nama: `WALK-IN ${now.getHours()}:${now.getMinutes()}`, 
-            perusahaan: "Guest Visitor", 
-            kategori: "UMUM", 
-            tujuan: "Immediate Visit", 
-            pic: "Reception", 
-            dept: "Umum", 
-            startDate: now.toISOString().slice(0, 10), 
-            expDate: exp.toISOString().slice(0, 10), 
-            foto: "", 
-            sessions: [], 
-            currentStatus: "OUT", 
-            updatedAt: Date.now() 
-        };  
-        
-        visitors[reg] = walkData;  
-        addLocalLog(reg, "WALK-IN");  
+        renderDashboard();
+        renderLogTable();
         secureSave();
+        await pullFromSheet();
+        return true;
+    } catch(e) { console.error("processScan error:", e); return false; }
+    finally { actionMutex = false; globalScanLock = false; setTimeout(() => processingRegs.delete(reg), 1000); }
+}
 
-        let result = await walkinVisitor(reg, walkData);  
-        
-        if (!result || result.status !== "success") {
-            if (result && result.status === "duplicate") {
-                toast("REG sudah terdaftar!", "warning"); 
-                delete visitors[reg]; 
-                secureSave(); 
-                return;
+let globalScanLock = false;
+setInterval(() => scanCounter = 0, 60000);
+
+// ================= SITE MANAGEMENT =================
+function setSite(site) {
+    SITE_ID = site;
+    localStorage.setItem("vms_site", SITE_ID);
+    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { if (sel && sel.value !== site) sel.value = site; });
+    vmsSite_applyToUI();
+    toast(`Site aktif: ${getSiteName(SITE_ID)}`, "success");
+    renderDashboard();
+    renderLogTable();
+}
+
+function vmsSite_load() {
+    try { let stored = localStorage.getItem("vms_site_names"); if (stored) Object.assign(vmsSiteData.names, JSON.parse(stored)); } catch(e) {}
+    vmsSite_applyToUI();
+}
+function vmsSite_applyToUI() {
+    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => {
+        if (!sel) return;
+        Array.from(sel.options).forEach(opt => {
+            let val = opt.value;
+            if (vmsSiteData.names[val]) {
+                let icon = opt.textContent.substring(0, 2);
+                let hasIcon = icon === "🏭" || icon === "🏢" || icon === "🏬";
+                opt.textContent = (hasIcon ? icon + " " : "") + vmsSiteData.names[val];
             }
-            addToQueue("walkin", reg, walkData);
-        }
+        });
+    });
+}
+function vmsSite_save() { localStorage.setItem("vms_site_names", JSON.stringify(vmsSiteData.names)); return true; }
+function vmsSite_open() {
+    let modal = document.getElementById("vmsSiteModal");
+    if (modal) {
+        modal.style.display = "flex";
+        document.getElementById("vmsA").value = vmsSiteData.names.SITE_A || "SITE A";
+        document.getElementById("vmsB").value = vmsSiteData.names.SITE_B || "SITE B";
+        document.getElementById("vmsC").value = vmsSiteData.names.SITE_C || "SITE C";
+    }
+}
+function vmsSite_close() { document.getElementById("vmsSiteModal").style.display = "none"; }
+function vmsSite_submit() {
+    vmsSiteData.names.SITE_A = document.getElementById("vmsA").value.trim() || "SITE A";
+    vmsSiteData.names.SITE_B = document.getElementById("vmsB").value.trim() || "SITE B";
+    vmsSiteData.names.SITE_C = document.getElementById("vmsC").value.trim() || "SITE C";
+    vmsSite_save();
+    vmsSite_applyToUI();
+    toast("✅ Site names saved!", "success");
+    vmsSite_close();
+}
 
-        toast(`✅ Walk-in registered ${reg}`, "success");  
+// ================= EVENT HANDLERS =================
+document.getElementById("generateQRBtn").onclick = async () => {
+    if (actionMutex) return;
+    actionMutex = true;
+    lockUI(true);
+    try {
+        let nama = document.getElementById("regName").value.trim();
+        let perusahaan = document.getElementById("regCompany").value.trim();
+        let kategori = document.getElementById("regCategory").value;
+        let tujuan = document.getElementById("regPurpose").value;
+        let custom = document.getElementById("regCustomPurpose").value.trim();
+        if (tujuan === "Lainnya") tujuan = custom || "Custom";
+        let pic = document.getElementById("regPic").value.trim();
+        let dept = document.getElementById("regDept").value.trim();
+        let startDate = document.getElementById("regStartDate").value || new Date().toISOString().slice(0, 10);
+        let expDate = document.getElementById("regExpDate").value;
+        if (!nama || !perusahaan || !pic || !dept || !expDate) { toast("Lengkapi semua field wajib", "error"); return; }
+        
+        let reg = generateReg();
+        if (visitors[reg]) { toast("REG sudah ada!", "warning"); return; }
+        
+        let foto = "";
+        let file = document.getElementById("regPhotoFile").files[0];
+        if (file) {
+            try {
+                let reader = await new Promise(resolve => { let fr = new FileReader(); fr.onload = () => resolve(fr.result); fr.readAsDataURL(file); });
+                let img = new Image();
+                img.src = reader;
+                await new Promise(r => img.onload = r);
+                let canvas = document.createElement("canvas");
+                let maxWidth = 400;
+                let scale = maxWidth / img.width;
+                canvas.width = maxWidth;
+                canvas.height = img.height * scale;
+                let ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                foto = canvas.toDataURL("image/jpeg", 0.7);
+            } catch(e) { console.warn("Photo processing error:", e); }
+        }
+        
+        let data = { nama, perusahaan, kategori, tujuan, pic, dept, startDate, expDate, foto, sessions: [], currentStatus: "OUT", updatedAt: Date.now() };
+        visitors[reg] = data;
+        addLocalLog(reg, "REGISTER");
+        secureSave();
+        
+        let result = await registerVisitor(reg, data);
+        if (result && result.status === "success" && result.photo) {
+            visitors[reg].foto = result.photo;
+            secureSave();
+            toast(`✅ ${nama} terdaftar (${reg})`, "success");
+        } else if (!result || result.status !== "success") {
+            addToQueue("register", reg, data);
+            toast(`⚠️ ${nama} masuk antrean (Offline)`, "warning");
+        } else {
+            toast(`✅ ${nama} terdaftar (${reg})`, "success");
+        }
+        
         vibrate();
-        generateQRandShow(reg, walkData);  
-        renderDashboard();  
-        renderLogTable();  
-        await pullFromSheet();  
-    } catch (e) {  
-        console.error("walkinBtn error:", e);  
-        toast("Terjadi kesalahan", "error");  
-    } finally {  
-        actionMutex = false;  
-        lockUI(false);
-    }  
+        generateQRandShow(reg, data);
+        ["regName", "regCompany", "regPic", "regDept", "regPhotoFile"].forEach(id => { document.getElementById(id).value = ""; });
+        document.getElementById("previewPhotoThumb").src = "";
+        renderDashboard();
+        renderLogTable();
+        await pullFromSheet();
+    } catch(e) { console.error("generateQRBtn error:", e); toast("Terjadi kesalahan sistem", "error"); }
+    finally { actionMutex = false; lockUI(false); }
 };
-  
 
-document.getElementById("startCamBtn").onclick = async () => { 
-    document.getElementById("cameraPreview").innerHTML = ""; 
-    await stopScanner(); 
-    if (scannerInstance) { 
-        try { await scannerInstance.clear(); } catch(e) { console.error("clear error:", e); } 
-        scannerInstance = null; 
-    } 
-    await startScanner(); 
-};  
-
-document.getElementById("stopCamBtn").onclick = async () => { 
-    await stopScanner(); 
-    if (scannerInstance) { 
-        try { await scannerInstance.clear(); } catch(e) { console.error("clear error:", e); } 
-        scannerInstance = null; 
-    } 
-    toast("Kamera berhenti", "info"); 
-};  
-
-document.getElementById("uploadQrBtn").onclick = () => document.getElementById("uploadQrFile")?.click();  
-document.getElementById("uploadQrFile").onchange = async (e) => {  
-    if (actionMutex) return;  
-    actionMutex = true;  
+document.getElementById("walkinBtn").onclick = async () => {
+    if (actionMutex) return;
+    actionMutex = true;
     lockUI(true);
-    try {  
-        let file = e.target.files[0];  
-        if (!file) return;  
-        try {  
-            let url = URL.createObjectURL(file);  
-            let img = new Image();  
-            img.src = url;  
-            await img.decode();  
-            URL.revokeObjectURL(url);  
-            let canvas = document.createElement("canvas");  
-            canvas.width = img.width;  
-            canvas.height = img.height;  
-            canvas.getContext("2d").drawImage(img, 0, 0);  
-            let scanner = new Html5Qrcode("temp-reader");  
-            let decoded = await scanner.scanImage(canvas, { qrbox: { width: img.width, height: img.height } });  
-            await processScan(decoded);  
-            await scanner.clear();  
-            document.getElementById("temp-reader").innerHTML = "";  
-        } catch (err) { toast("QR tidak terbaca", "error"); console.error("upload QR error:", err); }  
-    } catch (e) {  
-        console.error("uploadQrFile error:", e);  
-    } finally {  
-        actionMutex = false;  
-        lockUI(false);
-    }  
-};  
+    try {
+        let reg = generateReg();
+        let now = new Date();
+        let exp = new Date(now);
+        exp.setDate(exp.getDate() + 1);
+        let walkData = { nama: `WALK-IN ${now.getHours()}:${now.getMinutes()}`, perusahaan: "Guest Visitor", kategori: "UMUM", tujuan: "Immediate Visit", pic: "Reception", dept: "Umum", startDate: now.toISOString().slice(0, 10), expDate: exp.toISOString().slice(0, 10), foto: "", sessions: [], currentStatus: "OUT", updatedAt: Date.now() };
+        visitors[reg] = walkData;
+        addLocalLog(reg, "WALK-IN");
+        secureSave();
+        let result = await walkinVisitor(reg, walkData);
+        if (!result || result.status !== "success") addToQueue("walkin", reg, walkData);
+        toast(`✅ Walk-in registered ${reg}`, "success");
+        vibrate();
+        generateQRandShow(reg, walkData);
+        renderDashboard();
+        renderLogTable();
+        await pullFromSheet();
+    } catch(e) { console.error("walkinBtn error:", e); toast("Terjadi kesalahan", "error"); }
+    finally { actionMutex = false; lockUI(false); }
+};
 
-document.getElementById("manualProcess").onclick = async () => {  
-    if (actionMutex) return;  
-    actionMutex = true;  
+document.getElementById("startCamBtn").onclick = async () => { document.getElementById("cameraPreview").innerHTML = ""; await stopScanner(); if (scannerInstance) { try { await scannerInstance.clear(); } catch(e) {} scannerInstance = null; } await startScanner(); };
+document.getElementById("stopCamBtn").onclick = async () => { await stopScanner(); if (scannerInstance) { try { await scannerInstance.clear(); } catch(e) {} scannerInstance = null; } toast("Kamera berhenti", "info"); };
+document.getElementById("uploadQrBtn").onclick = () => document.getElementById("uploadQrFile")?.click();
+document.getElementById("uploadQrFile").onchange = async (e) => {
+    if (actionMutex) return;
+    actionMutex = true;
     lockUI(true);
-    try {  
-        
- let reg = document.getElementById("manualReg").value.trim();  
-        const mode = document.getElementById("scanMode").value;  
-        
-        if (!reg || !reg.match(/^REG\d+/i)) {
-            toast("Format REG salah!", "error");
-            return;
-        }
-        
-        let visitor = visitors[reg]; // Mencari langsung berdasarkan REG
-        if (!visitor) { 
-            toast("REG tidak ditemukan!", "error"); 
-            return; 
-        }  
-  
+    try {
+        let file = e.target.files[0];
+        if (!file) return;
+        let url = URL.createObjectURL(file);
+        let img = new Image();
+        img.src = url;
+        await img.decode();
+        URL.revokeObjectURL(url);
+        let canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        let scanner = new Html5Qrcode("temp-reader");
+        let decoded = await scanner.scanImage(canvas, { qrbox: { width: img.width, height: img.height } });
+        await processScan(decoded);
+        await scanner.clear();
+        document.getElementById("temp-reader").innerHTML = "";
+    } catch(err) { toast("QR tidak terbaca", "error"); }
+    finally { actionMutex = false; lockUI(false); }
+};
+document.getElementById("manualProcess").onclick = async () => {
+    if (actionMutex) return;
+    actionMutex = true;
+    lockUI(true);
+    try {
+        let reg = document.getElementById("manualReg").value.trim();
+        const mode = document.getElementById("scanMode").value;
+        if (!reg || !reg.match(/^REG\d+/i)) { toast("Format REG salah!", "error"); return; }
+        let visitor = visitors[reg];
+        if (!visitor) { toast("REG tidak ditemukan!", "error"); return; }
         let expDate = visitor.expDate ? new Date(visitor.expDate) : null;
         if (expDate && !isNaN(expDate.getTime())) {
             expDate.setHours(23, 59, 59, 999);
-            if (expDate < new Date()) {
-                toast("QR sudah expired", "error");
-                return;
-            }
+            if (expDate < new Date()) { toast("QR sudah expired", "error"); return; }
         }
-        
         if (mode === "CHECK_IN") {
-            let hasOpen = visitor.sessions?.some(s => !s.checkOut);
-            if (hasOpen) {
-                toast("Sudah check-in!", "warning");
-                return;
-            }
             let result = await checkinVisitor(reg);
             if (result.status === "success") {
-                if (!visitor.sessions) visitor.sessions = [];
-                visitor.sessions.push({ checkIn: Date.now(), checkOut: null });
                 visitor.currentStatus = "IN";
-                visitor.updatedAt = Date.now();
                 visitors[reg] = visitor;
                 addLocalLog(reg, "CHECK_IN");
                 vibrate();
                 toast(`Check-in ${visitor.nama} success`, "success");
-            } else if (result.status === "already_in") {
-                toast("Sudah check-in!", "warning");
-            } else {
-                addToQueue("checkin", reg);
-                toast("Masuk queue", "warning");
-            }
+            } else if (result.status === "already_in") { toast("Sudah check-in!", "warning"); }
+            else { addToQueue("checkin", reg); toast("Masuk queue", "warning"); }
         } else {
-            let openSession = visitor.sessions?.find(s => !s.checkOut);
-            if (!openSession) {
-                toast("Tidak ada sesi aktif", "warning");
-                return;
-            }
             let result = await checkoutVisitor(reg);
             if (result.status === "success") {
-                openSession.checkOut = Date.now();
                 visitor.currentStatus = "OUT";
-                visitor.updatedAt = Date.now();
                 visitors[reg] = visitor;
                 addLocalLog(reg, "CHECK_OUT");
                 vibrate();
                 toast(`Check-out ${visitor.nama} success`, "success");
-            } else if (result.status === "not_checked_in") {
-                toast("Belum check-in!", "warning");
-            } else {
-                addToQueue("checkout", reg);
-                toast("Masuk queue", "warning");
-            }
+            } else if (result.status === "not_checked_in") { toast("Belum check-in!", "warning"); }
+            else { addToQueue("checkout", reg); toast("Masuk queue", "warning"); }
         }
-        renderDashboard();  
-        renderLogTable();  
-        secureSave();  
-        await pullFromSheet();  
-    } catch (e) {  
-        console.error("manualProcess error:", e);  
-        toast("Terjadi kesalahan", "error");  
-    } finally {  
-        actionMutex = false;  
-        lockUI(false);
-    }  
-};  
+        renderDashboard();
+        renderLogTable();
+        secureSave();
+        await pullFromSheet();
+    } catch(e) { console.error("manualProcess error:", e); toast("Terjadi kesalahan", "error"); }
+    finally { actionMutex = false; lockUI(false); }
+};
 
-document.getElementById("refreshLogsBtn").onclick = () => { pullFromSheet(); renderLogTable(); };  
-document.getElementById("selectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = true);  
-document.getElementById("deselectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = false);  
+document.getElementById("refreshLogsBtn").onclick = () => { pullFromSheet(); renderLogTable(); };
+document.getElementById("selectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = true);
+document.getElementById("deselectAllBtn").onclick = () => document.querySelectorAll(".logCheckItem").forEach(c => c.checked = false);
+document.getElementById("deleteSelectedBtn").onclick = () => {
+    let regs = [...new Set([...document.querySelectorAll(".logCheckItem:checked")].map(c => c.dataset.reg))];
+    regs.forEach(r => delete visitors[r]);
+    logs = logs.filter(l => !regs.includes(l.reg));
+    secureSave();
+    renderDashboard();
+    renderLogTable();
+    toast(`Berhasil menghapus ${regs.length} data`, "success");
+};
+document.getElementById("deleteAllBtn").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("All data cleared", "info"); };
+document.getElementById("backupAction").onclick = () => { try { let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify({ visitors, logs })], { type: "application/json" })); a.download = `vms_backup_${Date.now()}.json`; a.click(); toast("Backup ready", "success"); } catch(e) { toast("Backup gagal", "error"); } };
+document.getElementById("resetDatabaseAction").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("Database reset", "info"); };
+document.getElementById("regPhotoFile").onchange = (e) => { if (e.target.files[0]) { let r = new FileReader(); r.onload = ev => { let preview = document.getElementById("previewPhotoThumb"); if (preview) preview.src = ev.target.result; }; r.readAsDataURL(e.target.files[0]); } };
+document.getElementById("submitLicenseBtn").onclick = () => { let input = document.getElementById("licenseInput"); if (input && input.value) toast("✅ License activated", "success"); if (input) input.value = ""; };
+document.getElementById("siteSelector").onchange = (e) => setSite(e.target.value);
+document.getElementById("siteSelectorTop").onchange = (e) => setSite(e.target.value);
 
-document.getElementById("deleteSelectedBtn").onclick = () => {  
-    let regs = [...new Set([...document.querySelectorAll(".logCheckItem:checked")].map(c => c.dataset.reg))];  
-    // Hapus dari data visitor secara global
-    regs.forEach(r => delete visitors[r]);  
-    // Hapus dari tampilan logs
-    logs = logs.filter(l => !regs.includes(l.reg));  
-    secureSave();  
-    renderDashboard();  
-    renderLogTable();  
-    toast(`Berhasil menghapus ${regs.length} data`, "success");  
-};  
-
-document.getElementById("deleteAllBtn").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("All data cleared", "info"); };  
-document.getElementById("backupAction").onclick = () => { try { let a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify({ visitors, logs })], { type: "application/json" })); a.download = `vms_backup_${Date.now()}.json`; a.click(); toast("Backup ready", "success"); } catch (e) { toast("Backup gagal", "error"); console.error("backup error:", e); } };  
-document.getElementById("resetDatabaseAction").onclick = () => { visitors = {}; logs = []; secureSave(); renderDashboard(); renderLogTable(); toast("Database reset", "info"); };  
-document.getElementById("regPhotoFile").onchange = (e) => { if (e.target.files[0]) { let r = new FileReader(); r.onload = ev => { let preview = document.getElementById("previewPhotoThumb"); if (preview) preview.src = ev.target.result; }; r.readAsDataURL(e.target.files[0]); } };  
-document.getElementById("submitLicenseBtn").onclick = () => { let input = document.getElementById("licenseInput"); if (input && input.value) toast("✅ License activated", "success"); if (input) input.value = ""; };  
-document.getElementById("siteSelector").onchange = (e) => setSite(e.target.value);  
-document.getElementById("siteSelectorTop").onchange = (e) => setSite(e.target.value);  
-
-
-function exportToExcel() {  
-    try {  
-        if (!window.XLSX) { toast("Excel engine belum siap", "error"); return; }  
-        let dataForExcel = [];  
-        Object.entries(visitors).forEach(([reg, visitor]) => {  
-            let jamMasuk = "-", jamKeluar = "-", durasi = "-", keterangan = "";  
-            if (visitor.sessions && visitor.sessions.length > 0) {  
-                let last = visitor.sessions[visitor.sessions.length - 1];  
-                if (last.checkIn) jamMasuk = new Date(last.checkIn).toLocaleString("id-ID");  
-                if (last.checkOut) jamKeluar = new Date(last.checkOut).toLocaleString("id-ID");  
-                if (last.checkIn && last.checkOut) durasi = Math.floor((last.checkOut - last.checkIn) / 60000) + " menit";  
-                keterangan = visitor.currentStatus === "IN" ? "Di Dalam" : (last.checkOut ? "Sudah Keluar" : "Belum Check-in");  
-            } else keterangan = "Data Terdaftar";  
-            
-            dataForExcel.push({ 
-                "Nama": visitor.nama || "-", 
-                "Perusahaan": visitor.perusahaan || "-", 
-                "Kategori": visitor.kategori || "-",
-                "PIC": visitor.pic || "-", 
-                "Jam Masuk": jamMasuk, 
-                "Jam Keluar": jamKeluar, 
-                "REG": reg, 
-                "Keterangan": keterangan 
-            });  
-        });  
-        if (dataForExcel.length === 0) { toast("Tidak ada data", "warning"); return; }  
-        let ws = XLSX.utils.json_to_sheet(dataForExcel);  
-        let wb = XLSX.utils.book_new();  
-        XLSX.utils.book_append_sheet(wb, ws, "VMS_Visitor_Report");  
-        XLSX.writeFile(wb, `VMS_Report_${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.xlsx`);  
-        toast("✅ Export Excel berhasil", "success");  
-    } catch (err) { toast("Export gagal", "error"); console.error("export error:", err); }  
-}  
-document.getElementById("exportExcelAction").onclick = exportToExcel;  
-
-let panes = { dashboard: document.getElementById("dashboardPane"), register: document.getElementById("registerPane"), scanner: document.getElementById("scannerPane"), logs: document.getElementById("logsPane") };  
-function switchTab(tabId) {  
-    Object.values(panes).forEach(p => p?.classList.remove("active-pane"));  
-    if (panes[tabId]) panes[tabId].classList.add("active-pane");  
-    document.querySelectorAll(".nav-item").forEach(nav => { if (nav.dataset?.tab === tabId) nav.classList.add("active"); else nav.classList.remove("active"); });  
-}  
-document.querySelectorAll(".nav-item, .mobile-nav").forEach(el => { if (el.dataset?.tab) { el.addEventListener("click", () => { switchTab(el.dataset.tab); if (window.innerWidth <= 780) { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.remove("open"); if (overlay) overlay.style.display = "none"; } }); } });  
-document.getElementById("mobileMenuBtn").onclick = () => { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.add("open"); if (overlay) overlay.style.display = "block"; };  
-document.getElementById("overlay").onclick = () => { let mobileSidebar = document.getElementById("mobileSidebar"); let overlay = document.getElementById("overlay"); if (mobileSidebar) mobileSidebar.classList.remove("open"); if (overlay) overlay.style.display = "none"; };  
-
-// ================= CORE INITIALIZATION & AUTO-SYNC (POINT 2) =================
-if (window._vmsIntervals) { window._vmsIntervals.forEach(clearInterval); }  
-window._vmsIntervals = [];  
-
-async function initVmsSystem() {
-    // 1. Load Data Lokal agar aplikasi tidak kosong saat dibuka
-    secureLoad();
-    vmsSite_load();   
-    setSite(SITE_ID);
-    renderDashboard();  
-    renderLogTable();  
-
-    // 2. Inisialisasi Antrean (Queue)
-    try { 
-        const saved = localStorage.getItem("vms_sync_queue"); 
-        if (saved) syncQueue = JSON.parse(saved); 
-        if (typeof updateQueueStatus === "function") updateQueueStatus(); 
-    } catch (e) { 
-        console.error("initQueue error:", e); 
-    }
-
-    // 3. POINT 2: SINKRONISASI INSTAN SAAT START-UP (All Device Sync)
-    // Begitu aplikasi terbuka, langsung tarik data terbaru dari Google Sheets
-    if (navigator.onLine) {
-        console.log("🔄 Melakukan sinkronisasi awal...");
-        try {
-            await pullFromSheet(); 
-            renderDashboard(); // Update dashboard setelah tarik data
-            renderLogTable();  // Update tabel setelah tarik data
-        } catch (err) {
-            console.error("Initial sync failed:", err);
-        }
-    }
-
-    // 4. Setel Interval Sinkronisasi Berkala (Latar Belakang tiap 10 detik)
-    let syncInterval = setInterval(() => { 
-        if (navigator.onLine) pullFromSheet(); 
-    }, SYNC_INTERVAL_MS);  
-
-    let queueInterval = setInterval(() => { 
-        if (navigator.onLine && syncQueue.length > 0) processQueue(); 
-    }, 5000);  
-
-    window._vmsIntervals.push(syncInterval, queueInterval);
+function exportToExcel() {
+    try {
+        if (!window.XLSX) { toast("Excel engine belum siap", "error"); return; }
+        let dataForExcel = [];
+        Object.entries(visitors).forEach(([reg, visitor]) => {
+            let jamMasuk = "-", jamKeluar = "-", keterangan = "";
+            if (visitor.sessions && visitor.sessions.length > 0) {
+                let last = visitor.sessions[visitor.sessions.length - 1];
+                if (last.checkIn) jamMasuk = new Date(last.checkIn).toLocaleString("id-ID");
+                if (last.checkOut) jamKeluar = new Date(last.checkOut).toLocaleString("id-ID");
+                keterangan = visitor.currentStatus === "IN" ? "Di Dalam" : (last.checkOut ? "Sudah Keluar" : "Belum Check-in");
+            } else keterangan = "Data Terdaftar";
+            dataForExcel.push({ "Nama": visitor.nama || "-", "Perusahaan": visitor.perusahaan || "-", "Kategori": visitor.kategori || "-", "PIC": visitor.pic || "-", "Jam Masuk": jamMasuk, "Jam Keluar": jamKeluar, "REG": reg, "Keterangan": keterangan });
+        });
+        if (dataForExcel.length === 0) { toast("Tidak ada data", "warning"); return; }
+        let ws = XLSX.utils.json_to_sheet(dataForExcel);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "VMS_Visitor_Report");
+        XLSX.writeFile(wb, `VMS_Report_${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.xlsx`);
+        toast("✅ Export Excel berhasil", "success");
+    } catch(err) { toast("Export gagal", "error"); }
 }
+document.getElementById("exportExcelAction").onclick = exportToExcel;
 
-// Jalankan Inisialisasi
+let panes = { dashboard: document.getElementById("dashboardPane"), register: document.getElementById("registerPane"), scanner: document.getElementById("scannerPane"), logs: document.getElementById("logsPane") };
+function switchTab(tabId) {
+    Object.values(panes).forEach(p => p?.classList.remove("active-pane"));
+    if (panes[tabId]) panes[tabId].classList.add("active-pane");
+    document.querySelectorAll(".nav-item").forEach(nav => { if (nav.dataset?.tab === tabId) nav.classList.add("active"); else nav.classList.remove("active"); });
+}
+document.querySelectorAll(".nav-item, .mobile-nav").forEach(el => { if (el.dataset?.tab) { el.addEventListener("click", () => { switchTab(el.dataset.tab); if (window.innerWidth <= 780) { document.getElementById("mobileSidebar").classList.remove("open"); document.getElementById("overlay").style.display = "none"; } }); } });
+document.getElementById("mobileMenuBtn").onclick = () => { document.getElementById("mobileSidebar").classList.add("open"); document.getElementById("overlay").style.display = "block"; };
+document.getElementById("overlay").onclick = () => { document.getElementById("mobileSidebar").classList.remove("open"); document.getElementById("overlay").style.display = "none"; };
+
+// ================= INITIALIZATION =================
+async function initVmsSystem() {
+    secureLoad();
+    vmsSite_load();
+    setSite(SITE_ID);
+    renderDashboard();
+    renderLogTable();
+    getAvailableCameras();
+    if (navigator.onLine) {
+        await pullFromSheet();
+    }
+    setInterval(() => { if (navigator.onLine) pullFromSheet(); }, SYNC_INTERVAL_MS);
+    setInterval(() => { if (navigator.onLine && syncQueue.length > 0) processQueue(); }, 5000);
+}
 initVmsSystem();
 
-// Event Listener saat halaman ditutup/pindah
-window.addEventListener("beforeunload", () => { 
-    if (scannerInstance) { 
-        try { scannerInstance.stop(); scannerInstance.clear(); } catch (e) {} 
-    } 
-    if (cameraResetInterval) clearInterval(cameraResetInterval); 
-    if (window._vmsIntervals) window._vmsIntervals.forEach(clearInterval); 
-    secureSave(); 
+window.addEventListener("beforeunload", () => {
+    if (scannerInstance) { try { scannerInstance.stop(); scannerInstance.clear(); } catch(e) {} }
+    secureSave();
 });
-
-// ================= SITE MANAGEMENT FUNCTIONS (FINAL BLOCK) =================
-function vmsSite_load() { 
-    try { 
-        let stored = localStorage.getItem("vms_site_names"); 
-        if (stored) Object.assign(vmsSiteData.names, JSON.parse(stored)); 
-    } catch(e) { 
-        console.error("vmsSite_load error:", e); 
-    } 
-    vmsSite_applyToUI(); 
-}  
-
-function vmsSite_applyToUI() {
-    if (!window.vmsSiteData || !vmsSiteData.names) return;
-    document.querySelectorAll("#siteSelector, #siteSelectorTop").forEach(sel => { 
-        if (!sel) return; 
-        Array.from(sel.options).forEach(opt => { 
-            let val = opt.value; 
-            let siteNames = vmsSiteData.names;
-            if (siteNames[val]) { 
-                let icon = opt.textContent.substring(0, 2); 
-                let hasIcon = icon === "🏭" || icon === "🏢" || icon === "🏬"; 
-                opt.textContent = (hasIcon ? icon + " " : "") + siteNames[val]; 
-            } 
-        }); 
-    });  
-}  
-
-function vmsSite_save() { 
-    localStorage.setItem("vms_site_names", JSON.stringify(vmsSiteData.names)); 
-    return true; 
-}  
-
-function vmsSite_open() { 
-    let modal = document.getElementById("vmsSiteModal"); 
-    if (modal) { 
-        modal.style.display = "flex"; 
-        if (document.getElementById("vmsA")) document.getElementById("vmsA").value = vmsSiteData.names.SITE_A || "SITE A"; 
-        if (document.getElementById("vmsB")) document.getElementById("vmsB").value = vmsSiteData.names.SITE_B || "SITE B"; 
-        if (document.getElementById("vmsC")) document.getElementById("vmsC").value = vmsSiteData.names.SITE_C || "SITE C"; 
-    } 
-}  
-
-function vmsSite_close() { 
-    let modal = document.getElementById("vmsSiteModal"); 
-    if (modal) modal.style.display = "none"; 
-}  
-
-function vmsSite_submit() {  
-    let newNames = { ...vmsSiteData.names };  
-    if (document.getElementById("vmsA")) newNames.SITE_A = document.getElementById("vmsA").value.trim() || "SITE A";  
-    if (document.getElementById("vmsB")) newNames.SITE_B = document.getElementById("vmsB").value.trim() || "SITE B";  
-    if (document.getElementById("vmsC")) newNames.SITE_C = document.getElementById("vmsC").value.trim() || "SITE C";  
-    vmsSiteData.names = newNames;  
-    vmsSite_save();  
-    vmsSite_applyToUI();  
-    toast("✅ Site names saved!", "success");  
-    vmsSite_close();  
-}
-vmsSite_load();
-
-
 </script>
 </body>
 </html>
