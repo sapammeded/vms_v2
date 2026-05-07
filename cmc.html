@@ -1103,7 +1103,7 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyx0MHAC7ygc-7AehnhIMjXch3rX0jaRddAbaSR2Wg8_4tsh9aqS7yuDufsf716EqAPxw/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyqY19K1UBo5--6LxDxNgjXIEbM070tLaVlib03tci_2jnMb1PBvmbLoFf7CUA-V8mgXg/exec";
     
     let currentUser = null;
     let refreshInterval = null;
@@ -1274,13 +1274,14 @@
     showToast("Logging in...", "info");
     
     try {
-        // PAKAI GET METHOD (bukan POST) untuk menghindari CORS preflight
-        const url = API_URL + "?path=/login&username=" + encodeURIComponent(username) + "&password=" + encodeURIComponent(password);
+        // Gabungkan path dan kredensial ke dalam URL sebagai query parameters
+        const url = `${API_URL}?path=/login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+        
         const res = await fetch(url, {
             method: "GET",
-            headers: {
-                "Content-Type": "application/json"
-            }
+            mode: "cors",           // Mengizinkan lintas asal
+            redirect: "follow"      // WAJIB: Mengikuti pengalihan server Google
+            // HEADERS DIHAPUS agar tidak memicu CORS Preflight
         });
         
         const data = await res.json();
@@ -1310,9 +1311,10 @@
         
     } catch (err) {
         console.error("[LOGIN ERROR]", err);
-        showToast("Login error: " + err.message, "error");
+        showToast("Login error: Pastikan Deployment Apps Script sudah 'Anyone'", "error");
     }
 }
+
 
     function logout() {
         currentUser = null;
