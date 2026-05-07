@@ -1,0 +1,169 @@
+// ================= VMS CLIENT APPS SCRIPT =================
+// Google Sheet ID untuk data visitor
+const SPREADSHEET_ID = "1xSsLnRqf_JT6CckwK6HAaD-kH5aCvWD9TlwfReJEA78";
+const FOLDER_FOTO_ID = "1LfTkAfSl2SVM_8b1jAgnYbk18KB-qhzV";
+
+function doGet(e) {
+  return handleRequest(e);
+}
+
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
+  try {
+    var params = e.parameter;
+    var action = params ? params.action : null;
+    var output = ContentService.createTextOutput();
+    output.setMimeType(ContentService.MimeType.JSON);
+    
+    if (action === "pull") {
+      var result = pullData();
+      output.setContent(JSON.stringify(result));
+      return output;
+    }
+    
+    if (action === "register" || action === "walkin") {
+      var result = registerVisitor(params);
+      output.setContent(JSON.stringify(result));
+      return output;
+    }
+    
+    if (action === "checkin") {
+      var result = updateStatus(params.reg, "IN", 7);
+      output.setContent(JSON.stringify(result));
+      return output;
+    }
+    
+    if (action === "checkout") {
+      var result = updateStatus(params.reg, "OUT", 8);
+      output.setContent(JSON.stringify(result));
+      return output;
+    }
+    
+    output.setContent(JSON.stringify({ status: "error", message: "Aksi tidak dikenal: " + action }));
+    return output;
+    
+  } catch (err) {
+    var output = ContentService.createTextOutput();
+    output.setMimeType(ContentService.MimeType.JSON);
+    output.setContent(JSON.stringify({ status: "error", message: err.toString() }));
+    return output;
+  }
+}
+
+function getVisitorSheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName("vms_data");
+  if (!sheet) {
+    sheet = ss.insertSheet("vms_data");
+    sheet.appendRow(["Nama","Perusahaan","Tujuan","PIC","Start","Exp","Checkin","Checkout","REG","Action","LogTime","Status","Site","Duration","Kategori","Dept","LogID","UpdatedAt","Keterangan"]);
+  }
+  return sheet;
+}
+
+function registerVisitor(p) {
+  if (!p.reg) return { status: "error", message: "Missing REG" };
+  
+  try {
+    var sheet = getVisitorSheet();
+    var now = new Date();
+    
+    // PROSES FOTO KE DRIVE
+    var photoUrl = "";
+    if (p.photoBase64 && p.photoBase64.length > 100) {
+      try {
+        var folder = DriveApp.getFolderById(FOLDER_FOTO_ID);
+        var base64Data = p.photoBase64;
+        if (base64Data.indexOf(",") !== -1) {
+          base64Data = base64Data.split(",")[1];
+        }
+        var bytes = Utilities.base64Decode(base64Data);
+        var blob = Utilities.newBlob(bytes, "image/jpeg", p.reg + ".jpg");
+        var file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        photoUrl = file.getUrl();
+      } catch(fError) {
+        photoUrl = "";
+      }
+    }
+    
+    var rowData = [
+      p.nama || "-",
+      p.perusahaan || "-",
+      p.tujuan || "-",
+      p.pic || "-",
+      p.startDate || "-",
+      p.expDate || "-",
+      "",
+      "",
+      p.reg,
+      "REGISTER",
+      now,
+      "OUT",
+      p.site_name || p.site_id || "-",
+      "",
+      p.kategori || "UMUM",
+      p.dept || "-",
+      Utilities.getUuid(),
+      now,
+      photoUrl
+    ];
+    
+    sheet.appendRow(rowData);
+    SpreadsheetApp.flush();
+    
+    return { status: "success", photo: photoUrl };
+    
+  } catch(err) {
+    return { status: "error", message: err.toString() };
+  }
+}
+
+function updateStatus(reg, statusLabel, timeCol) {
+  try {
+    var sheet = getVisitorSheet();
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { status: "not_found" };
+    
+    var data = sheet.getRange(2, 9, lastRow - 1, 1).getValues();
+    var now = new Date();
+    
+    for (var i = data.length - 1; i >= 0; i--) {
+      if (data[i][0] == reg) {
+        var row = i + 2;
+        sheet.getRange(row, timeCol).setValue(now);
+        sheet.getRange(row, 12).setValue(statusLabel);
+        sheet.getRange(row, 18).setValue(now);
+        SpreadsheetApp.flush();
+        return { status: "success" };
+      }
+    }
+    return { status: "not_found" };
+  } catch(err) {
+    return { status: "error", message: err.toString() };
+  }
+}
+
+function pullData() {
+  try {
+    var sheet = getVisitorSheet();
+    SpreadsheetApp.flush();
+    var lastRow = sheet.getLastRow();
+    var headers = ["Nama","Perusahaan","Tujuan","PIC","Start","Exp","Checkin","Checkout","REG","Action","LogTime","Status","Site","Duration","Kategori","Dept","LogID","UpdatedAt","Keterangan"];
+    
+    if (lastRow <= 1) return { status: "success", data: [headers] };
+    
+    var rows = sheet.getRange(2, 1, lastRow - 1, 19).getValues();
+    var reversedRows = [];
+    for (var i = rows.length - 1; i >= 0; i--) {
+      reversedRows.push(rows[i]);
+    }
+    
+    return { status: "success", data: [headers].concat(reversedRows) };
+    
+  } catch(e) {
+    return { status: "error", message: e.toString() };
+  }
+}

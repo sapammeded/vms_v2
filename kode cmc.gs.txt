@@ -1,0 +1,1048 @@
+// ================= COMMAND CENTER APPS SCRIPT (FULL FIXED) =================
+const SPREADSHEET_ID = "1xSsLnRqf_JT6CckwK6HAaD-kH5aCvWD9TlwfReJEA78";
+
+function doGet(e) {
+  return handleRequest(e, "GET");
+}
+
+function doPost(e) {
+  return handleRequest(e, "POST");
+}
+
+function handleRequest(e, method) {
+  // Inisialisasi output JSON di awal
+  var output = ContentService.createTextOutput();
+  output.setMimeType(ContentService.MimeType.JSON);
+  
+  try {
+    var params = e.parameter || {};
+    var path = e.pathInfo || "";
+    
+    // Penanganan khusus untuk POST JSON body
+    if (method === "POST" && e.postData && e.postData.contents) {
+      try {
+        var jsonBody = JSON.parse(e.postData.contents);
+        for (var key in jsonBody) {
+          params[key] = jsonBody[key];
+        }
+      } catch(parseErr) {
+        // Abaikan jika bukan JSON
+      }
+    }
+    
+    // --- FIX TOKEN: Pastikan token dari URL parameter masuk ke params ---
+    if (e.parameter.token) {
+      params.token = e.parameter.token;
+    }
+    
+    // Panggil routeRequest dengan parameter yang sudah dibersihkan
+    var result = routeRequest(path, params, method);
+    
+    output.setContent(JSON.stringify(result));
+    return output;
+    
+  } catch (err) {
+    // Tangkap semua error sistem agar dashboard tidak hang
+    output.setContent(JSON.stringify({ 
+      ok: false, 
+      error: "System Error: " + err.toString() 
+    }));
+    return output;
+  }
+}
+
+function routeRequest(path, params, method) {
+  // PERBAIKAN KRUSIAL: Gunakan actualPath agar bisa membaca dari parameter URL (?path=)
+  var actualPath = path || params.path || ""; 
+  
+  // Normalisasi path: hapus slash di awal jika ada untuk konsistensi pengecekan
+  var cleanPath = actualPath.startsWith("/") ? actualPath.substring(1) : actualPath;
+  
+  // 1. LOGIN (Tanpa Token)
+  if (cleanPath === "login") {
+    return doLogin(params);
+  }
+  
+  // --- VALIDASI TOKEN UNTUK SEMUA PATH SELAIN LOGIN ---
+  if (!params.token || !validateToken(params.token)) {
+    return { ok: false, error: "Unauthorized: Token tidak valid atau kadaluarsa" };
+  }
+  
+  // 2. DASHBOARD STATS
+  if (cleanPath === "admin/stats") {
+    return getStats();
+  }
+  
+  // 3. COMPANIES
+  if (cleanPath === "admin/companies") {
+    return getCompanies();
+  }
+  
+  // 4. COMPANY DETAIL
+  if (cleanPath && cleanPath.indexOf("admin/company/") === 0) {
+    var companyId = cleanPath.split("/").pop();
+    return getCompanyDetail(companyId);
+  }
+  
+  // 5. DEVICES
+  if (cleanPath === "admin/devices") {
+    return getDevices();
+  }
+  
+  // 6. ACTIVITY / VIOLATIONS
+  if (cleanPath === "admin/activity") {
+    var limit = params.limit ? parseInt(params.limit) : 500;
+    return getActivity(limit);
+  }
+  
+  // 7. INVOICES
+  if (cleanPath === "admin/invoices") {
+    return getInvoices();
+  }
+  
+  // 8. DEVICE REQUESTS
+  if (cleanPath === "admin/device-requests") {
+    var status = params.status || "";
+    return getDeviceRequests(status);
+  }
+  
+  // 9. ACTIONS
+  if (cleanPath === "generate-license") return generateLicense(params);
+  if (cleanPath === "renew-license") return renewLicense(params);
+  if (cleanPath === "update-package") return updatePackage(params);
+  if (cleanPath === "approve-device") return approveDevice(params);
+  if (cleanPath === "approve-device-request") return approveDeviceRequest(params);
+  if (cleanPath === "delete-device") return deleteDevice(params);
+  if (cleanPath === "delete-company") return deleteCompany(params);
+  if (cleanPath === "mark-invoice-paid") return markInvoicePaid(params);
+  
+  // 10. ADMIN & SETTINGS
+  if (cleanPath === "admin/users") return getAdminUsers();
+  if (cleanPath === "admin/add-user") return addAdminUser(params);
+  if (cleanPath === "admin/delete-user") return deleteAdminUser(params);
+  if (cleanPath === "admin/settings") return saveSettings(params);
+  if (cleanPath === "admin/reset-system") return resetSystem();
+  
+  // 11. CRON JOB
+  if (cleanPath === "cron/check-expired") return checkExpiredLicenses();
+  
+  return { ok: false, error: "Endpoint tidak ditemukan: " + cleanPath };
+}
+
+// ================= AUTHENTICATION (FULL FIXED) =================
+
+function doLogin(params) {
+  var user = params.username;
+  var pass = params.password;
+  
+  if (!user || !pass) {
+    return { ok: false, error: "Username dan Password wajib diisi!" };
+  }
+  
+  // Memastikan mengambil sheet yang benar
+  var sheet = getUserSheet(); 
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    var dbUser = data[i][0];
+    var dbPassEncrypted = data[i][1];
+    var dbRole = data[i][2];
+    
+    // Decode password dari Base64 di sheet agar bisa dibandingkan dengan input teks biasa
+    var decodedPass = "";
+    try {
+      decodedPass = Utilities.newBlob(Utilities.base64Decode(dbPassEncrypted)).getDataAsString();
+    } catch(e) {
+      decodedPass = dbPassEncrypted; // Jika bukan Base64, gunakan teks asli
+    }
+    
+    if (dbUser == user && decodedPass == pass) {
+      var token = Utilities.base64Encode(user + ":" + Date.now());
+      return { 
+        ok: true, 
+        token: token, 
+        username: dbUser, 
+        role: dbRole
+      };
+    }
+  }
+  return { ok: false, error: "Username atau Password salah!" };
+}
+
+// Fungsi pembantu agar tidak ada error pemanggilan nama fungsi
+function getAdminSheet() {
+  return getUserSheet();
+}
+
+
+function routeRequest(path, params, method) {
+  // PENTING: Gunakan actualPath agar bisa membaca parameter dari URL (?path=...)
+  var actualPath = path || params.path || ""; 
+  
+  // 1. LOGIN
+  if (actualPath === "/login") {
+    return doLogin(params);
+  }
+  
+  // 2. DASHBOARD STATS
+  if (actualPath === "/admin/stats") {
+    return getStats();
+  }
+  
+  // 3. COMPANIES (Daftar Perusahaan)
+  if (actualPath === "/admin/companies") {
+    return getCompanies();
+  }
+  
+  // 4. COMPANY DETAIL
+  if (actualPath && actualPath.indexOf("/admin/company/") === 0) {
+    var companyId = actualPath.split("/").pop();
+    return getCompanyDetail(companyId);
+  }
+  
+  // 5. DEVICES (Daftar Perangkat)
+  if (actualPath === "/admin/devices") {
+    return getDevices();
+  }
+  
+  // 6. ACTIVITY / VIOLATIONS (Log Aktivitas)
+  if (actualPath === "/admin/activity") {
+    var limit = params.limit ? parseInt(params.limit) : 500;
+    return getActivity(limit);
+  }
+  
+  // 7. INVOICES
+  if (actualPath === "/admin/invoices") {
+    return getInvoices();
+  }
+  
+  // 8. DEVICE REQUESTS
+  if (actualPath === "/admin/device-requests") {
+    var status = params.status || "";
+    return getDeviceRequests(status);
+  }
+  
+  // 9. LICENSE ACTIONS (POST/GET dialihkan ke actualPath)
+  if (actualPath === "/generate-license") return generateLicense(params);
+  if (actualPath === "/renew-license") return renewLicense(params);
+  if (actualPath === "/update-package") return updatePackage(params);
+  if (actualPath === "/approve-device") return approveDevice(params);
+  if (actualPath === "/approve-device-request") return approveDeviceRequest(params);
+  if (actualPath === "/delete-device") return deleteDevice(params);
+  if (actualPath === "/delete-company") return deleteCompany(params);
+  if (actualPath === "/mark-invoice-paid") return markInvoicePaid(params);
+  
+  // 10. SETTINGS & SYSTEM
+  if (actualPath === "/admin/settings") return saveSettings(params);
+  if (actualPath === "/admin/reset-system") return resetSystem();
+  if (actualPath === "/admin/users") return getAdminUsers();
+  if (actualPath === "/admin/add-user") return addAdminUser(params);
+  if (actualPath === "/admin/delete-user") return deleteAdminUser(params);
+  
+  // 11. CRON JOB
+  if (actualPath === "/cron/check-expired") return checkExpiredLicenses();
+  
+  // Jika tidak ada yang cocok
+  return { ok: false, error: "Endpoint tidak ditemukan: " + actualPath };
+}
+
+// ================= SHEET GETTERS =================
+function getCompanySheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName("vms_license");
+  if (!sheet) {
+    sheet = ss.insertSheet("vms_license");
+    sheet.appendRow(["ID", "CompanyName", "LicenseKey", "Package", "PIC", "Phone", "Email", "Address", "MaxDevices", "CurrentDevices", "ExpiredAt", "Status", "CreatedAt", "Notes"]);
+    SpreadsheetApp.flush();
+  }
+  return sheet;
+}
+
+function getDeviceSheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName("vms_devices");
+  if (!sheet) {
+    sheet = ss.insertSheet("vms_devices");
+    sheet.appendRow(["ID", "DeviceId", "DeviceName", "CompanyId", "CompanyName", "LicenseKey", "Status", "FirstSeen", "LastSeen", "Violations"]);
+    SpreadsheetApp.flush();
+  }
+  return sheet;
+}
+
+function getActivitySheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName("vms_activity");
+  if (!sheet) {
+    sheet = ss.insertSheet("vms_activity");
+    sheet.appendRow(["ID", "Type", "CompanyName", "DeviceId", "ViolationType", "Details", "Timestamp"]);
+    SpreadsheetApp.flush();
+  }
+  return sheet;
+}
+
+function getInvoiceSheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName("vms_invoices");
+  if (!sheet) {
+    sheet = ss.insertSheet("vms_invoices");
+    sheet.appendRow(["ID", "CompanyId", "CompanyName", "Amount", "Months", "Package", "Status", "CreatedAt", "PaidAt"]);
+    SpreadsheetApp.flush();
+  }
+  return sheet;
+}
+
+// Fungsi utama untuk mengambil data user/admin
+function getUserSheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName("vms_users");
+  if (!sheet) {
+    sheet = ss.insertSheet("vms_users");
+    sheet.appendRow(["Username", "PasswordHash", "Role", "CreatedAt"]);
+    // Simpan password default admin123 dalam format Base64
+    var initialPass = Utilities.base64Encode("admin123");
+    sheet.appendRow(["admin", initialPass, "SUPER_ADMIN", new Date().toISOString()]);
+    SpreadsheetApp.flush();
+  }
+  return sheet;
+}
+
+// Fungsi jembatan jika ada kode lain yang memanggil getAdminSheet
+function getAdminSheet() {
+  return getUserSheet();
+}
+
+function getDeviceRequestSheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName("vms_device_requests");
+  if (!sheet) {
+    sheet = ss.insertSheet("vms_device_requests");
+    sheet.appendRow(["ID", "CompanyId", "CompanyName", "DeviceId", "DeviceName", "Fee", "Status", "RequestedAt", "Notes"]);
+    SpreadsheetApp.flush();
+  }
+  return sheet;
+}
+
+function getVisitorSheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName("vms_data");
+  if (!sheet) {
+    sheet = ss.insertSheet("vms_data");
+    sheet.appendRow(["Nama","Perusahaan","Tujuan","PIC","Start","Exp","Checkin","Checkout","REG","Action","LogTime","Status","Site","Duration","Kategori","Dept","LogID","UpdatedAt","Keterangan"]);
+    SpreadsheetApp.flush();
+  }
+  return sheet;
+}
+
+// ================= AUTHENTICATION =================
+function doLogin(params) {
+  var user = params.username;
+  var pass = params.password;
+  
+  if (!user || !pass) {
+    return { ok: false, error: "Username dan Password tidak boleh kosong" };
+  }
+  
+  var sheet = getUserSheet(); 
+  var data = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    var dbUser = data[i][0];
+    var dbPassEncrypted = data[i][1];
+    var dbRole = data[i][2];
+    
+    // Decode password dari Base64 di sheet agar bisa dibandingkan dengan input
+    var decodedDbPass = "";
+    try {
+      decodedDbPass = Utilities.newBlob(Utilities.base64Decode(dbPassEncrypted)).getDataAsString();
+    } catch(e) {
+      decodedDbPass = dbPassEncrypted; // Jika format di sheet bukan Base64, anggap teks biasa
+    }
+    
+    if (dbUser == user && decodedDbPass == pass) {
+      var token = Utilities.base64Encode(user + ":" + Date.now());
+      return { 
+        ok: true, 
+        token: token, 
+        username: dbUser, 
+        role: dbRole
+      };
+    }
+  }
+  
+  return { ok: false, error: "Username atau Password salah!" };
+}
+
+
+// ================= STATS =================
+function getStats() {
+  var companies = getCompaniesData();
+  var devices = getDevicesData();
+  var activity = getActivityData();
+  var invoices = getInvoicesData();
+  
+  var now = Date.now();
+  var activeCompanies = 0;
+  for (var i = 0; i < companies.length; i++) {
+    if (companies[i].expiredAt > now && companies[i].status === "ACTIVE") activeCompanies++;
+  }
+  
+  var activeDevices = 0, pendingDevices = 0, suspendedDevices = 0;
+  for (var j = 0; j < devices.length; j++) {
+    if (devices[j].status === "ACTIVE") activeDevices++;
+    else if (devices[j].status === "PENDING_APPROVAL") pendingDevices++;
+    else if (devices[j].status === "SUSPENDED" || devices[j].status === "BANNED") suspendedDevices++;
+  }
+  
+  var packageCount = { DEMO: 0, BASIC: 0, PRO: 0 };
+  for (var k = 0; k < companies.length; k++) {
+    var pkg = companies[k].package;
+    if (packageCount[pkg] !== undefined) packageCount[pkg]++;
+  }
+  
+  var violations = [];
+  for (var l = 0; l < activity.length; l++) {
+    if (activity[l].type === "VIOLATION_REPORTED") violations.push(activity[l]);
+  }
+  
+  var nowTime = Date.now();
+  var last30Days = nowTime - 30 * 24 * 60 * 60 * 1000;
+  var violations30Days = 0, violations7Days = 0;
+  for (var m = 0; m < violations.length; m++) {
+    if (violations[m].timestamp > last30Days) violations30Days++;
+    if (violations[m].timestamp > nowTime - 7 * 24 * 60 * 60 * 1000) violations7Days++;
+  }
+  
+  var last30DaysRevenue = 0;
+  for (var n = 0; n < invoices.length; n++) {
+    if (invoices[n].status === "PAID" && invoices[n].paidAt > last30Days) {
+      last30DaysRevenue += invoices[n].amount;
+    }
+  }
+  
+  return {
+    ok: true,
+    companies: {
+      total: companies.length,
+      active: activeCompanies,
+      byPackage: packageCount
+    },
+    devices: {
+      total: devices.length,
+      active: activeDevices,
+      pending: pendingDevices,
+      suspended: suspendedDevices,
+      banned: 0
+    },
+    violations: {
+      total: violations.length,
+      last30Days: violations30Days,
+      last7Days: violations7Days
+    },
+    revenue: {
+      last30Days: last30DaysRevenue
+    }
+  };
+}
+
+// ================= COMPANIES =================
+function getCompaniesData() {
+  var sheet = getCompanySheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+  
+  var data = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
+  var companies = [];
+  for (var i = 0; i < data.length; i++) {
+    companies.push({
+      id: data[i][0],
+      companyName: data[i][1],
+      licenseKey: data[i][2],
+      package: data[i][3],
+      pic: data[i][4],
+      phone: data[i][5],
+      email: data[i][6],
+      address: data[i][7],
+      maxDevices: data[i][8],
+      currentDevices: data[i][9] || 0,
+      expiredAt: new Date(data[i][10]).getTime(),
+      status: data[i][11],
+      createdAt: new Date(data[i][12]).getTime(),
+      notes: data[i][13]
+    });
+  }
+  return companies;
+}
+
+function getCompanies() {
+  var companies = getCompaniesData();
+  var now = Date.now();
+  for (var i = 0; i < companies.length; i++) {
+    if (companies[i].expiredAt < now && companies[i].status === "ACTIVE") {
+      companies[i].status = "EXPIRED";
+    }
+  }
+  return companies;
+}
+
+function getCompanyDetail(companyId) {
+  var companies = getCompaniesData();
+  var company = null;
+  for (var i = 0; i < companies.length; i++) {
+    if (companies[i].id === companyId) {
+      company = companies[i];
+      break;
+    }
+  }
+  
+  if (!company) {
+    return { ok: false, error: "Company not found" };
+  }
+  
+  var devices = getDevicesData();
+  var companyDevices = [];
+  for (var j = 0; j < devices.length; j++) {
+    if (devices[j].companyId === companyId) companyDevices.push(devices[j]);
+  }
+  
+  return {
+    id: company.id,
+    companyName: company.companyName,
+    licenseKey: company.licenseKey,
+    package: company.package,
+    pic: company.pic,
+    phone: company.phone,
+    email: company.email,
+    address: company.address,
+    maxDevices: company.maxDevices,
+    expiredAt: company.expiredAt,
+    status: company.status,
+    createdAt: company.createdAt,
+    notes: company.notes,
+    stats: { totalDevices: companyDevices.length },
+    devices: companyDevices
+  };
+}
+
+function generateLicense(params) {
+  var sheet = getCompanySheet();
+  var now = new Date();
+  var expiredAt = new Date();
+  
+  var pkg = params.package || "DEMO";
+  var maxDevices = params.customMaxDevices ? parseInt(params.customMaxDevices) : (pkg === "PRO" ? 999 : (pkg === "BASIC" ? 10 : 2));
+  
+  switch (pkg) {
+    case "DEMO": expiredAt.setDate(expiredAt.getDate() + 7); break;
+    case "BASIC": expiredAt.setMonth(expiredAt.getMonth() + 1); break;
+    case "PRO": expiredAt.setMonth(expiredAt.getMonth() + 1); break;
+  }
+  
+  var licenseKey = "VMS-" + Utilities.getUuid().substring(0, 8).toUpperCase();
+  var companyId = "cmp_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+  
+  sheet.appendRow([
+    companyId,
+    params.companyName || "-",
+    licenseKey,
+    pkg,
+    params.pic || "-",
+    params.phone || "-",
+    params.email || "-",
+    params.address || "",
+    maxDevices,
+    0,
+    expiredAt.toISOString(),
+    "ACTIVE",
+    now.toISOString(),
+    params.notes || ""
+  ]);
+  
+  SpreadsheetApp.flush();
+  
+  return {
+    ok: true,
+    licenseKey: licenseKey,
+    companyId: companyId
+  };
+}
+
+function renewLicense(params) {
+  var sheet = getCompanySheet();
+  var companies = getCompaniesData();
+  var companyId = params.companyId;
+  var months = parseInt(params.months) || 1;
+  var amount = parseInt(params.amount) || 0;
+  
+  var companyIndex = -1;
+  var companyData = null;
+  for (var i = 0; i < companies.length; i++) {
+    if (companies[i].id === companyId) {
+      companyIndex = i;
+      companyData = companies[i];
+      break;
+    }
+  }
+  
+  if (companyIndex === -1) {
+    return { ok: false, error: "Company not found" };
+  }
+  
+  var oldExpiry = new Date(companyData.expiredAt);
+  var newExpiry = new Date(oldExpiry);
+  newExpiry.setMonth(newExpiry.getMonth() + months);
+  
+  var row = companyIndex + 2;
+  sheet.getRange(row, 11).setValue(newExpiry.toISOString());
+  sheet.getRange(row, 12).setValue("ACTIVE");
+  SpreadsheetApp.flush();
+  
+  var invoiceSheet = getInvoiceSheet();
+  var invoiceId = "INV_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+  invoiceSheet.appendRow([
+    invoiceId,
+    companyId,
+    companyData.companyName,
+    amount,
+    months,
+    companyData.package,
+    amount > 0 ? "UNPAID" : "PAID",
+    new Date().toISOString(),
+    amount > 0 ? "" : new Date().toISOString()
+  ]);
+  
+  return { ok: true };
+}
+
+function updatePackage(params) {
+  var sheet = getCompanySheet();
+  var companies = getCompaniesData();
+  var companyId = params.companyId;
+  var newPackage = params.newPackage;
+  var customMaxDevices = params.customMaxDevices ? parseInt(params.customMaxDevices) : (newPackage === "PRO" ? 999 : 10);
+  
+  var companyIndex = -1;
+  for (var i = 0; i < companies.length; i++) {
+    if (companies[i].id === companyId) {
+      companyIndex = i;
+      break;
+    }
+  }
+  
+  if (companyIndex === -1) {
+    return { ok: false, error: "Company not found" };
+  }
+  
+  var row = companyIndex + 2;
+  sheet.getRange(row, 4).setValue(newPackage);
+  sheet.getRange(row, 9).setValue(customMaxDevices);
+  SpreadsheetApp.flush();
+  
+  return { ok: true };
+}
+
+function deleteCompany(params) {
+  var sheet = getCompanySheet();
+  var companies = getCompaniesData();
+  var companyId = params.companyId;
+  
+  var companyIndex = -1;
+  for (var i = 0; i < companies.length; i++) {
+    if (companies[i].id === companyId) {
+      companyIndex = i;
+      break;
+    }
+  }
+  
+  if (companyIndex === -1) {
+    return { ok: false, error: "Company not found" };
+  }
+  
+  var row = companyIndex + 2;
+  sheet.getRange(row, 12).setValue("DELETED");
+  SpreadsheetApp.flush();
+  
+  return { ok: true };
+}
+
+// ================= DEVICES =================
+function getDevicesData() {
+  var sheet = getDeviceSheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+  
+  var data = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  var devices = [];
+  for (var i = 0; i < data.length; i++) {
+    var violations = [];
+    try {
+      violations = JSON.parse(data[i][9] || "[]");
+    } catch(e) {}
+    devices.push({
+      id: data[i][0],
+      deviceId: data[i][1],
+      deviceName: data[i][2],
+      companyId: data[i][3],
+      companyName: data[i][4],
+      licenseKey: data[i][5],
+      status: data[i][6],
+      firstSeen: new Date(data[i][7]).getTime(),
+      lastSeen: new Date(data[i][8]).getTime(),
+      violations: violations
+    });
+  }
+  return devices;
+}
+
+function getDevices() {
+  return getDevicesData();
+}
+
+function approveDevice(params) {
+  var sheet = getDeviceSheet();
+  var devices = getDevicesData();
+  var deviceId = params.deviceId;
+  var approve = params.approve === "true" || params.approve === true;
+  
+  var deviceIndex = -1;
+  for (var i = 0; i < devices.length; i++) {
+    if (devices[i].deviceId === deviceId) {
+      deviceIndex = i;
+      break;
+    }
+  }
+  
+  if (deviceIndex === -1) {
+    return { ok: false, error: "Device not found" };
+  }
+  
+  var row = deviceIndex + 2;
+  var newStatus = approve ? "ACTIVE" : "REJECTED";
+  sheet.getRange(row, 7).setValue(newStatus);
+  SpreadsheetApp.flush();
+  
+  return { ok: true };
+}
+
+function deleteDevice(params) {
+  var sheet = getDeviceSheet();
+  var devices = getDevicesData();
+  var deviceId = params.deviceId;
+  
+  var deviceIndex = -1;
+  for (var i = 0; i < devices.length; i++) {
+    if (devices[i].deviceId === deviceId) {
+      deviceIndex = i;
+      break;
+    }
+  }
+  
+  if (deviceIndex === -1) {
+    return { ok: false, error: "Device not found" };
+  }
+  
+  var row = deviceIndex + 2;
+  sheet.getRange(row, 7).setValue("DELETED");
+  SpreadsheetApp.flush();
+  
+  return { ok: true };
+}
+
+// ================= ACTIVITY =================
+function getActivityData() {
+  var sheet = getActivitySheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+  
+  var data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+  var activities = [];
+  for (var i = 0; i < data.length; i++) {
+    activities.push({
+      id: data[i][0],
+      type: data[i][1],
+      companyName: data[i][2],
+      deviceId: data[i][3],
+      violationType: data[i][4],
+      details: data[i][5],
+      timestamp: new Date(data[i][6]).getTime()
+    });
+  }
+  return activities;
+}
+
+function getActivity(limit) {
+  var activities = getActivityData();
+  activities.sort(function(a, b) { return b.timestamp - a.timestamp; });
+  return activities.slice(0, limit);
+}
+
+// ================= INVOICES =================
+function getInvoicesData() {
+  var sheet = getInvoiceSheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+  
+  var data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+  var invoices = [];
+  for (var i = 0; i < data.length; i++) {
+    invoices.push({
+      id: data[i][0],
+      companyId: data[i][1],
+      companyName: data[i][2],
+      amount: data[i][3],
+      months: data[i][4],
+      package: data[i][5],
+      status: data[i][6],
+      createdAt: new Date(data[i][7]).getTime(),
+      paidAt: data[i][8] ? new Date(data[i][8]).getTime() : null
+    });
+  }
+  return invoices;
+}
+
+function getInvoices() {
+  return getInvoicesData();
+}
+
+function markInvoicePaid(params) {
+  var sheet = getInvoiceSheet();
+  var invoices = getInvoicesData();
+  var invoiceId = params.invoiceId;
+  
+  var invoiceIndex = -1;
+  for (var i = 0; i < invoices.length; i++) {
+    if (invoices[i].id === invoiceId) {
+      invoiceIndex = i;
+      break;
+    }
+  }
+  
+  if (invoiceIndex === -1) {
+    return { ok: false, error: "Invoice not found" };
+  }
+  
+  var row = invoiceIndex + 2;
+  sheet.getRange(row, 7).setValue("PAID");
+  sheet.getRange(row, 9).setValue(new Date().toISOString());
+  SpreadsheetApp.flush();
+  
+  return { ok: true };
+}
+
+// ================= DEVICE REQUESTS =================
+function getDeviceRequests(status) {
+  var sheet = getDeviceRequestSheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+  
+  var data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+  var requests = [];
+  for (var i = 0; i < data.length; i++) {
+    if (status === "" || data[i][6] === status) {
+      requests.push({
+        id: data[i][0],
+        companyId: data[i][1],
+        companyName: data[i][2],
+        deviceId: data[i][3],
+        deviceName: data[i][4],
+        fee: data[i][5],
+        status: data[i][6],
+        requestedAt: new Date(data[i][7]).getTime(),
+        notes: data[i][8]
+      });
+    }
+  }
+  return requests;
+}
+
+function approveDeviceRequest(params) {
+  var sheet = getDeviceRequestSheet();
+  var requestId = params.requestId;
+  var approve = params.approve === "true" || params.approve === true;
+  var notes = params.notes || "";
+  
+  var requests = getDeviceRequests("");
+  var requestIndex = -1;
+  for (var i = 0; i < requests.length; i++) {
+    if (requests[i].id === requestId) {
+      requestIndex = i;
+      break;
+    }
+  }
+  
+  if (requestIndex === -1) {
+    return { ok: false, error: "Request not found" };
+  }
+  
+  var row = requestIndex + 2;
+  
+  if (approve) {
+    var fee = requests[requestIndex].fee;
+    sheet.getRange(row, 7).setValue("WAITING_PAYMENT");
+    
+    var invoiceSheet = getInvoiceSheet();
+    var invoiceId = "INV_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+    invoiceSheet.appendRow([
+      invoiceId,
+      requests[requestIndex].companyId,
+      requests[requestIndex].companyName,
+      fee,
+      1,
+      "EXTRA_DEVICE",
+      "UNPAID",
+      new Date().toISOString(),
+      ""
+    ]);
+    
+    SpreadsheetApp.flush();
+    
+    return {
+      ok: true,
+      invoiceId: invoiceId,
+      amount: fee
+    };
+  } else {
+    sheet.getRange(row, 7).setValue("REJECTED");
+    sheet.getRange(row, 9).setValue(notes);
+    SpreadsheetApp.flush();
+    return { ok: true };
+  }
+}
+
+// ================= ADMIN USERS =================
+function getAdminUsers() {
+  var sheet = getUserSheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+  
+  var data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+  var users = [];
+  for (var i = 0; i < data.length; i++) {
+    users.push({
+      username: data[i][0],
+      role: data[i][2]
+    });
+  }
+  return users;
+}
+
+function addAdminUser(params) {
+  var sheet = getUserSheet();
+  var username = params.username;
+  var password = params.password;
+  var role = params.role || "ADMIN";
+  
+  var existing = getAdminUsers().filter(function(u) { return u.username === username; });
+  if (existing.length > 0) {
+    return { ok: false, error: "Username already exists" };
+  }
+  
+  sheet.appendRow([
+    username,
+    btoa(password),
+    role,
+    new Date().toISOString()
+  ]);
+  
+  SpreadsheetApp.flush();
+  return { ok: true };
+}
+
+function deleteAdminUser(params) {
+  var sheet = getUserSheet();
+  var username = params.username;
+  
+  if (username === "admin") {
+    return { ok: false, error: "Cannot delete default admin" };
+  }
+  
+  var users = getAdminUsers();
+  var userIndex = -1;
+  for (var i = 0; i < users.length; i++) {
+    if (users[i].username === username) {
+      userIndex = i;
+      break;
+    }
+  }
+  
+  if (userIndex === -1) {
+    return { ok: false, error: "User not found" };
+  }
+  
+  var row = userIndex + 2;
+  sheet.deleteRow(row);
+  SpreadsheetApp.flush();
+  
+  return { ok: true };
+}
+
+// ================= SETTINGS =================
+function saveSettings(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName("vms_settings");
+  if (!sheet) {
+    sheet = ss.insertSheet("vms_settings");
+    sheet.appendRow(["Key", "Value"]);
+  }
+  
+  var pricing = params.pricing;
+  var general = params.general;
+  
+  if (pricing) {
+    setSetting(sheet, "price_basic", pricing.BASIC ? pricing.BASIC.price : 500000);
+    setSetting(sheet, "price_pro", pricing.PRO ? pricing.PRO.price : 2000000);
+    setSetting(sheet, "extra_device_fee", pricing.BASIC ? pricing.BASIC.extraDeviceFee : 50000);
+  }
+  
+  if (general) {
+    setSetting(sheet, "tax_rate", general.tax || 11);
+  }
+  
+  SpreadsheetApp.flush();
+  return { ok: true };
+}
+
+function setSetting(sheet, key, value) {
+  var lastRow = sheet.getLastRow();
+  var data = sheet.getRange(1, 1, lastRow, 2).getValues();
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][0] === key) {
+      sheet.getRange(i + 1, 2).setValue(value);
+      return;
+    }
+  }
+  sheet.appendRow([key, value]);
+}
+
+// ================= SYSTEM =================
+function checkExpiredLicenses() {
+  var sheet = getCompanySheet();
+  var companies = getCompaniesData();
+  var now = Date.now();
+  var updated = 0;
+  
+  for (var i = 0; i < companies.length; i++) {
+    if (companies[i].expiredAt < now && companies[i].status === "ACTIVE") {
+      var row = i + 2;
+      sheet.getRange(row, 12).setValue("EXPIRED");
+      updated++;
+    }
+  }
+  
+  SpreadsheetApp.flush();
+  return { ok: true, updated: updated > 0 };
+}
+
+function resetSystem() {
+  var sheets = ["vms_license", "vms_devices", "vms_activity", "vms_invoices", "vms_device_requests"];
+  for (var s = 0; s < sheets.length; s++) {
+    var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheets[s]);
+    if (sheet) {
+      var lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        sheet.deleteRows(2, lastRow - 1);
+      }
+    }
+  }
+  
+  return { ok: true };
+}
