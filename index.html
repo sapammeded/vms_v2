@@ -118,7 +118,7 @@
 <script>
 // ================= KONFIGURASI =================
 // ⚠️ GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT VMS CLIENT ANDA ⚠️
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXvfNLR5rbkvBDcBswXrVAHErlkX1IGt6XhrhF0wRjjdALwFm4sGTfCWw0WNi-KDpF/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAc_7k8YdMz9XnU2Z0dMBAkJ1dOfKuVk3s9R94VPmy9ufaEAC1J2XuerqwY7wdILaO/exec";
 const SYNC_INTERVAL_MS = 5000;
 
 // ================= GLOBAL VARIABLES =================
@@ -302,12 +302,16 @@ async function pullFromSheet() {
                 var reg = row[8];
                 if (!reg) continue;
                 
-                var photoUrl = row[18] || "";
-                if (photoUrl && photoUrl.startsWith("https://")) {
-                    // sudah benar
-                } else if (visitors[reg] && visitors[reg].foto) {
-                    photoUrl = visitors[reg].foto;
-                }
+                var photoUrl = "";
+if (row[18] && row[18].startsWith("https://")) {
+    photoUrl = row[18];  // URL dari Google Drive
+} else if (visitors[reg] && visitors[reg].foto) {
+    if (visitors[reg].foto.startsWith("data:image")) {
+        photoUrl = visitors[reg].foto;  // Pertahankan base64 lokal
+    } else if (visitors[reg].foto.startsWith("https://")) {
+        photoUrl = visitors[reg].foto;
+    }
+}
                 
                 visitors[reg] = {
                     nama: row[0] || (visitors[reg] ? visitors[reg].nama : "Unknown"),
@@ -508,9 +512,12 @@ async function downloadPDF(reg, data) {
         for (var key in data) { visitorData[key] = data[key]; }
         var fromStorage = visitors[reg];
         if (fromStorage) {
-            for (var k in fromStorage) { if (!visitorData[k] || visitorData[k] === "-") visitorData[k] = fromStorage[k]; }
+            for (var k in fromStorage) { 
+                if (!visitorData[k] || visitorData[k] === "-") visitorData[k] = fromStorage[k]; 
+            }
         }
         
+        // Header
         doc.setFillColor(31, 78, 74);
         doc.rect(0, 0, 105, 25, "F");
         doc.setTextColor(255, 255, 255);
@@ -520,14 +527,47 @@ async function downloadPDF(reg, data) {
         doc.setFontSize(8);
         doc.text("SECURITY AUTHORIZED", 52.5, 18, { align: "center" });
         
-        if (visitorData.foto && visitorData.foto.length > 100 && visitorData.foto.startsWith("data:image")) {
-            try {
+        // FOTO - HANYA BASE64, URL DRIVE DI-SKIP
+        if (visitorData.foto && visitorData.foto.length > 100) {
+            if (visitorData.foto.startsWith("data:image")) {
+                try {
+                    doc.setDrawColor(200, 200, 200);
+                    doc.rect(32.5, 30, 40, 50);
+                    doc.addImage(visitorData.foto, "JPEG", 33, 30.5, 39, 49);
+                } catch(e) { 
+                    console.error("Foto error:", e); 
+                    // Placeholder jika gagal
+                    doc.setDrawColor(200, 200, 200);
+                    doc.rect(32.5, 30, 40, 50);
+                    doc.setFontSize(6);
+                    doc.setTextColor(100, 100, 100);
+                    doc.text("Photo", 52.5, 55, { align: "center" });
+                }
+            } else if (visitorData.foto.startsWith("https://")) {
+                // URL Drive - tampilkan placeholder saja
                 doc.setDrawColor(200, 200, 200);
                 doc.rect(32.5, 30, 40, 50);
-                doc.addImage(visitorData.foto, "JPEG", 33, 30.5, 39, 49);
-            } catch(e) { console.error("Foto error:", e); }
+                doc.setFontSize(6);
+                doc.setTextColor(100, 100, 100);
+                doc.text("Photo on Cloud", 52.5, 55, { align: "center" });
+            } else {
+                // Format tidak dikenal - placeholder
+                doc.setDrawColor(200, 200, 200);
+                doc.rect(32.5, 30, 40, 50);
+                doc.setFontSize(6);
+                doc.setTextColor(100, 100, 100);
+                doc.text("No Photo", 52.5, 55, { align: "center" });
+            }
+        } else {
+            // Tidak ada foto - placeholder kosong
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(32.5, 30, 40, 50);
+            doc.setFontSize(6);
+            doc.setTextColor(100, 100, 100);
+            doc.text("No Photo", 52.5, 55, { align: "center" });
         }
         
+        // Nama dan Perusahaan
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
         doc.setFont(undefined, "bold");
@@ -536,24 +576,29 @@ async function downloadPDF(reg, data) {
         doc.setFont(undefined, "normal");
         doc.text(visitorData.perusahaan || "-", 52.5, 96, { align: "center" });
         
+        // Garis pembatas
         doc.setDrawColor(31, 78, 74);
         doc.setLineWidth(0.5);
         doc.line(15, 102, 90, 102);
         
+        // Detail
         doc.setFontSize(8);
         var y = 108;
         doc.text("PIC      : " + (visitorData.pic || "-"), 15, y);
         doc.text("DATE     : " + (visitorData.startDate || "-"), 15, y + 5);
         doc.text("VALID TO : " + (visitorData.expDate || "-"), 15, y + 10);
         
+        // QR Code
         if (visitorData.qrImage) {
             doc.addImage(visitorData.qrImage, "PNG", 70, 115, 25, 25);
         }
         
+        // REG
         doc.setFontSize(7);
         doc.setTextColor(150, 150, 150);
         doc.text(reg, 82.5, 142, { align: "center" });
         
+        // Footer
         doc.setFontSize(6);
         doc.text("Property of Security Department. Must be worn at all times.", 52.5, 146, { align: "center" });
         
