@@ -21,7 +21,7 @@ function handleRequest(e) {
     output.setMimeType(ContentService.MimeType.JSON);
     
     if (action === "pull") {
-      var result = pullData();
+      var result = pullData(params.limit);
       output.setContent(JSON.stringify(result));
       return output;
     }
@@ -167,7 +167,7 @@ function updateStatus(reg, statusLabel, timeCol) {
   }
 }
 
-function pullData() {
+function pullData(limitParam) {
   try {
     var sheet = getVisitorSheet();
     SpreadsheetApp.flush();
@@ -176,7 +176,12 @@ function pullData() {
     
     if (lastRow <= 1) return { status: "success", data: [headers] };
     
-    var rows = sheet.getRange(2, 1, lastRow - 1, 19).getValues();
+    var maxRows = parseInt(limitParam, 10);
+    if (!maxRows || isNaN(maxRows) || maxRows < 50) maxRows = 1500;
+    if (maxRows > 5000) maxRows = 5000;
+    var takeRows = Math.min(lastRow - 1, maxRows);
+    var startRow = Math.max(2, lastRow - takeRows + 1);
+    var rows = sheet.getRange(startRow, 1, takeRows, 19).getValues();
     var reversedRows = [];
     for (var i = rows.length - 1; i >= 0; i--) {
       reversedRows.push(rows[i]);

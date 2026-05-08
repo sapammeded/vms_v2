@@ -143,6 +143,8 @@ let runtimeListenersBound = false;
 let lastPullAt = 0;
 let localMutationAt = 0;
 let activePreviewModal = null;
+let lastPullSeq = 0;
+let pageActive = true;
 
 function sleep(ms) { return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
 
@@ -385,13 +387,15 @@ async function checkoutVisitor(reg) {
 
 // ================= SYNC =================
 async function pullFromSheet() {
-    if (syncLock || !navigator.onLine) return;
+    if (syncLock || !navigator.onLine || !pageActive) return;
     if (Date.now() - localMutationAt < 600) return;
     syncLock = true;
     try {
-        var res = await fetch(APPS_SCRIPT_URL + "?action=pull&site_id=" + encodeURIComponent(SITE_ID));
+        var seq = ++lastPullSeq;
+        var res = await fetch(APPS_SCRIPT_URL + "?action=pull&site_id=" + encodeURIComponent(SITE_ID) + "&limit=1500");
         if (!res.ok) throw new Error("Pull HTTP " + res.status);
         var result = await res.json();
+        if (seq !== lastPullSeq) return;
         if (!result || typeof result !== "object" || !Array.isArray(result.data)) throw new Error("Malformed pull payload");
         
         if (result.status === "success" && result.data && result.data.length > 0) {
@@ -1044,6 +1048,7 @@ async function init() {
     if (!runtimeListenersBound) {
         window.addEventListener("online", function() { processSyncQueue(); pullFromSheet(); });
         window.addEventListener("visibilitychange", function() {
+            pageActive = (document.visibilityState === "visible");
             if (document.visibilityState === "visible") {
                 secureLoad();
                 renderDashboard();

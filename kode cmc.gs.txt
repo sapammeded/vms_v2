@@ -52,130 +52,6 @@ function handleRequest(e, method) {
 }
 
 function routeRequest(path, params, method) {
-  // PERBAIKAN KRUSIAL: Gunakan actualPath agar bisa membaca dari parameter URL (?path=)
-  var actualPath = path || params.path || ""; 
-  
-  // Normalisasi path: hapus slash di awal jika ada untuk konsistensi pengecekan
-  var cleanPath = actualPath.startsWith("/") ? actualPath.substring(1) : actualPath;
-  
-  // 1. LOGIN (Tanpa Token)
-  if (cleanPath === "login") {
-    return doLogin(params);
-  }
-  
-  // --- VALIDASI TOKEN UNTUK SEMUA PATH SELAIN LOGIN ---
-  if (!params.token || !validateToken(params.token)) {
-    return { ok: false, error: "Unauthorized: Token tidak valid atau kadaluarsa" };
-  }
-  
-  // 2. DASHBOARD STATS
-  if (cleanPath === "admin/stats") {
-    return getStats();
-  }
-  
-  // 3. COMPANIES
-  if (cleanPath === "admin/companies") {
-    return getCompanies();
-  }
-  
-  // 4. COMPANY DETAIL
-  if (cleanPath && cleanPath.indexOf("admin/company/") === 0) {
-    var companyId = cleanPath.split("/").pop();
-    return getCompanyDetail(companyId);
-  }
-  
-  // 5. DEVICES
-  if (cleanPath === "admin/devices") {
-    return getDevices();
-  }
-  
-  // 6. ACTIVITY / VIOLATIONS
-  if (cleanPath === "admin/activity") {
-    var limit = params.limit ? parseInt(params.limit) : 500;
-    return getActivity(limit);
-  }
-  
-  // 7. INVOICES
-  if (cleanPath === "admin/invoices") {
-    return getInvoices();
-  }
-  
-  // 8. DEVICE REQUESTS
-  if (cleanPath === "admin/device-requests") {
-    var status = params.status || "";
-    return getDeviceRequests(status);
-  }
-  
-  // 9. ACTIONS
-  if (cleanPath === "generate-license") return generateLicense(params);
-  if (cleanPath === "renew-license") return renewLicense(params);
-  if (cleanPath === "update-package") return updatePackage(params);
-  if (cleanPath === "approve-device") return approveDevice(params);
-  if (cleanPath === "approve-device-request") return approveDeviceRequest(params);
-  if (cleanPath === "delete-device") return deleteDevice(params);
-  if (cleanPath === "delete-company") return deleteCompany(params);
-  if (cleanPath === "mark-invoice-paid") return markInvoicePaid(params);
-  
-  // 10. ADMIN & SETTINGS
-  if (cleanPath === "admin/users") return getAdminUsers();
-  if (cleanPath === "admin/add-user") return addAdminUser(params);
-  if (cleanPath === "admin/delete-user") return deleteAdminUser(params);
-  if (cleanPath === "admin/settings") return saveSettings(params);
-  if (cleanPath === "admin/reset-system") return resetSystem();
-  
-  // 11. CRON JOB
-  if (cleanPath === "cron/check-expired") return checkExpiredLicenses();
-  
-  return { ok: false, error: "Endpoint tidak ditemukan: " + cleanPath };
-}
-
-// ================= AUTHENTICATION (FULL FIXED) =================
-
-function doLogin(params) {
-  var user = params.username;
-  var pass = params.password;
-  
-  if (!user || !pass) {
-    return { ok: false, error: "Username dan Password wajib diisi!" };
-  }
-  
-  // Memastikan mengambil sheet yang benar
-  var sheet = getUserSheet(); 
-  var data = sheet.getDataRange().getValues();
-  
-  for (var i = 1; i < data.length; i++) {
-    var dbUser = data[i][0];
-    var dbPassEncrypted = data[i][1];
-    var dbRole = data[i][2];
-    
-    // Decode password dari Base64 di sheet agar bisa dibandingkan dengan input teks biasa
-    var decodedPass = "";
-    try {
-      decodedPass = Utilities.newBlob(Utilities.base64Decode(dbPassEncrypted)).getDataAsString();
-    } catch(e) {
-      decodedPass = dbPassEncrypted; // Jika bukan Base64, gunakan teks asli
-    }
-    
-    if (dbUser == user && decodedPass == pass) {
-      var token = Utilities.base64Encode(user + ":" + Date.now());
-      return { 
-        ok: true, 
-        token: token, 
-        username: dbUser, 
-        role: dbRole
-      };
-    }
-  }
-  return { ok: false, error: "Username atau Password salah!" };
-}
-
-// Fungsi pembantu agar tidak ada error pemanggilan nama fungsi
-function getAdminSheet() {
-  return getUserSheet();
-}
-
-
-function routeRequest(path, params, method) {
   // PENTING: Gunakan actualPath agar bisa membaca parameter dari URL (?path=...)
   var actualPath = path || params.path || ""; 
   
@@ -184,6 +60,10 @@ function routeRequest(path, params, method) {
     return doLogin(params);
   }
   
+  if (!params.token || !validateToken(params.token)) {
+    return { ok: false, error: "Unauthorized: Token tidak valid atau kadaluarsa" };
+  }
+
   // 2. DASHBOARD STATS
   if (actualPath === "/admin/stats") {
     return getStats();
@@ -238,12 +118,28 @@ function routeRequest(path, params, method) {
   if (actualPath === "/admin/users") return getAdminUsers();
   if (actualPath === "/admin/add-user") return addAdminUser(params);
   if (actualPath === "/admin/delete-user") return deleteAdminUser(params);
+  if (actualPath === "/admin/change-password") return changePassword(params);
   
   // 11. CRON JOB
   if (actualPath === "/cron/check-expired") return checkExpiredLicenses();
   
   // Jika tidak ada yang cocok
   return { ok: false, error: "Endpoint tidak ditemukan: " + actualPath };
+}
+
+
+function validateToken(token) {
+  try {
+    var raw = Utilities.newBlob(Utilities.base64Decode(token)).getDataAsString();
+    var parts = raw.split(":");
+    if (parts.length < 2) return false;
+    var issuedAt = parseInt(parts[1], 10);
+    if (!issuedAt || isNaN(issuedAt)) return false;
+    var maxAgeMs = 24 * 60 * 60 * 1000;
+    return (Date.now() - issuedAt) <= maxAgeMs;
+  } catch (e) {
+    return false;
+  }
 }
 
 // ================= SHEET GETTERS =================
@@ -372,6 +268,25 @@ function doLogin(params) {
   return { ok: false, error: "Username atau Password salah!" };
 }
 
+
+function changePassword(params) {
+  var username = params.username;
+  var oldPassword = params.oldPassword;
+  var newPassword = params.newPassword;
+  if (!username || !oldPassword || !newPassword) return { ok: false, error: "Parameter tidak lengkap" };
+  var sheet = getUserSheet();
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] != username) continue;
+    var current = "";
+    try { current = Utilities.newBlob(Utilities.base64Decode(data[i][1])).getDataAsString(); } catch(e) { current = data[i][1]; }
+    if (current != oldPassword) return { ok: false, error: "Password lama salah" };
+    sheet.getRange(i + 1, 2).setValue(Utilities.base64Encode(newPassword));
+    sheet.getRange(i + 1, 4).setValue(new Date().toISOString());
+    return { ok: true, message: "Password berhasil diubah" };
+  }
+  return { ok: false, error: "User tidak ditemukan" };
+}
 
 // ================= STATS =================
 function getStats() {
