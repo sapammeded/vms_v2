@@ -1305,7 +1305,9 @@
             refreshInterval = null;
         }
 
-        localStorage.clear();
+        localStorage.removeItem("vms_admin_token");
+        localStorage.removeItem("vms_admin_user");
+        localStorage.removeItem("vms_admin_role");
 
         document.getElementById("loginOverlay").classList.remove("hidden");
 
