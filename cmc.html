@@ -1117,6 +1117,8 @@
     let invoicesData = [];
 
     let syncLock = false;
+    let latestFetchSeq = 0;
+    let cmcPageActive = true;
 
     function showToast(message, type = "info") {
         const container = document.getElementById("toastContainer");
@@ -1134,7 +1136,7 @@
         setTimeout(() => toast.remove(), 3000);
     }
 
-        async function apiCall(endpoint, options = {}) {
+    async function apiCall(endpoint, options = {}) {
         try {
             const currentToken = localStorage.getItem("vms_admin_token");
             
@@ -1151,12 +1153,14 @@
                 fetchOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
             }
 
+            const reqSeq = ++latestFetchSeq;
             const res = await fetch(finalUrl, fetchOptions);
             if (!res.ok) throw new Error("HTTP " + res.status);
             const ct = res.headers.get("content-type") || "";
             if (!ct.includes("application/json")) throw new Error("Non-JSON response");
             const data = await res.json();
             if (!data || typeof data !== "object") throw new Error("Malformed payload");
+            if (reqSeq !== latestFetchSeq && endpoint !== "/login") return { ok: false, stale: true };
             return data;
         } catch (e) {
             console.error("API Error:", e);
@@ -1305,7 +1309,9 @@
             refreshInterval = null;
         }
 
-        localStorage.clear();
+        localStorage.removeItem("vms_admin_token");
+        localStorage.removeItem("vms_admin_user");
+        localStorage.removeItem("vms_admin_role");
 
         document.getElementById("loginOverlay").classList.remove("hidden");
 
@@ -1315,7 +1321,7 @@
     async function loadAllData() {
         if (!localStorage.getItem("vms_admin_token")) return;
 
-        if (syncLock) return;
+        if (syncLock || !cmcPageActive) return;
         syncLock = true;
         
         try {
@@ -1535,7 +1541,7 @@
     async function loadActivity() {
         const data = await apiCall("/admin/activity?limit=500");
         if (data && Array.isArray(data)) {
-            activityData = data;
+            activityData = data.slice(0, 1000);
             renderViolationsTable();
             renderRecentViolations();
         }
@@ -2309,6 +2315,7 @@
         }
         
         window.addEventListener("online", () => { if (localStorage.getItem("vms_admin_token")) loadAllData(); });
+        window.addEventListener("visibilitychange", () => { cmcPageActive = !document.hidden; if (cmcPageActive && localStorage.getItem("vms_admin_token")) loadAllData(); });
         window.addEventListener("storage", (e) => {
             if (!e || !e.key) return;
             if (e.key === "vms_admin_token" && !localStorage.getItem("vms_admin_token")) {
@@ -2316,7 +2323,7 @@
             }
         });
 
-        setInterval(() => {
+        setInterval(() => { if (!cmcPageActive) return;
             const serverTimeSpan = document.getElementById("serverTime");
             if (serverTimeSpan) serverTimeSpan.innerHTML = `Server Time: ${new Date().toLocaleString()}`;
         }, 1000);
